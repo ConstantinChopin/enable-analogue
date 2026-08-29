@@ -71,8 +71,8 @@ Verbatim quotes from partner-agency weekly calls and product labs, grouped by th
 
 | ID | Signal | Date | Context |
 |---|---|---|---|
-| SIG-45 | "Sam can go in and say Sam's notes — great for corporate... you don't necessarily have to be on this call to retrieve that information." | 2026-04-30 | the agency lead pitching shared notes live; notes are attributed and retrievable across the team |
-| SIG-46 | Two scope taxonomies named in the same 2026-04-30 material: entity-level three-tier **private / agency / alliance**; and the advisor-note product need's `privacy_scope`: **private / team / agency-wide** ("private / team / TravelLustre-wide"). Financial data stays private even when notes are shared — "Colleen would have your company dashboard... that nobody else can see"; "we want sharing appropriate data, but we want to make sure we're not sharing sensitive data" | 2026-04-30 | note-level scope grounds private/team/organization in the analogue (alliance tier out of analogue scope); field-level privacy for financials; the rollout gate |
+| SIG-45 | "[An advisor] can go in and say [their] notes — great for corporate... you don't necessarily have to be on this call to retrieve that information." | 2026-04-30 | the agency lead pitching shared notes live; notes are attributed and retrievable across the team |
+| SIG-46 | Two scope taxonomies named in the same 2026-04-30 material: entity-level three-tier **private / agency / alliance**; and the advisor-note product need's `privacy_scope`: **private / team / agency-wide** ("private / team / agency-wide"). Financial data stays private even when notes are shared — "[the finance lead] would have your company dashboard... that nobody else can see"; "we want sharing appropriate data, but we want to make sure we're not sharing sensitive data" | 2026-04-30 | note-level scope grounds private/team/organization in the analogue (alliance tier out of analogue scope); field-level privacy for financials; the rollout gate |
 
 ## Knowledge capture
 
