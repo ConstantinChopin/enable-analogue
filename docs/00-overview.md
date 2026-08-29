@@ -33,12 +33,18 @@ Every record in Enable belongs to exactly one layer. The UI must always show whi
 
 ## 4. Journey index
 
+The organizing idea: Enable reconciles product data from heterogeneous sources into one layered model, and every surface is a different door into that model. Two doors are explicit — **the catalogue (E)** and **the conversation (A)** — with B, C, D, F as the model's time dimension, push surface, intake, and most sensitive record type.
+
 | # | Journey | One line | Spec |
 |---|---|---|---|
-| A | **The Trusted Answer** | An advisor asks a commercial question and gets an answer she can forward, or an honest refusal | `journeys/journey-a-trusted-answer.md` |
-| B | **The Advisory Lifecycle** | Time-bound intelligence enters the system, surfaces everywhere it matters, and is retired deliberately (v1 auto-expire → v2 manual close) | `journeys/journey-b-advisory-lifecycle.md` |
-| C | **The Working Day** | The briefing room: commissions, departures, notices; the product drafts, the advisor sends | `journeys/journey-c-working-day.md` |
-| D | **Governance** (supporting) | Document permissions, three-tier sharing, admin policy | folded into B's admin sections |
+| E | **The Record** | The catalogue door: reconciliation made visible — layered fields, provenance, conflicts shown; inspect, edit as overlay, annotate with scope | `journeys/journey-e-record.md` |
+| A | **The Trusted Answer** | The conversation door over the same model: cited answer, conflict, or honest refusal | `journeys/journey-a-trusted-answer.md` |
+| B | **The Advisory Lifecycle** | Time-bound intelligence surfaces everywhere it matters and is retired deliberately (v1 auto-expire → v2 manual close) | `journeys/journey-b-advisory-lifecycle.md` |
+| C | **The Working Day** | The briefing room: commissions drafted, never auto-sent; departures; notices; the model pushed at you | `journeys/journey-c-working-day.md` |
+| D | **Connections & Extraction Confirmation** | An admin connects a source; candidates from the pipeline become truth only when a human confirms them, field by field | `journeys/journey-d-ingestion-confirmation.md` |
+| F | **The Traveller** | The VIC profile: personal-by-default, all-or-nothing sharing, preferences attributed and never guessed | `journeys/journey-f-traveller.md` |
+
+Governance (permissions, three-tier sharing, admin policy) is carried by B (scope/publish/audit), D (private-by-default at the ingestion boundary), E (note scopes), and F (VIC ownership). Itineraries remain a supporting screen: the decision not to build an itinerary builder is one of the four documented refusals, narrated rather than journeyed.
 
 ## 5. Surfaces
 

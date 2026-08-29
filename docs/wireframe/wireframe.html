@@ -1,0 +1,755 @@
+<title>Enable Wireframe</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#FAFAF9; --ink:#1C1917; --muted:#78716C; --line:#D8D4D0; --fill:#F1EFEC;
+  --wire:#2456C6; --wire-fill:#EDF2FC; --warn:#A16207; --warn-fill:#FDF6E3; --crit:#B3372F; --crit-fill:#FBEFEE;
+  --chip:#E7E5E4;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#191716; --ink:#E7E5E4; --muted:#A8A29E; --line:#3F3B38; --fill:#211E1C;
+    --wire:#7B9FE8; --wire-fill:#1D2536; --warn:#D9A94A; --warn-fill:#2A2416; --crit:#DE8078; --crit-fill:#2E1D1B;
+    --chip:#2A2725;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#191716; --ink:#E7E5E4; --muted:#A8A29E; --line:#3F3B38; --fill:#211E1C;
+  --wire:#7B9FE8; --wire-fill:#1D2536; --warn:#D9A94A; --warn-fill:#2A2416; --crit:#DE8078; --crit-fill:#2E1D1B;
+  --chip:#2A2725;
+}
+*{box-sizing:border-box;margin:0}
+body{background:var(--paper);color:var(--ink);font:14px/1.5 "IBM Plex Sans",system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+/* frame */
+#topbar{display:flex;align-items:center;gap:16px;padding:8px 14px;border-bottom:1px solid var(--line);flex-shrink:0}
+#topbar h1{font:600 13px "IBM Plex Mono",monospace;letter-spacing:.06em;text-transform:uppercase}
+#topbar .note{color:var(--muted);font-size:12px}
+.seg{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg button{border:0;background:none;color:var(--muted);font:500 12px "IBM Plex Mono",monospace;padding:5px 10px;cursor:pointer}
+.seg button.on{background:var(--fill);color:var(--ink)}
+#frame{display:flex;flex:1;min-height:0}
+#nav{width:186px;border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:2px;flex-shrink:0;overflow-y:auto}
+#nav .grp{font:600 10px "IBM Plex Mono",monospace;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin:12px 6px 4px}
+#nav a{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:6px 8px;border-radius:4px;color:var(--ink);text-decoration:none;cursor:pointer;font-size:13px}
+#nav a:hover{background:var(--fill)}
+#nav a.on{background:var(--fill);font-weight:600}
+#main{flex:1;overflow-y:auto;padding:22px 26px 90px}
+#rail{position:fixed;left:0;right:0;bottom:0;display:flex;gap:6px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);background:var(--paper)}
+#rail .lbl{font:600 10px "IBM Plex Mono",monospace;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-right:6px}
+#rail button{border:1px solid var(--line);background:var(--paper);color:var(--ink);font:500 11px "IBM Plex Mono",monospace;padding:4px 9px;border-radius:4px;cursor:pointer}
+#rail button:hover{border-color:var(--wire);color:var(--wire)}
+/* wire primitives */
+.screen{display:none;max-width:980px}
+.screen.on{display:block}
+h2.scr{font:600 16px "IBM Plex Sans";margin-bottom:2px}
+.crumb{font:500 11px "IBM Plex Mono",monospace;color:var(--muted);margin-bottom:14px}
+.box{border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:12px;background:var(--paper)}
+.box.x{border-style:dashed}   /* dashed = declared extrapolation */
+.box h3{font:600 13px "IBM Plex Sans";margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.row{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.row>.box{flex:1;min-width:230px}
+.chip{font:500 10px "IBM Plex Mono",monospace;background:var(--chip);color:var(--muted);border-radius:3px;padding:1px 6px;white-space:nowrap}
+.chip.w{background:var(--warn-fill);color:var(--warn)}
+.chip.c{background:var(--crit-fill);color:var(--crit)}
+.chip.b{background:var(--wire-fill);color:var(--wire)}
+.ph{background:var(--fill);border-radius:3px;color:var(--muted);font-size:12px;padding:2px 8px;display:inline-block}
+.btn{display:inline-block;border:1px solid var(--wire);color:var(--wire);background:none;border-radius:4px;font:500 12px "IBM Plex Sans";padding:5px 12px;cursor:pointer}
+.btn.solid{background:var(--wire);color:var(--paper)}
+.btn.quiet{border-color:var(--line);color:var(--muted)}
+.btn:focus-visible,#nav a:focus-visible,#rail button:focus-visible{outline:2px solid var(--wire);outline-offset:2px}
+.field{display:flex;justify-content:space-between;gap:10px;padding:7px 4px;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer;align-items:baseline;flex-wrap:wrap}
+.field:last-child{border-bottom:0}
+.field:hover{background:var(--fill)}
+.field .k{color:var(--muted);min-width:130px}
+.src{font:400 11px "IBM Plex Mono",monospace;color:var(--muted)}
+.banner{border-left:3px solid var(--warn);background:var(--warn-fill);padding:8px 12px;border-radius:0 4px 4px 0;margin-bottom:12px;font-size:13px}
+.banner.crit{border-color:var(--crit);background:var(--crit-fill)}
+.banner.ok{border-color:var(--wire);background:var(--wire-fill)}
+.msg{border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:8px;max-width:620px;font-size:13px}
+.msg.q{background:var(--fill);margin-left:auto;max-width:420px}
+.cite{color:var(--wire);cursor:pointer;font:500 11px "IBM Plex Mono",monospace}
+/* sheet overlay */
+#veil{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35)}
+#veil.on{display:block}
+.sheet{display:none;position:fixed;top:0;right:0;bottom:0;width:420px;max-width:92vw;background:var(--paper);border-left:1px solid var(--line);padding:20px;overflow-y:auto;z-index:5}
+.sheet.on{display:block}
+.sheet h3{font-weight:600;margin-bottom:10px}
+.sheet .close{float:right;cursor:pointer;color:var(--muted);border:0;background:none;font-size:16px}
+label.opt{display:flex;gap:8px;align-items:baseline;padding:6px 0;cursor:pointer;font-size:13px}
+textarea,input[type=text]{width:100%;border:1px solid var(--line);border-radius:4px;background:var(--paper);color:var(--ink);font:13px "IBM Plex Sans";padding:8px}
+.hint{font-size:12px;color:var(--muted);margin-top:6px}
+.legend{font:400 11px "IBM Plex Mono",monospace;color:var(--muted)}
+.tabs{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line);background:none;color:var(--muted);font:500 11px "IBM Plex Mono",monospace;padding:4px 10px;border-radius:4px;cursor:pointer}
+.tabs button.on{border-color:var(--wire);color:var(--wire);background:var(--wire-fill)}
+.hidden{display:none!important}
+/* cards (directories) */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-bottom:12px}
+.card{border:1px solid var(--line);border-radius:8px;padding:13px 14px;cursor:pointer;background:var(--paper);display:flex;flex-direction:column;gap:7px;text-align:left}
+.card:hover{border-color:var(--wire);box-shadow:0 2px 10px rgba(0,0,0,.07)}
+.card.sel{border-color:var(--wire);box-shadow:inset 0 0 0 1px var(--wire)}
+.card h4{font:600 14px "IBM Plex Sans"}
+.card .meta{color:var(--muted);font-size:12px}
+.card .chips{display:flex;gap:5px;flex-wrap:wrap}
+.card .foot{margin-top:auto;padding-top:8px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.lyr{display:flex;gap:3px}
+.lyr i{width:7px;height:7px;border-radius:50%;background:var(--line);display:block}
+.lyr i.f{background:var(--muted)}
+/* right rail detail */
+#detail{position:fixed;top:0;right:0;bottom:41px;width:392px;max-width:92vw;background:var(--paper);border-left:1px solid var(--line);padding:18px;overflow-y:auto;z-index:4;transform:translateX(102%)}
+#detail.on{transform:none}
+#detail .railpane{display:none}
+#detail .railpane.on{display:block}
+#detail h3{font:600 15px;margin-bottom:2px}
+#detail .meta{color:var(--muted);font-size:12px;margin-bottom:10px}
+.rgrp{border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-bottom:8px}
+.rgrp b{font:600 10px "IBM Plex Mono",monospace;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:4px}
+@media (prefers-reduced-motion:no-preference){.sheet{transition:transform .15s ease}#detail{transition:transform .18s ease}.card{transition:border-color .12s,box-shadow .12s}}
+</style>
+
+<div id="topbar">
+  <h1>Enable · wireframe</h1>
+  <span class="ph mono" style="font-size:11px">⌘K search everything <span class="chip">A-EP2 · E-EP2</span></span>
+  <span class="legend">solid&nbsp;=&nbsp;grounded · dashed&nbsp;=&nbsp;extrapolation · chips&nbsp;=&nbsp;spec&nbsp;ids</span>
+  <span style="flex:1"></span>
+  <span class="legend">world</span>
+  <div class="seg" id="worldSeg">
+    <button data-world="v1">v1 mar</button><button data-world="v2" class="on">v2 current</button>
+  </div>
+  <span class="legend">persona</span>
+  <div class="seg" id="personaSeg">
+    <button data-persona="advisor" class="on">Advisor</button><button data-persona="lead">Agency lead</button><button data-persona="ops">Ops</button>
+  </div>
+</div>
+
+<div id="frame">
+<nav id="nav">
+  <div class="grp">The working day</div>
+  <a data-go="briefing" class="p-advisor p-lead">Briefing <span class="chip">C</span></a>
+  <a data-go="ask" class="p-advisor">Ask <span class="chip">A</span></a>
+  <div class="grp">The model</div>
+  <a data-go="records" class="p-advisor p-lead">Records <span class="chip">E</span></a>
+  <a data-go="itineraries" class="p-advisor">Itineraries</a>
+  <a data-go="travellers" class="p-advisor">Travellers <span class="chip">F</span></a>
+  <div class="grp">Governance</div>
+  <a data-go="knowledge" class="p-advisor p-lead">Knowledge</a>
+  <a data-go="stale" class="p-advisor">Notices due <span class="chip">B</span></a>
+  <a data-go="publish" class="p-lead">Publish queue <span class="chip">B-EP4</span></a>
+  <a data-go="connections" class="p-lead">Connections <span class="chip">D</span></a>
+  <a data-go="review" class="p-lead p-ops">Confirm new records <span class="chip">D</span></a>
+  <a data-go="resolution" class="p-ops">Unmatched payments <span class="chip">C-U1</span></a>
+</nav>
+
+<main id="main">
+
+<!-- ══ BRIEFING ══ -->
+<section class="screen" id="briefing">
+  <h2 class="scr">Good morning <span class="chip">C-EP1 default landing</span></h2>
+  <div class="crumb">Briefing / Paris desk · Tuesday</div>
+  <div class="box"><h3>EUR 2,512 outstanding across three commissions <span class="chip">C-4.1 headline</span></h3>
+    <span class="ph">sync: last synced 12:04 · one figure pending (up to 48h) </span> <span class="chip">C-U5 · SIG-36</span></div>
+  <div class="row">
+    <div class="box"><h3>Commissions <span class="chip">C-4.1</span></h3>
+      <div class="field" data-go="commission"><span>Villa Ortensia — overdue 12d</span><span class="chip w">overdue</span></div>
+      <div class="field"><span>Maison Léandre — due this week</span><span class="chip">due</span></div>
+      <div class="field"><span>Kirkfield House — paid 28 Jul</span><span class="chip">paid</span></div>
+      <div class="field"><span class="ph">Commission calendar — due dates · incentive expiries</span><span class="chip">C-EP3 · DEC-22</span></div>
+    </div>
+    <div class="box"><h3>Departures <span class="chip">C-4.5</span></h3>
+      <div class="field" data-go="traveller"><span>S. Marchetti client — Kyoto, 12d</span><span class="chip b">checklist 6/9</span></div>
+      <div class="field"><span>A. Whitfield — Lisbon, 3d · transfer unconfirmed</span><span class="chip w">attention</span></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="box v2only"><h3>Notices <span class="chip">B surfacing</span></h3>
+      <div class="field" data-go="record"><span>Maison Léandre — spa closed to 15 Sep</span><span><span class="chip w">Important · stale, review due</span> <button class="btn quiet" id="briefAsk">Ask ↦</button> <span class="chip">A-EP4</span></span></div>
+      <div class="field"><span>Cap d'Estel — new GM, 90d old</span><span class="chip">Info</span></div>
+    </div>
+    <div class="box v1only"><h3>Notices <span class="chip c">B-U1 · v1 world</span></h3>
+      <div class="field"><span style="color:var(--muted)">(spa notice auto-expired 1 Aug — absent while the spa is still closed; this silence is the v1 failure)</span></div>
+    </div>
+    <div class="box"><h3>Expiring incentives <span class="chip">B-E1 · DEC-21 · DEC-32</span></h3>
+      <div class="field"><span>Villa Ortensia +3% <span class="src">bonus, adds to base · book by 5 Sep · travel by Dec</span></span><span class="chip w">9 days left</span></div>
+      <div class="field"><span>Atelier upgrade credit <span class="src">override · both windows shown</span></span><span class="chip">16 days left</span></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="box"><h3>Records verified this quarter <span class="chip">C-4.1 fifth widget</span></h3>
+      41 of 128 · carried forward, unchecked: 87 <span class="hint">an unchecked field still answers — with its date [A-U3]</span></div>
+    <div class="box"><h3>Unconfirmed cancellation <span class="chip w">C-E1 · SIG-33</span></h3>
+      Ischia booking: cancellation sent 24h ago, no acknowledgment. <button class="btn quiet">Contact property directly</button></div>
+  </div>
+  <div class="box x"><h3>Quiet-day state <span class="chip">C-E3</span></h3>When nothing is overdue and no departures near, the briefing says so plainly — no manufactured urgency; verified-records progress and incentives remain.</div>
+</section>
+
+<!-- ══ COMMISSION DETAIL ══ -->
+<section class="screen" id="commission">
+  <h2 class="scr">Villa Ortensia — commission <span class="chip">C · DEC-22</span></h2>
+  <div class="crumb">Briefing / Commissions / Villa Ortensia</div>
+  <div class="box"><h3>Timeline: projected → due → paid <span class="chip">DEC-22</span></h3>
+    <div class="field"><span class="k">Projected</span><span>EUR 1,240 <span class="src">rate 12% · partner portal · incl. +3% incentive [DEC-21]</span></span></div>
+    <div class="field"><span class="k">Due</span><span>18 Jul — 12 days overdue</span></div>
+    <div class="field"><span class="k">Paid</span><span class="ph">unpaid</span></div>
+    <div class="field"><span class="k">Chase log</span><span class="src" id="chaselog">none yet</span> <span class="chip">C11 (extrapolation)</span></div>
+  </div>
+  <div class="box"><h3>Discrepancy check <span class="chip">C-U3</span></h3>
+    <div class="banner">Sibling booking: actual arrived 10% under projection (rate mismatch or FX <span class="chip">SIG-38</span>). Both values shown with provenance. <button class="btn quiet">Accept with reason</button> <button class="btn quiet">Open dispute draft</button></div>
+    <div class="banner crit">Cancelled booking resolved as <b>credit, not refund</b> — commission protection does not apply <span class="chip c">C-U2 · SIG-31</span></div>
+  </div>
+  <div class="box"><h3>Reminder <span class="chip">C-4.3 · SIG-35 nothing sends itself</span></h3>
+    <div id="draftIdle"><button class="btn" id="draftBtn">Draft a reminder</button> <span class="hint">The product drafts. It waits. Nothing sends without review.</span></div>
+    <div id="draftBox" class="hidden">
+      <textarea rows="3">Dear accounts team — our commission of EUR 1,240 on booking VO-2214 (departed 14 Mar) fell due 18 Jul. Could you confirm the payment date? — S. Marchetti</textarea>
+      <div class="hint">Editable draft · booking references attached · send is the only path, no auto-send exists <span class="chip">C-U4</span></div>
+      <button class="btn solid" id="sendBtn">Send</button> <button class="btn quiet" id="discardBtn">Discard</button>
+    </div>
+    <div id="sentNote" class="banner ok hidden">Sent. Commission state → <b>chased</b>; chase logged on the timeline.</div>
+  </div>
+</section>
+
+<!-- ══ ASK ══ -->
+<section class="screen" id="ask">
+  <h2 class="scr">Ask <span class="chip">A · conversation door</span></h2>
+  <div class="crumb" id="askCrumb">Ask / new thread</div>
+  <div class="tabs" id="askTabs">
+    <button data-astate="happy" class="on">happy path A-4</button>
+    <button data-astate="conflict">conflict A-U1</button>
+    <button data-astate="refusal">refusal A-U2</button>
+    <button data-astate="stale">stale A-U3</button>
+    <button data-astate="empty">empty desk A-U5</button>
+    <button data-astate="loading">loading/timeout A-X1</button>
+  </div>
+  <div class="banner v2only" style="max-width:620px">Active notice on Maison Léandre: spa closed to 15 Sep <span class="chip">A-E1 · DEC-18</span></div>
+  <div class="msg q">What is our commission on Maison Léandre, and does the Atelier rate include breakfast?</div>
+
+  <div class="astate" id="as-happy">
+    <div class="box" style="max-width:620px"><h3 class="mono" style="font-size:11px;color:var(--muted)">HOW THIS ANSWER WAS BUILT <span class="chip">A-4.2 trace · DEC-16 order</span></h3>
+      <div class="src">1 agency directory, vault, notes → 2 curated specialist layer → 3 vetted external sources</div></div>
+    <div class="msg">Maison Léandre pays <b>12% commission</b> on the Atelier rate <span class="cite" data-sheet="srcSheet">[1]</span>. The rate includes daily breakfast for two <span class="cite" data-sheet="srcSheet">[2]</span>.<br>
+      <span class="src">oldest source 12 Mar · corroborated by 2 sources · <span class="chip b">answer contract met (A-2, extrapolation A4)</span></span>
+      <div class="hint" id="resolvedCite" style="display:none">cites the conflict resolution you stored (agency layer, today) — both sources still reachable <span class="chip">A-U1 follow-through</span></div>
+    </div>
+    <div class="hint">Copy keeps provenance footer (advisor-facing); client export strips internal reasoning <span class="chip">DEC-05</span></div>
+  </div>
+
+  <div class="astate hidden" id="as-conflict">
+    <div class="msg"><b>Sources disagree — nothing assumed.</b> <span class="chip">A-U1 · DEC-02</span>
+      <div class="field"><span>Partner portal · 12 Mar</span><b>12%</b></div>
+      <div class="field"><span>Rep email · 21 Jun</span><b>15%</b></div>
+      <button class="btn" data-sheet="resolveSheet">Resolve…</button> <button class="btn quiet">Dismiss (stays in conflict)</button>
+      <button class="btn quiet" data-go="record">Open the record ↦</button> <span class="chip">E-EP3 · same conflict, on the card</span>
+    </div>
+  </div>
+
+  <div class="astate hidden" id="as-refusal">
+    <div class="msg"><b>I can't state a current commission.</b> I found one uncorroborated value dated 14 months ago. <span class="chip">A-U2 refusal is a normal outcome</span><br><br>
+      <button class="btn quiet" data-go="knowledge">Forward a document to the vault inbound address</button>
+      <button class="btn quiet">Request from desk contact</button> <button class="btn quiet">Ask ops to verify</button>
+      <div class="hint">demo beat 5: forward email → vault → re-ask → answer works <span class="chip">DEC-14</span></div>
+    </div>
+  </div>
+
+  <div class="astate hidden" id="as-stale">
+    <div class="msg">The commission on file is <b>12%</b> — <span style="color:var(--warn)">last verified 14 months ago; may have changed.</span> <span class="chip w">A-U3 · answers with its date</span></div>
+  </div>
+
+  <div class="astate hidden" id="as-empty">
+    <div class="box x" style="max-width:620px"><h3>Nothing here yet <span class="chip">A-U5</span></h3>
+      Connect sources · forward mail to <span class="mono">desk@inbound…</span> · browse the canonical directory. <span class="hint">No sample answers styled as real ones.</span></div>
+  </div>
+
+  <div class="astate hidden" id="as-loading">
+    <div class="box" style="max-width:620px"><h3 class="mono" style="font-size:11px;color:var(--muted)">BUILDING ANSWER…</h3>
+      <div class="src">✓ agency directory, vault, notes · ✓ curated layer · ⏳ vetted external sources</div>
+      <div class="ph" style="width:70%;height:12px;margin:8px 0"></div><div class="ph" style="width:45%;height:12px"></div></div>
+    <div class="box x" style="max-width:620px"><h3>Timeout <span class="chip">A-X1</span></h3>
+      Partial trace shown above — no partial answer is rendered. <button class="btn quiet">Retry</button></div>
+  </div>
+
+  <div class="box" style="max-width:620px"><span class="ph">Ask a follow-up…</span> <span class="chip">A-EP1..4 entries: nav · ⌘K · record card · briefing item</span></div>
+</section>
+
+<!-- ══ RECORDS DIRECTORY ══ -->
+<section class="screen" id="records">
+  <h2 class="scr">Records <span class="chip">E · catalogue door</span></h2>
+  <div class="crumb">Records / directory</div>
+  <div class="box"><span class="ph">filter: destination = Paris</span> <span class="ph">facility = spa</span> <span class="ph">program = Atelier</span> <span class="chip">E-4a.1</span> <span class="legend" style="float:right">card → quick-look rail · Open full for the complete anatomy</span></div>
+  <div class="cards">
+    <div class="card" data-rail="r-leandre" tabindex="0">
+      <h4>Maison Léandre</h4><div class="meta">Paris, France · Atelier Collection · Ultra-Luxury</div>
+      <div class="chips"><span class="chip w v2only">notice: spa closed</span> <span class="chip c" id="dirConf">1 conflict</span> <span class="chip w">1 field stale</span></div>
+      <div class="foot"><span>12% Atelier (per-link) · last_verified Mar</span><span class="lyr" title="layers: canonical · agency · personal"><i class="f"></i><i class="f"></i><i class="f"></i></span></div>
+    </div>
+    <div class="card" data-rail="r-verlaine" tabindex="0">
+      <h4>Hôtel Verlaine</h4><div class="meta">Paris · independent</div>
+      <div class="chips"><span class="chip w">3 fields stale 90d+ [DEC-27]</span></div>
+      <div class="foot"><span>10% standard · verified Jan</span><span class="lyr"><i class="f"></i><i class="f"></i><i></i></span></div>
+    </div>
+    <div class="card" data-rail="r-capdestel" tabindex="0">
+      <h4>Cap d'Estel</h4><div class="meta">Èze · Atelier Collection</div>
+      <div class="chips"><span class="chip">ok</span> <span class="chip">notice: new GM (Info)</span></div>
+      <div class="foot"><span>12% Atelier · verified Jun</span><span class="lyr"><i class="f"></i><i class="f"></i><i class="f"></i></span></div>
+    </div>
+  </div>
+  <div class="box x"><h3>Not finding it? <span class="chip">E-U5</span></h3>
+    <button class="btn quiet" id="reqPipeline">Request via extraction pipeline</button>
+    <span class="banner ok hidden" id="reqSent" style="display:inline-block;padding:4px 10px;margin:0">Request filed → appears in the admin review queue [D]</span>
+    <span class="hint">miss logged to knowledge-gaps report [DEC-24] · "do we have a place where these are listed?" [SIG-41]</span></div>
+</section>
+
+<!-- ══ RECORD CARD ══ -->
+<section class="screen" id="record">
+  <h2 class="scr">Maison Léandre <span class="chip">E record card</span></h2>
+  <div class="crumb">Records / Paris / Maison Léandre</div>
+  <div class="banner v2only">Spa closed to 15 Sep · Important · opened 12 Jun by MK · <b>stale — review due</b> <button class="btn quiet" data-sheet="staleNudge">Still true?</button> <span class="chip">B-4.6</span></div>
+  <div class="banner v1only" style="border-color:var(--line);background:var(--fill)">v1 world: the spa notice auto-expired and is gone. The card looks clean. The spa is still closed. <span class="chip c">B-U1 exhibit</span></div>
+
+  <div class="box"><h3>Enable canonical <span class="chip">layer 1 · DEC-08 grouping</span></h3>
+    <div class="field"><span class="k">Name</span><span>Maison Léandre <span class="src">canonical · verified May</span></span></div>
+    <div class="field"><span class="k">Rooms</span><span>54 <span class="src">brand feed · Mar</span></span></div>
+    <div class="field"><span class="k">Pool hours</span><span><span class="chip w">96d unverified [DEC-27] — answers inherit the warning [E-U3]</span> <button class="btn quiet">Verify against source [E6]</button></span></div>
+    <div class="field" data-sheet="resolveSheet"><span class="k">Junior suite size</span><span id="confVal"><span class="chip c">conflict</span> GDS 45m² · site 38m² <span class="src">both shown, neither ranked [DEC-02 · SIG-10]</span></span></div>
+    <div class="field"><span class="k">Amenities</span><span><span class="chip w">template copy — needs editorial [SIG-44]</span> excluded from corroboration</span></div>
+  </div>
+  <div class="box"><h3>Agency overlay <span class="chip">layer 2</span></h3>
+    <div class="field" data-sheet="provSheet"><span class="k">Commission</span><span>12% Atelier rate <span class="src">partner portal · 12 Mar</span></span></div>
+    <div class="field" data-sheet="editSheet"><span class="k">Negotiated perk</span><span>EUR 100 credit <span class="src">edited by S.M. · canonical value preserved beneath [DEC-08]</span></span></div>
+    <div class="field"><span class="k">Rep firm</span><span>Corvin &amp; Wells → named contacts <span class="chip">DEC-26</span></span></div>
+  </div>
+  <div class="box"><h3>Personal <span class="chip">layer 3 · DEC-09 private by default</span></h3>
+    <div class="field"><span class="k">My note</span><span>"Ask for garden side in June" <span class="src">private · 2 Jun</span></span></div>
+    <div class="field"><span class="k">Team note</span><span>"GM changed, service dip settled" <span class="src">team · by L.B. [SIG-45]</span></span></div>
+    <button class="btn" data-sheet="noteSheet">Add note…</button>
+  </div>
+  <div class="box"><h3>Context</h3>
+    <span class="ph">who booked this last: L.B., May [DEC-27]</span> <span class="ph">linked itineraries: 2</span> <span class="ph">linked traveller (permission-gated) [E-E4]</span></div>
+  <div class="banner ok hidden" id="newNotice">Notice created — Important, personal scope. It now appears on this card, your briefing, and your answers. <span class="chip">B-4.2</span></div>
+  <button class="btn" data-go="ask" id="askAbout">Ask about this ↦ <span class="mono" style="font-size:10px">A-EP3</span></button>
+  <button class="btn" data-sheet="advSheet">Add notice… <span class="mono" style="font-size:10px">B-EP1</span></button>
+  <button class="btn quiet" id="shortlistBtn">Add to itinerary shortlist</button>
+  <div class="banner crit hidden" id="critAck">Critical notice active and unacknowledged — output blocked until acknowledged. Dismissal is not acknowledgment. <button class="btn" id="ackBtn">Acknowledge (recorded: who, when)</button> <span class="chip c">B-U2 · DEC-18</span></div>
+</section>
+
+<!-- ══ TRAVELLERS ══ -->
+<section class="screen" id="travellers">
+  <h2 class="scr">Travellers <span class="chip">F · VIC records</span></h2>
+  <div class="crumb">Travellers / mine</div>
+  <div class="cards">
+    <div class="card" data-rail="r-kyoto" tabindex="0">
+      <h4>Kyoto client</h4><div class="meta">Active · next: Kyoto &amp; Kansai · departs in 12d</div>
+      <div class="chips"><span class="chip b">checklist 6/9</span> <span class="chip">private</span> <span class="chip b">Acuity 82</span></div>
+      <div class="foot"><span>3 profiles (Leisure primary) · prefs attributed [DEC-28/36]</span><span class="lyr"><i class="f"></i><i></i><i class="f"></i></span></div>
+    </div>
+    <div class="card" data-rail="r-patagonia" tabindex="0">
+      <h4>Patagonia couple</h4><div class="meta">next: none planned</div>
+      <div class="chips"><span class="chip">shared with J.D. (leave cover)</span></div>
+      <div class="foot"><span>4 preferences · all attributed</span><span class="lyr"><i class="f"></i><i></i><i class="f"></i></span></div>
+    </div>
+  </div>
+  <div class="box x"><h3>What a colleague sees <span class="chip">F-U2</span></h3>
+    An unshared VIC is <b>absent, not locked</b> — it does not appear in their list or search. Recovery: request access from the owner.</div>
+</section>
+
+<!-- ══ TRAVELLER PROFILE ══ -->
+<section class="screen" id="traveller">
+  <h2 class="scr">Kyoto client <span class="chip">F profile · personal-by-default DEC-09</span></h2>
+  <div class="crumb">Travellers / Kyoto client</div>
+  <div class="box"><h3>Departing trip — 12 days <span class="chip">F-4.1 · DEC-27</span></h3><span class="ph">pre-departure checklist 6/9</span></div>
+  <div class="box"><h3>Travel profiles <span class="chip">DEC-36 · 7 types</span></h3>
+    <span class="ph">Leisure (primary)</span> <span class="ph">Business</span> <span class="ph">Celebration</span> <span class="ph" style="opacity:.5">+ 4 unused types</span>
+    <span class="hint">six blocks per profile: accommodation · dining · activities · style · destinations · occasions</span></div>
+  <div class="box"><h3>Preferences — each answers "who says so, and when" <span class="chip">DEC-28 · ai_confidence surfaces confident first</span></h3>
+    <div class="field"><span>No contemporary interiors</span><span class="src">stated by client · 27 Aug call</span></div>
+    <div class="field"><span>Quiet floors</span><span class="src">observed on trip · 2025</span></div>
+    <div class="field" data-sheet="resolveSheet"><span>Conflicting: "no boats" (2025) vs yacht charter booked (2026)</span><span class="chip w">both shown · resolve [F-E2 · DEC-02]</span></div>
+    <button class="btn" data-sheet="prefSheet">Add preference… <span class="mono" style="font-size:10px">DEC-28</span></button>
+  </div>
+  <div class="box x"><h3>Suggestions — labeled, never silently applied <span class="chip">F-U3 · DEC-28</span></h3>
+    <div class="field"><span>Inferred: prefers rail over short flights <span class="src">AI suggestion · from trip history</span></span>
+      <span><button class="btn quiet">Confirm → becomes attributed preference</button> <button class="btn quiet">Discard</button></span></div>
+  </div>
+  <div class="box"><h3>Shortlist check <span class="chip">F-U1</span></h3>
+    <button class="btn" id="prefWarnBtn">Add "Villa Moderna" to shortlist</button>
+    <div class="banner hidden" id="prefWarn">Dislikes contemporary design — this property is listed as contemporary <span class="src">preference: stated by client, 27 Aug</span>. <button class="btn quiet">Proceed knowingly (recorded)</button> <span class="chip w">warn, not block</span></div>
+  </div>
+  <div class="box"><h3>Sharing <span class="chip">F-4.4 · DEC-01 all-or-nothing</span></h3>
+    <button class="btn" data-sheet="shareSheet">Share full profile…</button>
+    <span class="banner ok hidden" id="shareDone" style="display:inline-block;padding:4px 10px;margin:0">Shared with J. Dubois — full profile · revocable · audited [DEC-29]</span>
+    <span class="hint">no partial share exists · revocable · audited [DEC-29] · OQ-2 tension (tiered sharing) documented, not silently resolved</span></div>
+  <div class="box"><h3>Acuity intelligence <span class="chip">DEC-36 · gated canRunAcuity</span></h3>
+    <span class="chip b">Complete · score 82</span> <span class="src">last run 14 Aug — staleness alert at 90d</span>
+    <div class="hint">state machine: Not Run → Running → Complete / Locked — the empty/progress/render states are designed, not improvised</div></div>
+  <div class="box"><h3>Financials <span class="chip">canViewCommissions gate [DEC-31] · SIG-46</span></h3><span class="ph">spend fields absent for ungated roles — not masked</span></div>
+</section>
+
+<!-- ══ STALE REVIEW ══ -->
+<section class="screen" id="stale">
+  <h2 class="scr">Notices due <span class="chip">B-4.6 · DEC-03 nudge</span></h2>
+  <div class="crumb">Governance / notices due for review · oldest first [B5]</div>
+  <div class="box">
+    <div class="field"><span>Maison Léandre spa closure · 76d old</span><span><button class="btn quiet">Still active</button> <button class="btn quiet" data-sheet="closeSheet">Close…</button></span></div>
+    <div class="field"><span>Cap d'Estel GM change · 90d old</span><span><button class="btn quiet">Still active</button> <button class="btn quiet" data-sheet="closeSheet">Close…</button></span></div>
+    <div class="field" data-sheet="resolveSheet"><span>Contradicting: "spa reopened, saw it Tuesday" (J.D.) vs "closed to 15 Sep" (S.M.)</span><span class="chip w">both shown, attributed · resolve [B-U4]</span></div>
+  </div>
+  <div class="box x"><h3>Pile-up behavior <span class="chip">B-U5</span></h3>Queue escalates on briefing; advisories are never auto-closed.</div>
+</section>
+
+<!-- ══ PUBLISH QUEUE (lead) ══ -->
+<section class="screen" id="publish">
+  <h2 class="scr">Publish queue <span class="chip">B-EP4 · DEC-20 admins publish</span></h2>
+  <div class="crumb">Agency lead / pending advisories</div>
+  <div class="box">
+    <div class="field"><span>Spa closure — submitted by S.M., team scope</span><span><button class="btn solid">Publish agency-wide (owner preserved)</button></span></div>
+    <div class="field"><span>Rosewood +5% through June — from forwarded mail</span><span><button class="btn quiet">Review source</button></span></div>
+  </div>
+  <div class="box"><h3>Sharing defaults · audit <span class="chip">DEC-29 any override auditable</span></h3>
+    <span class="ph">scope changes log: who · what · when</span> <span class="ph">break-glass access: reason + time-bound</span> <span class="ph">answers shaped by permission boundaries logged [A-U4 · A12]</span> <span class="ph">personal-scope leakage: zero, verified from second account [B-U3]</span></div>
+</section>
+
+<!-- ══ CONNECTIONS (admin) ══ -->
+<section class="screen" id="connections">
+  <h2 class="scr">Connections <span class="chip">D-EP1 · DEC-24 health</span></h2>
+  <div class="crumb">Settings / connections · MCP-first, self-hosted fallback [DEC-11]</div>
+  <div class="box">
+    <div class="field"><span>Intranet documents</span><span class="src">last success 09:12 · ok</span></div>
+    <div class="field"><span>Drive</span><span class="src">last success 08:40 · ok</span></div>
+    <div class="field"><span>Booking system <span class="chip">read-only · DEC-12</span></span><span class="src">syncing · up to 48h [SIG-36]</span></div>
+    <div class="field"><span>Partner portal</span><span class="chip c">credentials expired — D-U4</span></div>
+    <div class="field"><span>Inbound mail <span class="mono">desk@inbound…</span></span><span class="src">private by default [DEC-14]</span></div>
+  </div>
+  <button class="btn" data-sheet="connSheet">Add connection…</button>
+  <div class="box x" style="margin-top:12px"><h3>Downstream effect <span class="chip">D-U4</span></h3>Answers exclude the failed source with a visible gap note; last-synced values stay labeled.</div>
+</section>
+
+<!-- ══ EXTRACTION REVIEW ══ -->
+<section class="screen" id="review">
+  <h2 class="scr">Confirm new records <span class="chip">D queue · nothing auto-commits DEC-19</span></h2>
+  <div class="crumb">Pipeline / candidates awaiting confirmation — invisible to answers until confirmed [D-§2.4]</div>
+  <div class="box">
+    <div class="field" data-go="candidate"><span><b>“Hotel Sereno Kyoto”</b> · from DMC Excel [DEC-25]</span><span class="chip b">new candidate</span></div>
+    <div class="field" data-sheet="mergeSheet"><span>“Maison Leandre” · from portal sync</span><span class="chip w">possible duplicate → merge [D-U2]</span></div>
+    <div class="field"><span>“Villa ????” · unreadable source row</span><span class="chip c">held: low confidence [D-U3]</span></div>
+  </div>
+  <div class="box x"><h3>Bulk seeding <span class="chip">D-E3</span></h3><span class="ph">batch-confirm high-confidence fields · flagged fields stay held</span></div>
+  <div class="box x"><h3>Scope inheritance <span class="chip">D-U5</span></h3>Derived records inherit the tightest scope of their sources until a human explicitly widens it — default-private wins at the boundary [DEC-25 · DEC-14].</div>
+</section>
+
+<!-- ══ CANDIDATE CARD ══ -->
+<section class="screen" id="candidate">
+  <h2 class="scr">Candidate: Hotel Sereno Kyoto <span class="chip">D-4.4 per-field provenance DEC-23</span></h2>
+  <div class="crumb">Extraction review / candidate · badged unconfirmed</div>
+  <div class="banner">Identity check first: possible match — existing canonical record. <span class="mono" style="font-size:11px">similarity 0.92 · signals: name 0.92, city exact, no place_id [DEC-33 match ladder]</span>
+    <button class="btn quiet" data-sheet="mergeSheet">Merge into existing…</button> <button class="btn quiet">Create new</button></div>
+  <div class="hint" style="margin-bottom:10px">Operational rule: admin reviews <b>every</b> product candidate for the first ~3 months, including exact google_place_id matches; programs and promotions stay admin-only indefinitely [DEC-33].</div>
+  <div class="box">
+    <div class="field"><span class="k">Name</span><span>Hotel Sereno Kyoto <span class="src">source: DMC sheet row 41 · today</span> <button class="btn quiet">✓</button></span></div>
+    <div class="field"><span class="k">Rooms</span><span>28 <span class="src">source: row 41</span> <button class="btn quiet">✓</button></span></div>
+    <div class="field"><span class="k">Currency rate</span><span><span class="chip c">held — converted figure without source currency [D-U7 · SIG-38]</span></span></div>
+    <div class="field"><span class="k">Description</span><span><span class="chip w">template copy — needs editorial [SIG-44]</span> <button class="btn quiet">Fix</button></span></div>
+    <div class="field"><span class="k">Unsure field</span><span class="ph">marked for attention, not silently guessed [D-4.4]</span></div>
+  </div>
+  <button class="btn solid" id="confirmCand">Confirm record (stamped: who, when)</button>
+  <button class="btn quiet">Reject… (reason logged [D6])</button>
+  <div class="banner ok hidden" id="candDone">Confirmed with <b>2 fields still held</b> (currency, description) — they stay in review, excluded from the live record. The rest is live at the agency layer with full provenance — answerable in Ask, visible in Records.</div>
+</section>
+
+<!-- ══ RESOLUTION QUEUE (ops) ══ -->
+<section class="screen" id="resolution">
+  <h2 class="scr">Unmatched payments <span class="chip">C-U1 · SIG-11</span></h2>
+  <div class="crumb">Ops / unmatched money — visible, never silently parked</div>
+  <div class="box">
+    <div class="field"><span>EUR 410 under traveller name “R. Osei” (booker: M. Osei)</span><span><button class="btn quiet" data-sheet="matchSheet">Match…</button></span></div>
+    <div class="field"><span>EUR 862 · “Pipery Hotel” — unresolvable name</span><span class="chip w">candidates ranked (identity only, not value ranking)</span></div>
+  </div>
+</section>
+
+<!-- ══ KNOWLEDGE VAULT ══ -->
+<section class="screen" id="knowledge">
+  <h2 class="scr">Knowledge vault</h2>
+  <div class="crumb">Governance / vault · every document private on arrival, permission follows it [DEC-14 · DEC-25]</div>
+  <div class="box">
+    <div class="field"><span>Atelier Collection terms.pdf</span><span class="chip">agency</span></div>
+    <div class="field"><span>Rep email — rate note 21 Jun</span><span class="chip">private · S.M.</span></div>
+    <div class="field"><span>Forwarded: Rosewood incentive mail</span><span><span class="chip">private</span> <button class="btn quiet" data-sheet="advSheet">Create notice from this [B-EP3]</button></span></div>
+  </div>
+  <div class="box"><h3>Inbound <span class="chip">DEC-14</span></h3><span class="mono ph">parisdesk@inbound.enable…</span> <span class="hint">sender-verified; used in the refusal recovery loop (demo beat 5)</span></div>
+</section>
+
+<!-- ══ ITINERARIES (stub) ══ -->
+<section class="screen" id="itineraries">
+  <h2 class="scr">Itineraries — supporting surface</h2>
+  <div class="crumb">deliberately thin</div>
+  <div class="box"><h3>Why there is no builder here</h3>
+    Enable writes to itinerary tools; it does not replace them. One of the four documented refusals [DEC-10]. This screen exists as a workspace view only.
+    <div class="field"><span>Kyoto &amp; Kansai — S. Marchetti</span><span class="ph">linked products · shortlist</span></div></div>
+</section>
+
+</main>
+</div>
+
+<!-- ══ SHEETS ══ -->
+<div id="veil"></div>
+<div class="sheet" id="resolveSheet"><button class="close">✕</button><h3>Resolve conflict <span class="chip">shared: A-U1 / E-4a.4</span></h3>
+  <label class="opt"><input type="radio" name="rv" checked> 12% — partner portal, 12 Mar</label>
+  <label class="opt"><input type="radio" name="rv"> 15% — rep email, 21 Jun</label>
+  <input type="text" placeholder="Reason (required) [A8]">
+  <div class="hint">Stored at the agency layer (“usually Agency” — DEC-08), attributed, both sources kept reachable. Neither source document is edited.</div>
+  <button class="btn solid" id="resolveBtn">Store resolution</button></div>
+
+<div class="sheet" id="provSheet"><button class="close">✕</button><h3>Field provenance <span class="chip">DEC-23 what/where/when</span></h3>
+  <div class="field"><span class="k">Value</span><span>12% Atelier rate</span></div>
+  <div class="field"><span class="k">What</span><span>“participating agencies receive twelve percent (12%)…”</span></div>
+  <div class="field"><span class="k">Where</span><span>Partner portal · Atelier terms p.4</span></div>
+  <div class="field"><span class="k">When</span><span>12 Mar · freshness ok</span></div>
+  <button class="btn quiet">Open document (permission holds)</button></div>
+
+<div class="sheet" id="editSheet"><button class="close">✕</button><h3>Edit field <span class="chip">E-4b.2 overlay, no silent overwrite</span></h3>
+  <input type="text" value="EUR 100 property credit">
+  <label class="opt"><input type="radio" name="el" checked> Write to agency overlay</label>
+  <label class="opt"><input type="radio" name="el"> Personal only</label>
+  <div class="hint">Canonical value stays visible beneath, with both provenances [DEC-08].</div>
+  <button class="btn solid close2">Save overlay</button></div>
+
+<div class="sheet" id="noteSheet"><button class="close">✕</button><h3>Add note <span class="chip">E-4b.3</span></h3>
+  <textarea rows="3" placeholder="Note…"></textarea>
+  <h3 style="margin-top:12px">Scope <span class="chip">SIG-46 · chosen at creation</span></h3>
+  <label class="opt"><input type="radio" name="ns" checked> Private (default) [DEC-09]</label>
+  <label class="opt"><input type="radio" name="ns"> Team</label>
+  <label class="opt"><input type="radio" name="ns"> Agency-wide</label>
+  <div class="hint">Narrowing later is possible; the visible interval is audited [E-U6 · DEC-29].</div>
+  <button class="btn solid close2">Save note</button></div>
+
+<div class="sheet" id="advSheet"><button class="close">✕</button><h3>New notice <span class="chip">B composer · DEC-20 fields</span></h3>
+  <input type="text" value="Spa closed to 15 Sep"><div style="height:8px"></div>
+  <div class="hint">source: attached email · timestamp · owner: S.M.</div>
+  <h3 style="margin-top:10px">Severity <span class="chip">DEC-18</span></h3>
+  <label class="opt"><input type="radio" name="sv"> Info</label>
+  <label class="opt"><input type="radio" name="sv" checked> Important</label>
+  <label class="opt"><input type="radio" name="sv"> Critical — will require acknowledgment before output use</label>
+  <h3 style="margin-top:10px">Scope</h3>
+  <label class="opt"><input type="radio" name="sc" checked> Private (default)</label>
+  <label class="opt"><input type="radio" name="sc"> Team</label>
+  <label class="opt"><input type="radio" name="sc"> Agency-wide — via publish queue [B-EP4]</label>
+  <div class="hint">No end date field in v2 — notices close manually [DEC-03]. Incentive notices carry commercial end dates that cut projections, but closure stays manual [B-E1].</div>
+  <button class="btn solid" id="createNotice">Create notice</button></div>
+
+<div class="sheet" id="prefSheet"><button class="close">✕</button><h3>Add preference <span class="chip">F · DEC-28 attributed, never guessed</span></h3>
+  <input type="text" placeholder="Preference…">
+  <h3 style="margin-top:12px">Source — required <span class="chip">F7 taxonomy</span></h3>
+  <label class="opt"><input type="radio" name="ps" checked> Stated by client (date auto-stamped)</label>
+  <label class="opt"><input type="radio" name="ps"> Observed on a trip</label>
+  <label class="opt"><input type="radio" name="ps"> Imported from a system</label>
+  <label class="opt"><input type="radio" name="ps"> Inferred — will sit in Suggestions until confirmed [F-U3]</label>
+  <div class="hint">Every preference must answer "who says so, and when" [DEC-28].</div>
+  <button class="btn solid close2">Save preference</button></div>
+
+<div class="sheet" id="closeSheet"><button class="close">✕</button><h3>Close notice <span class="chip">B close-reason B11</span></h3>
+  <input type="text" placeholder="Reason (required)">
+  <div class="hint">Closes immediately across answers, cards, briefing. Archived with history. Never treated as current truth again [DEC-18].</div>
+  <button class="btn solid close2">Close notice</button></div>
+
+<div class="sheet" id="staleNudge"><button class="close">✕</button><h3>Still true? <span class="chip">B-4.6 stale nudge · DEC-03</span></h3>
+  <button class="btn">Confirm still active</button> <button class="btn quiet" data-sheet="closeSheet">Close…</button></div>
+
+<div class="sheet" id="shareSheet"><button class="close">✕</button><h3>Share traveller <span class="chip">F-4.4 · DEC-31 supersedes DEC-01</span></h3>
+  <label class="opt"><input type="radio" name="shw" checked> J. Dubois (leave cover)</label>
+  <h3 style="margin-top:10px">Tier</h3>
+  <label class="opt"><input type="radio" name="sht" checked> <b>Collaborator — Full</b>: all fields, can edit &amp; run Acuity; cannot re-share or delete</label>
+  <label class="opt"><input type="radio" name="sht"> <b>Collaborator — Basic</b>: name + contact only (limited intro)</label>
+  <label class="opt"><input type="radio" name="sht"> Team scope — all members see (union across teams) [DEC-30]</label>
+  <label class="opt"><input type="radio" name="sht"> Agency directory — opt-in, admin-managed [DEC-30]</label>
+  <div class="hint">Non-admin shares route through the suggestion/approval workflow [DEC-31]. Spend fields stay behind canViewCommissions at every tier. Revocable, audited [DEC-29]. The iteration: all-or-nothing shipped Mar 31 with a revisit trigger; the trigger fired; the schema now carries these tiers.</div>
+  <button class="btn solid" id="shareBtn">Share (Full)</button></div>
+
+<div class="sheet" id="mergeSheet"><button class="close">✕</button><h3>Merge candidates <span class="chip">D-U2 merge sheet</span></h3>
+  <div class="field"><span class="k">Name</span><span>Maison Léandre ⟷ “Maison Leandre”</span></div>
+  <div class="field"><span class="k">Rooms</span><span>54 ⟷ 54</span></div>
+  <div class="field"><span class="k">Commission</span><span>12% ⟷ 12%</span></div>
+  <input type="text" placeholder="Merge reason (required) [D16*]">
+  <div class="hint">Human choice, stored with reason, attributed. Nothing merges automatically [DEC-23 · DEC-08].</div>
+  <button class="btn solid close2">Merge as overlay on canonical</button></div>
+
+<div class="sheet" id="matchSheet"><button class="close">✕</button><h3>Match payment <span class="chip">C-U1</span></h3>
+  <label class="opt"><input type="radio" checked> Booking VO-2214 · booker M. Osei (traveller R. Osei) — strong match</label>
+  <label class="opt"><input type="radio"> Booking KX-1108 — weak match</label>
+  <input type="text" placeholder="Reason (required)">
+  <div class="hint">Ranking orders identity candidates only — never intelligence values [DEC-02/04 posture].</div>
+  <button class="btn solid close2">Confirm match (attributed)</button></div>
+
+<div class="sheet" id="connSheet"><button class="close">✕</button><h3>Add connection <span class="chip">D-EP1 · setup D1*</span></h3>
+  <label class="opt"><input type="radio" checked> Intranet (MCP available — consume upstream) [DEC-11]</label>
+  <label class="opt"><input type="radio"> Legacy portal (self-hosted fallback)</label>
+  <div class="hint">Scoped credentials · sync cadence · appears in Integration health on save [DEC-24].</div>
+  <button class="btn solid close2">Connect</button></div>
+
+<div class="sheet" id="srcSheet"><button class="close">✕</button><h3>Sources <span class="chip">A-4.4</span></h3>
+  <div class="box"><b>[1] Partner portal</b> · Atelier terms · 12 Mar<br><span class="src">“…receive twelve percent (12%) on the Atelier Collection rate…”</span><br><button class="btn quiet">Open document</button></div>
+  <div class="box"><b>[2] Agency intranet</b> · Preferred partners · 04 Jun</div>
+  <div class="box x"><b>Permission-filtered source</b> — a document the viewer cannot open never appears here, and its claim is omitted from the answer [A-U4].</div></div>
+
+<aside id="detail" aria-label="Quick look">
+  <button class="close" id="detailClose">✕</button>
+
+  <div class="railpane" id="r-leandre">
+    <h3>Maison Léandre</h3><div class="meta">Paris · Atelier Collection · quick look</div>
+    <div class="chips" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px"><span class="chip w v2only">spa closed to 15 Sep</span> <span class="chip c">suite-size conflict</span></div>
+    <div class="rgrp"><b>Enable canonical</b>
+      <div class="field"><span class="k">Rooms</span><span>54 <span class="src">brand feed · Mar</span></span></div>
+      <div class="field"><span class="k">Suite size</span><span><span class="chip c">conflict — resolve on full record</span></span></div></div>
+    <div class="rgrp"><b>Agency overlay</b>
+      <div class="field"><span class="k">Commission</span><span>12% Atelier <span class="src">portal · Mar</span></span></div>
+      <div class="field"><span class="k">Rep firm</span><span>Corvin &amp; Wells [DEC-26]</span></div></div>
+    <div class="rgrp"><b>Personal</b>
+      <div class="field"><span class="k">My note</span><span>"garden side in June" <span class="src">private</span></span></div></div>
+    <div class="rgrp"><b>Context</b><span class="src">who booked this last: L.B., May [DEC-27] · 2 itineraries</span></div>
+    <button class="btn solid" data-go="record">Open full record ↦</button>
+    <button class="btn" id="railAsk">Ask about this <span class="mono" style="font-size:10px">A-EP3</span></button>
+  </div>
+
+  <div class="railpane" id="r-verlaine">
+    <h3>Hôtel Verlaine</h3><div class="meta">Paris · independent · quick look</div>
+    <div class="rgrp"><b>Freshness</b><div class="field"><span class="k">3 fields</span><span><span class="chip w">stale 90d+ [DEC-27]</span> answers inherit the warning</span></div></div>
+    <div class="rgrp"><b>Agency overlay</b><div class="field"><span class="k">Commission</span><span>10% standard <span class="src">intranet · Jan</span></span></div></div>
+    <button class="btn quiet">Open full record ↦ <span class="src">(stub)</span></button>
+  </div>
+
+  <div class="railpane" id="r-capdestel">
+    <h3>Cap d'Estel</h3><div class="meta">Èze · Atelier Collection · quick look</div>
+    <div class="rgrp"><b>Notices</b><div class="field"><span>New GM · Info · 90d old</span><span class="chip">review due soon</span></div></div>
+    <div class="rgrp"><b>Agency overlay</b><div class="field"><span class="k">Commission</span><span>12% Atelier <span class="src">portal · Jun</span></span></div></div>
+    <button class="btn quiet">Open full record ↦ <span class="src">(stub)</span></button>
+  </div>
+
+  <div class="railpane" id="r-kyoto">
+    <h3>Kyoto client</h3><div class="meta">departs in 12d · quick look</div>
+    <div class="rgrp"><b>Top preferences — attributed [DEC-28]</b>
+      <div class="field"><span>No contemporary interiors</span><span class="src">stated · 27 Aug</span></div>
+      <div class="field"><span>Quiet floors</span><span class="src">observed · 2025</span></div></div>
+    <div class="rgrp"><b>Sharing [DEC-01]</b><div class="field"><span>Not shared</span><span class="src">all-or-nothing · explicit</span></div></div>
+    <button class="btn solid" data-go="traveller">Open full profile ↦</button>
+  </div>
+
+  <div class="railpane" id="r-patagonia">
+    <h3>Patagonia couple</h3><div class="meta">no trip planned · quick look</div>
+    <div class="rgrp"><b>Sharing</b><div class="field"><span>Shared with J.D.</span><span class="src">leave cover · revocable · audited [DEC-29]</span></div></div>
+    <button class="btn quiet">Open full profile ↦ <span class="src">(stub)</span></button>
+  </div>
+</aside>
+
+<div id="rail">
+  <span class="lbl">Presenter rail</span>
+  <button data-cp="1">1 morning</button><button data-cp="2">2 commission</button><button data-cp="3">3 record·conflict</button>
+  <button data-cp="4">4 two doors→ask</button><button data-cp="5">5 refusal loop</button><button data-cp="6">6 v1/v2 rewind</button>
+  <button data-cp="6b">6b traveller</button><button data-cp="7">7 admin·confirm</button><button data-cp="8">8 phone</button>
+  <button data-cp="0">0 reset</button>
+  <span class="legend" id="railNote"></span>
+</div>
+
+<script>
+(function(){
+  var state={route:'briefing',persona:'advisor',world:'v2',resolved:false};
+  function $(s,c){return (c||document).querySelector(s)}
+  function $$(s,c){return Array.prototype.slice.call((c||document).querySelectorAll(s))}
+  function go(r){
+    state.route=r;
+    if(r==='ask'){$('#askCrumb').textContent='Ask / new thread'}
+    $$('.screen').forEach(function(s){s.classList.toggle('on',s.id===r)});
+    $$('#nav a').forEach(function(a){a.classList.toggle('on',a.getAttribute('data-go')===r)});
+    rail(null);
+    $('#main').scrollTop=0;
+  }
+  function rail(id){
+    $('#detail').classList.toggle('on',!!id);
+    $$('#detail .railpane').forEach(function(p){p.classList.toggle('on',p.id===id)});
+    $$('.card').forEach(function(c){c.classList.toggle('sel',c.getAttribute('data-rail')===id&&!!id)});
+  }
+  function persona(p){
+    state.persona=p;
+    $$('#personaSeg button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-persona')===p)});
+    $$('#nav a').forEach(function(a){
+      var ok=a.className.indexOf('p-'+p)>-1||a.className.indexOf('p-')===-1;
+      a.style.display=ok?'':'none';
+    });
+    var home={advisor:'briefing',lead:'publish',ops:'resolution'}[p];
+    go(home);
+  }
+  function world(w){
+    state.world=w;
+    $$('#worldSeg button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-world')===w)});
+    $$('.v1only').forEach(function(e){e.classList.toggle('hidden',w!=='v1')});
+    $$('.v2only').forEach(function(e){e.classList.toggle('hidden',w!=='v2')});
+  }
+  function sheet(id){
+    $$('.sheet').forEach(function(s){s.classList.toggle('on',s.id===id)});
+    $('#veil').classList.toggle('on',!!id);
+  }
+  document.addEventListener('click',function(e){
+    var t=e.target.closest('[data-go],[data-sheet],[data-astate],[data-cp],[data-persona],[data-world],[data-rail],.close,.close2,#veil');
+    if(!t)return;
+    if(t.id==='detailClose'){rail(null);return}
+    if(t.id==='veil'||t.classList.contains('close')||t.classList.contains('close2')){sheet(null);return}
+    if(t.hasAttribute('data-rail')){rail(t.getAttribute('data-rail'));return}
+    if(t.hasAttribute('data-sheet')){sheet(t.getAttribute('data-sheet'));return}
+    if(t.hasAttribute('data-go')){sheet(null);go(t.getAttribute('data-go'));
+      if(t.id==='askAbout'){$('#askCrumb').textContent='Ask / scoped to Maison Léandre (from record card)';}
+      return}
+    if(t.hasAttribute('data-persona')){persona(t.getAttribute('data-persona'));return}
+    if(t.hasAttribute('data-world')){world(t.getAttribute('data-world'));return}
+    if(t.hasAttribute('data-astate')){
+      var a=t.getAttribute('data-astate');
+      $$('#askTabs button').forEach(function(b){b.classList.toggle('on',b===t)});
+      $$('.astate').forEach(function(s){s.classList.toggle('hidden',s.id!=='as-'+a)});
+      return}
+    if(t.hasAttribute('data-cp')){cp(t.getAttribute('data-cp'));return}
+  });
+  // micro-interactions
+  $('#draftBtn').addEventListener('click',function(){$('#draftIdle').classList.add('hidden');$('#draftBox').classList.remove('hidden')});
+  $('#discardBtn').addEventListener('click',function(){$('#draftBox').classList.add('hidden');$('#draftIdle').classList.remove('hidden')});
+  $('#sendBtn').addEventListener('click',function(){$('#draftBox').classList.add('hidden');$('#sentNote').classList.remove('hidden');$('#chaselog').textContent='chased today by S.M.'});
+  $('#resolveBtn').addEventListener('click',function(){
+    state.resolved=true;sheet(null);
+    $('#confVal').innerHTML='38m² <span class="chip b">resolved · agency layer · by S.M. today</span> <span class="src">both sources reachable</span>';
+    $('#resolvedCite').style.display='block';
+    $('#dirConf').className='chip b';$('#dirConf').textContent='resolved today';
+  });
+  $('#briefAsk').addEventListener('click',function(e){e.stopPropagation();go('ask');$('#askCrumb').textContent='Ask / from briefing notice (Maison Léandre) [A-EP4]'});
+  $('#railAsk').addEventListener('click',function(){go('ask');$('#askCrumb').textContent='Ask / scoped to Maison Léandre (from quick look) [A-EP3]'});
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){sheet(null);rail(null)}
+    if((e.key==='Enter'||e.key===' ')&&document.activeElement&&document.activeElement.hasAttribute('data-rail')){e.preventDefault();rail(document.activeElement.getAttribute('data-rail'))}
+  });
+  $('#createNotice').addEventListener('click',function(){sheet(null);go('record');$('#newNotice').classList.remove('hidden')});
+  $('#shareBtn').addEventListener('click',function(){sheet(null);$('#shareDone').classList.remove('hidden')});
+  $('#reqPipeline').addEventListener('click',function(){$('#reqSent').classList.remove('hidden')});
+  $('#shortlistBtn').addEventListener('click',function(){$('#critAck').classList.remove('hidden')});
+  $('#ackBtn').addEventListener('click',function(){$('#critAck').innerHTML='Acknowledged by S.M., recorded. Output unblocked. <span class="chip">B-U2</span>'});
+  $('#prefWarnBtn').addEventListener('click',function(){$('#prefWarn').classList.remove('hidden')});
+  $('#confirmCand').addEventListener('click',function(){$('#candDone').classList.remove('hidden')});
+  // presenter rail
+  function cp(n){
+    var note='';
+    switch(n){
+      case'1':persona('advisor');world('v2');go('briefing');note='cold open — the morning';break;
+      case'2':persona('advisor');go('commission');note='money: draft → edit → send';break;
+      case'3':persona('advisor');world('v2');go('record');note='the model: layers, provenance, conflict';break;
+      case'4':persona('advisor');go('ask');note='two doors joined — resolve then re-ask';break;
+      case'5':persona('advisor');go('ask');$$('#askTabs button')[2].click();note='refusal → vault → re-ask';break;
+      case'6':persona('advisor');world('v1');go('record');note='rewind: the March build fails silently';break;
+      case'6b':persona('advisor');world('v2');go('traveller');note='attributed preferences · amber warning · share';break;
+      case'7':persona('lead');go('candidate');note='human confirms; nothing auto-commits';break;
+      case'8':go('briefing');note='(phone frame in the real build — 390px stack)';break;
+      case'0':state.resolved=false;persona('advisor');world('v2');go('briefing');note='reset';
+        $('#confVal').innerHTML='<span class="chip c">conflict</span> GDS 45m² · site 38m² <span class="src">both shown, neither ranked [DEC-02 · SIG-10]</span>';
+        $('#resolvedCite').style.display='none';$('#sentNote').classList.add('hidden');$('#draftIdle').classList.remove('hidden');
+        $('#critAck').classList.add('hidden');$('#prefWarn').classList.add('hidden');$('#candDone').classList.add('hidden');
+        $('#newNotice').classList.add('hidden');$('#shareDone').classList.add('hidden');$('#reqSent').classList.add('hidden');
+        $('#dirConf').className='chip c';$('#dirConf').textContent='1 conflict';
+        $('#chaselog').textContent='none yet';break;
+    }
+    $('#railNote').textContent=note;
+  }
+  world('v2');persona('advisor');
+})();
+</script>

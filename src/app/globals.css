@@ -1,26 +1,87 @@
 @import "tailwindcss";
 
+/* Enable analogue — plate-matched tokens. Deliberately light-committed (the plates' world). */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1c1d22;
+  --sidebar: #fafafa;
+  --card: #ffffff;
+  --card-foreground: #1c1d22;
+  --popover: #ffffff;
+  --popover-foreground: #1c1d22;
+  --muted: #f4f4f5;
+  --muted-foreground: #5f6066;
+  --subtle: #f8f8f9;
+  --border: #e5e6ea;
+  --input: #e5e6ea;
+  --primary: #5b5bd6;            /* plate indigo */
+  --primary-foreground: #ffffff;
+  --primary-soft: #eef0fd;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #1c1d22;
+  --accent: #f4f4f5;
+  --accent-foreground: #1c1d22;
+  --destructive: #c53a30;
+  --destructive-foreground: #ffffff;
+  --ok: #11703b;
+  --ok-soft: #e8f5ee;
+  --warn: #855b06;
+  --warn-soft: #fdf4e0;
+  --crit: #b02e24;
+  --crit-soft: #fbeeec;
+  --ring: #5b5bd6;
+  --radius: 0.55rem;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-sidebar: var(--sidebar);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle: var(--subtle);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-crit: var(--crit);
+  --color-crit-soft: var(--crit-soft);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-stack), ui-monospace, monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "cv11";
+}
+
+/* money and counts always tabular */
+.tnum { font-variant-numeric: tabular-nums; }
+
+*:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
 }
