@@ -10,7 +10,7 @@ import React, { useMemo, useState, useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
 import { vaultDocs, vaultStats, connections, type VaultDoc } from "@/data/seed";
 import { Page, PageHeader, SplitView } from "@/components/layouts";
-import { Chip, NarrationNote, SchematicBadge } from "@/components/bits";
+import { Chip, Section, NarrationNote, SchematicBadge } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -174,7 +174,21 @@ export default function KnowledgeVault() {
             </div>
 
             {/* ── the table ── */}
-            <div className="mt-4 overflow-hidden rounded-lg border border-border bg-card">
+            <Section
+              flush
+              className="mt-4"
+              bodyClassName="p-0"
+              footer={
+                <span className="flex flex-wrap items-center gap-3 t-meta">
+                  <span className="tnum">
+                    {vaultStats.total.toLocaleString("en-GB")} documents · newest first
+                  </span>
+                  <span className="ml-auto tnum">
+                    {rows.length} of {vaultStats.total.toLocaleString("en-GB")} shown
+                  </span>
+                </span>
+              }
+            >
               <div className="row-grid px-4 t-micro uppercase tracking-widest text-muted-foreground">
                 <span className="row-primary">Document</span>
                 <span className="row-meta">Updated</span>
@@ -231,15 +245,7 @@ export default function KnowledgeVault() {
                   );
                 })}
               </ul>
-              <div className="flex flex-wrap items-center gap-3 border-t border-border p-4 t-meta">
-                <span className="tnum">
-                  {vaultStats.total.toLocaleString("en-GB")} documents · newest first
-                </span>
-                <span className="ml-auto tnum">
-                  {rows.length} of {vaultStats.total.toLocaleString("en-GB")} shown
-                </span>
-              </div>
-            </div>
+            </Section>
 
             <p className="mt-3 t-meta">
               Upload a document, or mail one in —{" "}

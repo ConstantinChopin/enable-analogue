@@ -543,7 +543,7 @@ function GenericRecord({ id }: { id: string }) {
 
   if (!p) {
     return (
-      <Page width="text">
+      <Page width="wide">
         <PageHeader back="/records" crumb="Records" title="Not in the directory" />
         <Section>
           <p className="t-body text-muted-foreground">
@@ -560,7 +560,7 @@ function GenericRecord({ id }: { id: string }) {
   // The unconfirmed candidate is not a record yet, and does not pretend to be one.
   if (p.id === "sereno-kyoto" && !s.candidateConfirmed && !reviewer) {
     return (
-      <Page width="text">
+      <Page width="wide">
         <PageHeader back="/records" crumb="Records" title="Awaiting confirmation" />
         <Section>
           <p className="t-body text-muted-foreground">

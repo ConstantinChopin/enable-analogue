@@ -67,7 +67,7 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
 
   if (!money) {
     return (
-      <Page width="text">
+      <Page width="wide">
         <PageHeader back="/briefing" crumb="Briefing" title="Commission record" />
         <Section>
           <p className="t-body">
@@ -84,7 +84,7 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
 
   if (!c) {
     return (
-      <Page width="text">
+      <Page width="wide">
         <PageHeader back="/commissions" crumb="Commissions" title="Not on file" />
         <Section>
           <p className="t-body text-muted-foreground">No commission record with this reference.</p>
@@ -101,7 +101,7 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
   const incentiveNote = c.projected.incentive;
 
   return (
-    <Page width="text">
+    <Page width="wide">
       <PageHeader
         back="/commissions"
         crumb={<>Commissions / {c.property}</>}

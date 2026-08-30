@@ -82,7 +82,9 @@ function Ask() {
   const showRail = active !== null;
 
   return (
-    <Page width="full" className="pb-0">
+    // Same column as every other surface, so the title lands where the eye expects it
+    // when moving between dock tiles. Ask still manages its own height below.
+    <Page width="wide" className="pb-0">
       <div
         className="flex min-h-0 flex-col"
         style={{ height: `calc(100dvh - ${DOCK_FOOTPRINT + 36}px)` }}
@@ -105,9 +107,13 @@ function Ask() {
 
         <div className="flex min-h-0 flex-1 gap-6">
           {/* ── recent conversations (page furniture, not nav) ── */}
-          <aside className="hidden w-[290px] shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-card lg:flex">
+          <Section
+            flush
+            className="hidden w-[290px] shrink-0 lg:flex"
+            bodyClassName="flex min-h-0 flex-col p-0"
+          >
             <ConversationList active={active} onPick={choose} />
-          </aside>
+          </Section>
 
           {/* ── the active thread ── */}
           <section className="flex min-w-0 flex-1 flex-col">
@@ -284,7 +290,8 @@ function Landing({ onPick }: { onPick: (id: ThreadId) => void }) {
         <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">
           Recent conversations
         </div>
-        <ul className="mt-2 divide-y divide-border rounded-lg border border-border bg-card">
+        <Section flush className="mt-2" bodyClassName="p-0">
+          <ul className="divide-y divide-border">
           {conversations.slice(0, 4).map((c) => (
             <li key={c.id}>
               <button
@@ -300,7 +307,8 @@ function Landing({ onPick }: { onPick: (id: ThreadId) => void }) {
               </button>
             </li>
           ))}
-        </ul>
+          </ul>
+        </Section>
       </div>
 
       <p className="mt-6 hidden t-meta lg:block">
@@ -321,9 +329,9 @@ function Q({ children }: { children: React.ReactNode }) {
 }
 function A({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <div className={cn("rounded-lg border border-border bg-card px-4 py-3 t-body", className)}>
+    <Section className={cn("px-4 py-3", className)} bodyClassName="t-body">
       {children}
-    </div>
+    </Section>
   );
 }
 function Cite({ n }: { n: number }) {

@@ -57,7 +57,7 @@ export default function SettingsPage() {
   const failing = connections.filter((c) => c.state !== "ok").length;
 
   return (
-    <Page width="text">
+    <Page width="wide">
       <PageHeader title="Settings" />
 
       <div className="space-y-4">

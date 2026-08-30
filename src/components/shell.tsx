@@ -162,6 +162,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
           style={{
             border: "1px solid var(--frame-stroke)",
             borderRadius: "var(--radius-panel)",
+            /* Reserve the scrollbar gutter always. Without it a scrolling surface is
+               16px narrower than a non-scrolling one, and the centred column — so the
+               page title with it — jumps 8px sideways as you move between dock tiles. */
+            scrollbarGutter: "stable",
           }}
         >
           {children}
@@ -173,7 +177,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       {s.narration && (
         <div
-          className="pointer-events-none fixed bottom-6 left-4 z-50 rounded-full border border-border bg-card/90 px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground"
+          className="pointer-events-none fixed bottom-6 left-4 z-50 rounded-full border border-border bg-card/90 px-2.5 py-1 font-mono t-micro uppercase tracking-widest text-muted-foreground"
           role="status"
         >
           narration

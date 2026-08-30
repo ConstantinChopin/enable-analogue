@@ -40,7 +40,7 @@ export default function CandidateDetail() {
 
   if (!candidate) {
     return (
-      <Page width="text">
+      <Page width="wide">
         <PageHeader title="No candidate at this address" />
         <Section>
           <p className="t-body text-muted-foreground">
@@ -59,7 +59,7 @@ export default function CandidateDetail() {
   /* A candidate whose source row could not be read — held, and visibly so. */
   if (candidate.kind === "held") {
     return (
-      <Page width="text">
+      <Page width="wide">
         <PageHeader
           title={
             <>
@@ -172,11 +172,12 @@ export default function CandidateDetail() {
         )}
 
         {/* Fields */}
-        <section className="overflow-hidden rounded-lg border border-border bg-card">
-          <h3 className="flex flex-wrap items-center gap-2 border-b border-border p-4 t-title">
-            Extracted fields
-            <Chip tone="neutral">value · source snippet · confidence</Chip>
-          </h3>
+        <Section
+          flush
+          bodyClassName="p-0"
+          title="Extracted fields"
+          chips={<Chip tone="neutral">value · source snippet · confidence</Chip>}
+        >
           <ul className="divide-y divide-border">
             {candidate.fields.map((f) => {
               const held = "held" in f && f.held;
@@ -277,7 +278,7 @@ export default function CandidateDetail() {
               );
             })}
           </ul>
-        </section>
+        </Section>
 
         {/* Actions */}
         {!isDup && (

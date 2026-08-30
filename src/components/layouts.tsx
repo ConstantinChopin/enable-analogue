@@ -7,10 +7,11 @@
  * <Page>, which owns the bottom padding.
  */
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { cn } from "@/lib/utils";
+import { Segmented } from "@/components/bits";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { ArrowLeft, X, LayoutGrid, Rows3 } from "lucide-react";
+import { X, LayoutGrid, Rows3 } from "lucide-react";
 
 /* ── Dock clearance ────────────────────────────────────────────────────────────
    16 (gap from viewport) + 16 (dock padding) + 44 (tile) + 8 (indicator row)
@@ -123,7 +124,7 @@ export function SplitView({
             style={{ height: ABOVE_DOCK_HEIGHT }}
           >
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
-              <span className="truncate text-[12px] font-mono uppercase tracking-widest text-muted-foreground">
+              <span className="truncate t-meta font-mono uppercase tracking-widest text-muted-foreground">
                 {panelTitle}
               </span>
               {closeButton}
@@ -142,7 +143,7 @@ export function SplitView({
           >
             <SheetTitle asChild><span className="sr-only">{panelTitle}</span></SheetTitle>
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-              <span className="truncate text-[12px] font-mono uppercase tracking-widest text-muted-foreground">
+              <span className="truncate t-meta font-mono uppercase tracking-widest text-muted-foreground">
                 {panelTitle}
               </span>
               {closeButton}
@@ -155,40 +156,25 @@ export function SplitView({
   );
 }
 
-/* ── ViewToggle ─────────────────────────────────────────────────────────────── */
+/* ── ViewToggle ───────────────────────────────────────────────────────────────
+   A thin wrapper over `Segmented` — the one segmented control. The prop signature
+   is unchanged, so every call site is untouched. */
+const VIEW_OPTIONS = [
+  { value: "grid" as const, label: "Grid", icon: LayoutGrid },
+  { value: "table" as const, label: "Table", icon: Rows3 },
+];
+
 export function ViewToggle({
   value, onChange, className,
 }: { value: "grid" | "table"; onChange: (v: "grid" | "table") => void; className?: string }) {
-  const options: { v: "grid" | "table"; label: string; icon: React.ElementType }[] = [
-    { v: "grid", label: "Grid", icon: LayoutGrid },
-    { v: "table", label: "Table", icon: Rows3 },
-  ];
   return (
-    <div
-      role="tablist"
-      aria-label="View"
-      className={cn("inline-flex shrink-0 items-center rounded-md border border-border p-0.5", className)}
-    >
-      {options.map((o) => {
-        const on = o.v === value;
-        return (
-          <button
-            key={o.v}
-            role="tab"
-            type="button"
-            aria-selected={on}
-            onClick={() => onChange(o.v)}
-            className={cn(
-              "flex cursor-pointer items-center gap-1.5 rounded-[5px] px-2.5 py-1 text-[12.5px] transition-colors",
-              on ? "bg-muted font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <o.icon className="size-3.5" aria-hidden />
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
+    <Segmented
+      value={value}
+      onChange={onChange}
+      options={VIEW_OPTIONS}
+      label="View"
+      className={className}
+    />
   );
 }
 

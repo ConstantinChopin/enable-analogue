@@ -18,7 +18,7 @@ import {
   type Widget,
 } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
-import { Chip, NarrationNote, FreshnessDate } from "@/components/bits";
+import { Chip, Section, NarrationNote, FreshnessDate } from "@/components/bits";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -38,22 +38,22 @@ function WidgetCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card">
-      <header className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-3">
-        <h2 className="t-title">{title}</h2>
-        {chip}
-      </header>
-      <div className="min-w-0 flex-1 px-4 py-3">{children}</div>
-      {expandsTo && expandLabel && (
-        <footer className="mt-auto border-t border-border p-2">
-          <Button asChild variant="ghost" size="sm" className="w-full justify-between text-primary">
+    <Section
+      flush
+      title={title}
+      chips={chip}
+      footer={
+        expandsTo && expandLabel ? (
+          <Button asChild variant="ghost" size="sm" className="h-auto w-full justify-between px-0 py-0 text-primary">
             <Link href={expandsTo}>
               {expandLabel} <ArrowRight className="size-3.5" aria-hidden />
             </Link>
           </Button>
-        </footer>
-      )}
-    </section>
+        ) : undefined
+      }
+    >
+      {children}
+    </Section>
   );
 }
 

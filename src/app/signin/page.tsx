@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useDemo } from "@/lib/store";
 import type { Persona } from "@/data/seed";
 import { people } from "@/data/seed";
+import { Section } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,21 +51,21 @@ export default function SignInPage() {
       <div className="w-full max-w-[404px]">
         {/* product mark */}
         <div className="mb-6 flex items-center justify-center gap-2.5">
-          <span className="grid size-9 place-items-center rounded-lg bg-primary text-[15px] font-semibold text-primary-foreground">
+          <span className="grid size-9 place-items-center rounded-lg bg-primary t-title text-primary-foreground">
             E
           </span>
-          <span className="text-[17px] font-semibold tracking-tight">Enable</span>
+          <span className="t-title tracking-tight">Enable</span>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-6 shadow-[0_1px_2px_rgba(28,29,34,0.06)] sm:p-7">
-          <h1 className="text-[19px] font-semibold tracking-tight">Sign in to Enable</h1>
-          <p className="mt-1 text-[13px] text-muted-foreground">
+          <h1 className="t-display">Sign in to Enable</h1>
+          <p className="mt-1 t-body text-muted-foreground">
             Your desk, your travellers and your agency&rsquo;s terms.
           </p>
 
           <form onSubmit={submit} className="mt-5 space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-[12.5px]">Work email</Label>
+              <Label htmlFor="email" className="t-micro">Work email</Label>
               <Input
                 id="email"
                 type="email"
@@ -76,8 +77,8 @@ export default function SignInPage() {
 
             <div className="space-y-1.5">
               <div className="flex items-baseline justify-between">
-                <Label htmlFor="password" className="text-[12.5px]">Password</Label>
-                <span className="text-[12px] text-muted-foreground">Forgotten?</span>
+                <Label htmlFor="password" className="t-micro">Password</Label>
+                <span className="t-meta">Forgotten?</span>
               </div>
               <Input
                 id="password"
@@ -92,7 +93,7 @@ export default function SignInPage() {
 
             <div className="flex items-center gap-3 pt-1">
               <span className="h-px flex-1 bg-border" aria-hidden />
-              <span className="text-[11.5px] text-muted-foreground">or</span>
+              <span className="t-micro text-muted-foreground">or</span>
               <span className="h-px flex-1 bg-border" aria-hidden />
             </div>
 
@@ -105,7 +106,7 @@ export default function SignInPage() {
 
         {/* Demo accounts */}
         <section className="mt-6" aria-label="Demo accounts">
-          <div className="mb-2 px-1 font-mono text-[10.5px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <div className="mb-2 px-1 font-mono t-micro uppercase tracking-widest text-muted-foreground">
             Demo accounts
           </div>
           <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -125,15 +126,15 @@ export default function SignInPage() {
                 >
                   <span
                     className={cn(
-                      "grid size-8 shrink-0 place-items-center rounded-full text-[11.5px] font-semibold",
+                      "grid size-8 shrink-0 place-items-center rounded-full t-micro",
                       on ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
                     )}
                   >
                     {a.initials}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13.5px] font-medium">{a.name}</span>
-                    <span className="block truncate text-[12px] text-muted-foreground">{a.title}</span>
+                    <span className="block truncate t-title">{a.name}</span>
+                    <span className="block truncate t-meta">{a.title}</span>
                   </span>
                   <span
                     className={cn(
@@ -150,13 +151,13 @@ export default function SignInPage() {
       </div>
 
       {/* Demo setup — the one place a demo control is visible */}
-      <details className="group mt-10 w-full max-w-[404px] text-[12px] text-muted-foreground sm:absolute sm:right-5 sm:bottom-5 sm:mt-0 sm:w-auto">
+      <details className="group mt-10 w-full max-w-[404px] t-meta sm:absolute sm:right-5 sm:bottom-5 sm:mt-0 sm:w-auto">
         <summary className="flex cursor-pointer list-none items-center gap-1 sm:justify-end">
           Demo setup
           <ChevronDown className="size-3.5 transition-transform group-open:rotate-180" aria-hidden />
         </summary>
-        <div className="mt-2 rounded-lg border border-border bg-card p-3 sm:w-[240px]">
-          <div className="mb-2 text-[11.5px] text-muted-foreground">Build vintage</div>
+        <Section className="mt-2 p-3 sm:w-[240px]">
+          <div className="mb-2 t-micro text-muted-foreground">Build vintage</div>
           <div className="flex overflow-hidden rounded-md border border-border">
             {([["v2", "Current build"], ["v1", "March build"]] as const).map(([w, label]) => (
               <button
@@ -164,7 +165,7 @@ export default function SignInPage() {
                 type="button"
                 onClick={() => d({ type: "world", world: w })}
                 className={cn(
-                  "flex-1 cursor-pointer px-2 py-1 font-mono text-[11px] whitespace-nowrap",
+                  "flex-1 cursor-pointer px-2 py-1 font-mono t-micro whitespace-nowrap",
                   s.world === w ? "bg-muted font-semibold text-foreground" : "hover:text-foreground",
                 )}
               >
@@ -172,7 +173,7 @@ export default function SignInPage() {
               </button>
             ))}
           </div>
-        </div>
+        </Section>
       </details>
     </div>
   );

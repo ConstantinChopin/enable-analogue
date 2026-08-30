@@ -36,7 +36,17 @@ export default function ReviewQueue() {
         faster than a missing record does.
       </NarrationNote>
 
-      <div className="mt-4 overflow-hidden rounded-lg border border-border bg-card">
+      <Section
+        flush
+        className="mt-4"
+        bodyClassName="p-0"
+        footer={
+          <span className="t-meta">
+            Admin reviews every product candidate for the first three months, including exact
+            place-id matches. Programmes and promotions stay admin-only.
+          </span>
+        }
+      >
         <div className="row-grid px-4 t-micro uppercase tracking-widest text-muted-foreground">
           <span className="row-primary">Candidate</span>
           <span className="row-meta">Source</span>
@@ -92,11 +102,7 @@ export default function ReviewQueue() {
             </li>
           )}
         </ul>
-        <p className="border-t border-border p-4 t-meta">
-          Admin reviews every product candidate for the first three months, including exact
-          place-id matches. Programmes and promotions stay admin-only.
-        </p>
-      </div>
+      </Section>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <Section title="Scope inheritance">

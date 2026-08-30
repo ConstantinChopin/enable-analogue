@@ -65,7 +65,7 @@ export default function Connections() {
         which is the difference between a system you can trust and one you have to second-guess.
       </NarrationNote>
 
-      <div className="mt-4 overflow-hidden rounded-lg border border-border bg-card">
+      <Section flush className="mt-4" bodyClassName="p-0">
         <div className="row-grid px-4 t-micro uppercase tracking-widest text-muted-foreground">
           <span className="row-primary">Source</span>
           <span className="row-meta">Last success</span>
@@ -85,7 +85,7 @@ export default function Connections() {
             </li>
           ))}
         </ul>
-      </div>
+      </Section>
 
       <Section className="mt-4" title="When a source fails downstream">
         <p className="t-body text-muted-foreground">

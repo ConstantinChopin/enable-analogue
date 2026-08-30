@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { useDemo } from "@/lib/store";
 import { travellerCards, traveller, people, type TravellerCard } from "@/data/seed";
 import { Page, PageHeader, SplitView, ViewToggle } from "@/components/layouts";
-import { Chip, NarrationNote, ConfirmBanner } from "@/components/bits";
+import { Chip, Section, NarrationNote, ConfirmBanner } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Lock, Share2, Users } from "lucide-react";
 
@@ -100,7 +100,7 @@ export default function TravellersPage() {
               arrives only if they share.
             </ConfirmBanner>
           )}
-          <div className="rounded-lg border border-border bg-card p-4 py-12 text-center">
+          <Section className="py-12 text-center">
             <Users className="mx-auto size-6 text-muted-foreground" aria-hidden />
             <p className="mt-3 t-title">No travellers shared with you</p>
             <p className="mx-auto mt-2 max-w-[46ch] t-meta">
@@ -112,7 +112,7 @@ export default function TravellersPage() {
                 Request access from the owner
               </Button>
             )}
-          </div>
+          </Section>
         </div>
       ) : (
         <SplitView
@@ -153,7 +153,8 @@ export default function TravellersPage() {
                   ))}
                 </ul>
               ) : (
-                <ul className="mt-4 overflow-hidden rounded-lg border border-border bg-card">
+                <Section flush className="mt-4" bodyClassName="p-0">
+                  <ul>
                   {rows.map((c, i) => (
                     <li key={c.id} className={cn(i > 0 && "border-t border-border")}>
                       <button
@@ -183,7 +184,8 @@ export default function TravellersPage() {
                       </button>
                     </li>
                   ))}
-                </ul>
+                  </ul>
+                </Section>
               )}
 
               <p className="mt-3 t-meta">

@@ -70,7 +70,7 @@ export default function ResolutionQueue() {
         person closes it with a reason.
       </NarrationNote>
 
-      <div className="mt-4 overflow-hidden rounded-lg border border-border bg-card">
+      <Section flush className="mt-4" bodyClassName="p-0">
         <ul>
           {orphanedPayments.map((p, i) => {
             const matched = matches[p.id];
@@ -130,7 +130,7 @@ export default function ResolutionQueue() {
             );
           })}
         </ul>
-      </div>
+      </Section>
 
       {!money && (
         <Section className="mt-4" title="Amounts are absent here">

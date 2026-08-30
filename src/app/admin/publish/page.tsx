@@ -10,30 +10,6 @@ import { Chip, Section, NarrationNote, ConfirmBanner } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Inbox, ShieldAlert, SlidersHorizontal } from "lucide-react";
 
-/** A card whose body is a full-bleed list: the header keeps its own padding, the
- *  rows run to the card's edge. */
-function ListCard({
-  title, chips, intro, footer, children,
-}: {
-  title: React.ReactNode;
-  chips?: React.ReactNode;
-  intro?: React.ReactNode;
-  footer?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="overflow-hidden rounded-lg border border-border bg-card">
-      <h3 className="flex flex-wrap items-center gap-2 border-b border-border p-4 t-title">
-        {title}
-        {chips}
-      </h3>
-      {intro && <p className="border-b border-border p-4 t-meta">{intro}</p>}
-      {children}
-      {footer && <div className="border-t border-border p-4 t-meta">{footer}</div>}
-    </section>
-  );
-}
-
 export default function AdminPublish() {
   const [published, setPublished] = useState<Record<string, boolean>>({});
   const [banner, setBanner] = useState(false);
@@ -61,7 +37,9 @@ export default function AdminPublish() {
         <div className="min-w-0 space-y-4">
           {banner && <ConfirmBanner show>Published agency-wide — owner preserved.</ConfirmBanner>}
 
-          <ListCard
+          <Section
+            flush
+            bodyClassName="p-0"
             title={
               <span className="inline-flex items-center gap-2">
                 <Inbox className="size-3.5 text-muted-foreground" aria-hidden /> Publish queue
@@ -72,7 +50,12 @@ export default function AdminPublish() {
                 <span className="tnum">{pending}</span> pending
               </Chip>
             }
-            footer="An advisor's notice reaches the agency layer only through this review. Publication keeps the original owner on the record."
+            footer={
+              <span className="t-meta">
+                An advisor&rsquo;s notice reaches the agency layer only through this review.
+                Publication keeps the original owner on the record.
+              </span>
+            }
           >
             <ul className="divide-y divide-border">
               {publishQueue.map((q) => (
@@ -100,9 +83,11 @@ export default function AdminPublish() {
                 </li>
               ))}
             </ul>
-          </ListCard>
+          </Section>
 
-          <ListCard
+          <Section
+            flush
+            bodyClassName="p-0"
             title={
               <span className="inline-flex items-center gap-2">
                 <SlidersHorizontal className="size-3.5 text-muted-foreground" aria-hidden /> Default
@@ -128,9 +113,11 @@ export default function AdminPublish() {
                 </li>
               ))}
             </ul>
-          </ListCard>
+          </Section>
 
-          <ListCard
+          <Section
+            flush
+            bodyClassName="p-0"
             title={
               <span className="inline-flex items-center gap-2">
                 <ShieldAlert className="size-3.5 text-muted-foreground" aria-hidden /> Admin access to
@@ -138,8 +125,11 @@ export default function AdminPublish() {
               </span>
             }
             chips={<Chip tone="neutral">per agency policy</Chip>}
-            intro="Every admin access is logged with a reason and a time limit, and the owner can be notified."
           >
+            <p className="border-b border-border px-4 py-3 t-meta">
+              Every admin access is logged with a reason and a time limit, and the owner can be
+              notified.
+            </p>
             <ul className="divide-y divide-border">
               {adminPolicy.breakGlass.map((row) => (
                 <li key={row.when} className="row-grid px-4">
@@ -163,12 +153,12 @@ export default function AdminPublish() {
                 </li>
               ))}
             </ul>
-          </ListCard>
+          </Section>
         </div>
 
         {/* ── Context rail ── */}
         <div className="space-y-4">
-          <ListCard title="Who this applies to">
+          <Section flush bodyClassName="p-0" title="Who this applies to">
             <ul className="divide-y divide-border">
               <li className="row-grid px-4">
                 <span className="row-primary t-body">Advisors</span>
@@ -189,7 +179,7 @@ export default function AdminPublish() {
                 </span>
               </li>
             </ul>
-          </ListCard>
+          </Section>
 
           <NarrationNote>
             Why defaults, not exceptions: a permission model that depends on people remembering to

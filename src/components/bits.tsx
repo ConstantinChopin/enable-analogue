@@ -95,7 +95,7 @@ export function SeverityBanner({ severity, className, children }: { severity: "I
 
 /* ── SchematicBadge ── */
 export function SchematicBadge() {
-  return <Chip tone="neutral" className="font-mono uppercase tracking-wide text-[10px]">schematic</Chip>;
+  return <Chip tone="neutral" className="font-mono uppercase tracking-wide t-micro">schematic</Chip>;
 }
 
 /* ── NarrationNote: presenter-overlay only ── */
@@ -128,17 +128,78 @@ export function ProvenancePopover({ source, children }: { source: { what: string
   );
 }
 
-/* ── Section card ── */
-export function Section({ title, chips, className, children }: { title?: React.ReactNode; chips?: React.ReactNode; className?: string; children: React.ReactNode }) {
+/* ── Section — the one card shell ──────────────────────────────────
+   Defaults render exactly as before, so existing call sites are unchanged.
+   `flush` gives the header a rule and removes body padding, for cards whose
+   content is a list of `.row-grid` rows that own their own gutters — which is
+   why several surfaces had hand-rolled their own card shell. */
+export function Section({
+  title, chips, actions, footer, flush, className, bodyClassName, children,
+}: {
+  title?: React.ReactNode;
+  chips?: React.ReactNode;
+  actions?: React.ReactNode;
+  footer?: React.ReactNode;
+  flush?: boolean;
+  className?: string;
+  bodyClassName?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <section className={cn("rounded-lg border border-border bg-card p-4", className)}>
+    <section className={cn("flex min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card", !flush && "p-4", className)}>
       {title && (
-        <h3 className="mb-3 flex flex-wrap items-center gap-2 t-title">
-          {title} {chips}
-        </h3>
+        <header
+          className={cn(
+            "flex flex-wrap items-center gap-2",
+            flush ? "border-b border-border px-4 py-3" : "mb-3",
+          )}
+        >
+          <h3 className="flex min-w-0 flex-wrap items-center gap-2 t-title">{title}</h3>
+          {chips}
+          {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
+        </header>
       )}
-      {children}
+      <div className={cn("min-w-0 flex-1", flush && "px-4 py-3", bodyClassName)}>{children}</div>
+      {footer && <footer className="mt-auto border-t border-border px-4 py-3">{footer}</footer>}
     </section>
+  );
+}
+
+/* ── Segmented — one control for view toggles, tag filters, state filters ──
+   Three surfaces had reimplemented this, each with its own radius and size. */
+export function Segmented<T extends string>({
+  value, onChange, options, label, className,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string; icon?: React.ElementType; count?: number }[];
+  label: string;
+  className?: string;
+}) {
+  return (
+    <div role="tablist" aria-label={label} className={cn("inline-flex shrink-0 items-center rounded-md border border-border p-0.5", className)}>
+      {options.map((o) => {
+        const on = o.value === value;
+        const Icon = o.icon;
+        return (
+          <button
+            key={o.value}
+            role="tab"
+            type="button"
+            aria-selected={on}
+            onClick={() => onChange(o.value)}
+            className={cn(
+              "flex cursor-pointer items-center gap-1.5 rounded-[4px] px-2.5 py-1 t-meta transition-colors",
+              on ? "bg-muted font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {Icon && <Icon className="size-3.5" aria-hidden />}
+            {o.label}
+            {o.count !== undefined && <span className="t-micro tnum opacity-70">{o.count}</span>}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

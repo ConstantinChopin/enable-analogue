@@ -16,7 +16,7 @@ import {
   type Product, type ProductCategory, type EvidenceKind, type Layer,
 } from "@/data/seed";
 import { Page, PageHeader, SplitView, ViewToggle, PropertyImage } from "@/components/layouts";
-import { Chip, EvidenceDot, FreshnessDate, SeverityBanner, NarrationNote, SourceTag } from "@/components/bits";
+import { Chip, Section, EvidenceDot, FreshnessDate, SeverityBanner, NarrationNote, SourceTag } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -269,7 +269,7 @@ function RecordsCatalogue() {
 
             {/* ── the two views ── */}
             {rows.length === 0 ? (
-              <div className="mt-4 rounded-lg border border-border bg-card px-4 py-10 text-center">
+              <Section className="mt-4 px-4 py-10 text-center">
                 <p className="t-title">No records match these filters.</p>
                 <p className="mt-1 t-meta">
                   Nothing is hidden by accident — remove a filter to widen the set.
@@ -277,7 +277,7 @@ function RecordsCatalogue() {
                 <Button variant="outline" size="sm" className="mt-3" onClick={() => setFilters(EMPTY)}>
                   Clear all filters
                 </Button>
-              </div>
+              </Section>
             ) : view === "grid" ? (
               <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {rows.map((p) => (
@@ -293,7 +293,7 @@ function RecordsCatalogue() {
                 ))}
               </ul>
             ) : (
-              <div className="mt-4 rounded-lg border border-border bg-card">
+              <Section flush className="mt-4" bodyClassName="p-0">
                 <div className="overflow-x-auto">
                   <table className="w-full t-body">
                     <thead>
@@ -354,7 +354,7 @@ function RecordsCatalogue() {
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </Section>
             )}
 
             {/* ── footer line ── */}

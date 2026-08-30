@@ -169,7 +169,7 @@ function Itineraries() {
 
             {/* ── the ledger ── */}
             {rows.length === 0 ? (
-              <div className="mt-4 rounded-lg border border-border bg-card p-4 py-12 text-center">
+              <Section className="mt-4 py-12 text-center">
                 <p className="t-title">No trips under this filter.</p>
                 <p className="mx-auto mt-2 max-w-[46ch] t-meta">
                   Nothing is hidden by accident — widen the window or clear the status.
@@ -185,9 +185,10 @@ function Itineraries() {
                 >
                   Show every trip
                 </Button>
-              </div>
+              </Section>
             ) : (
-              <ul className="mt-4 overflow-hidden rounded-lg border border-border bg-card">
+              <Section flush className="mt-4" bodyClassName="p-0">
+                <ul>
                 <li className="row-grid px-4 t-micro uppercase tracking-widest text-muted-foreground">
                   <span className="row-primary">Trip</span>
                   <span className="row-meta">Dates</span>
@@ -225,7 +226,8 @@ function Itineraries() {
                     </button>
                   </li>
                 ))}
-              </ul>
+                </ul>
+              </Section>
             )}
 
             <p className="mt-3 t-meta">

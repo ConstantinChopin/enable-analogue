@@ -29,28 +29,6 @@ import { ArrowRight, Check, CircleDashed, Lock, Share2, Sparkles, Users } from "
 
 const TABS = ["Overview", "Journeys", "Intelligence", "Communications", "Financials"] as const;
 
-/** A card whose body is a full-bleed list: the header keeps its own padding, the
- *  rows run to the card's edge. Section's padding would inset them. */
-function ListCard({
-  title, chips, footer, children,
-}: {
-  title: React.ReactNode;
-  chips?: React.ReactNode;
-  footer?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="overflow-hidden rounded-lg border border-border bg-card">
-      <h3 className="flex flex-wrap items-center gap-2 border-b border-border p-4 t-title">
-        {title}
-        {chips}
-      </h3>
-      {children}
-      {footer && <div className="border-t border-border p-4 t-meta">{footer}</div>}
-    </section>
-  );
-}
-
 export default function TravellerProfilePage() {
   const params = useParams<{ id: string }>();
   const id = params?.id ?? "";
@@ -74,7 +52,7 @@ function MarchettiProfile() {
   /* ── Colleague + private: absent, not masked ── */
   if (isColleague && s.shareTier === "private") {
     return (
-      <Page width="text">
+      <Page width="wide">
         <PageHeader title="Travellers" />
         <div className="space-y-4">
           {requested && (
@@ -83,7 +61,7 @@ function MarchettiProfile() {
               arrives only if they share.
             </ConfirmBanner>
           )}
-          <div className="rounded-lg border border-border bg-card p-4 py-12 text-center">
+          <Section className="py-12 text-center">
             <Users className="mx-auto size-6 text-muted-foreground" aria-hidden />
             <p className="mt-3 t-title">No travellers shared with you</p>
             <p className="mx-auto mt-2 max-w-[46ch] t-meta">
@@ -94,7 +72,7 @@ function MarchettiProfile() {
                 Request access from the owner
               </Button>
             )}
-          </div>
+          </Section>
         </div>
       </Page>
     );
@@ -103,7 +81,7 @@ function MarchettiProfile() {
   /* ── Colleague + basic: name + contact only ── */
   if (isColleague && s.shareTier === "basic") {
     return (
-      <Page width="text">
+      <Page width="wide">
         <PageHeader
           title={
             <>
@@ -411,7 +389,7 @@ function MarchettiProfile() {
           </Section>
 
           {/* Trips */}
-          <ListCard title="Trips">
+          <Section flush title="Trips" bodyClassName="p-0">
             <ul className="divide-y divide-border">
               {traveller.trips.map((t) => (
                 <li key={t.title} className="row-grid px-4">
@@ -423,7 +401,7 @@ function MarchettiProfile() {
                 </li>
               ))}
             </ul>
-          </ListCard>
+          </Section>
 
           {/* Financials — gated; absent for the colleague, never masked */}
           {money && (
@@ -439,9 +417,11 @@ function MarchettiProfile() {
 
         {/* ── Context rail ── */}
         <div className="space-y-4">
-          <ListCard
+          <Section
+            flush
+            bodyClassName="p-0"
             title="Where these come from"
-            footer="The product extracts signals. It does not decide that a signal is true."
+            footer={<span className="t-meta">The product extracts signals. It does not decide that a signal is true.</span>}
           >
             <ul className="divide-y divide-border">
               {traveller.signalsBySource.map(([label, n]) => (
@@ -455,7 +435,7 @@ function MarchettiProfile() {
                 <span className="row-trailing tnum t-body font-semibold">9</span>
               </li>
             </ul>
-          </ListCard>
+          </Section>
 
           <Section title="Visibility">
             <p className="flex gap-2 t-meta">
@@ -543,7 +523,7 @@ function GenericProfile({ id }: { id: string }) {
 
   if (!card) {
     return (
-      <Page width="text">
+      <Page width="wide">
         <PageHeader title="Not on your list" />
         <Section>
           <p className="t-body text-muted-foreground">
@@ -565,7 +545,7 @@ function GenericProfile({ id }: { id: string }) {
   const reachable = !isColleague || (s.shareTier !== "private" && card.shared === people.colleague);
   if (!reachable) {
     return (
-      <Page width="text">
+      <Page width="wide">
         <PageHeader title="Not shared with you" />
         <Section>
           <p className="t-body text-muted-foreground">
@@ -658,7 +638,7 @@ function GenericProfile({ id }: { id: string }) {
               )}
             </Section>
 
-            <ListCard title="All journeys">
+            <Section flush title="All journeys" bodyClassName="p-0">
               <ul className="divide-y divide-border">
                 {past.map((t) => (
                   <li key={t.id} className="row-grid px-4">
@@ -673,7 +653,7 @@ function GenericProfile({ id }: { id: string }) {
                   <li className="p-4 t-body text-muted-foreground">Nothing recorded yet.</li>
                 )}
               </ul>
-            </ListCard>
+            </Section>
 
             <Section title="Intelligence" chips={<SchematicBadge />}>
               <p className="t-body text-muted-foreground">
@@ -693,7 +673,7 @@ function GenericProfile({ id }: { id: string }) {
           </div>
 
           <div className="space-y-4">
-            <ListCard title="At a glance">
+            <Section flush title="At a glance" bodyClassName="p-0">
               <ul className="divide-y divide-border">
                 <li className="row-grid px-4">
                   <span className="row-primary t-body">Relationship</span>
@@ -714,7 +694,7 @@ function GenericProfile({ id }: { id: string }) {
                   </span>
                 </li>
               </ul>
-            </ListCard>
+            </Section>
 
             <Section
               title="Acuity"

@@ -111,7 +111,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       const raw = sessionStorage.getItem("enable-demo-state");
       if (raw) d({ type: "hydrate", state: { ...initial, ...JSON.parse(raw) } });
     } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
   React.useEffect(() => {
     if (!wroteOnce.current) { wroteOnce.current = true; return; }

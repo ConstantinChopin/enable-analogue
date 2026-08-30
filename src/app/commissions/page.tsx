@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { useDemo, canViewCommissions } from "@/lib/store";
 import { commissions, briefing, personName, roleLabel, type Commission } from "@/data/seed";
 import { Page, PageHeader, SplitView } from "@/components/layouts";
-import { Chip, Section, MoneyValue, SourceTag, SeverityBanner, NarrationNote } from "@/components/bits";
+import { Chip, Section, Segmented, MoneyValue, SourceTag, SeverityBanner, NarrationNote } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,12 +26,12 @@ import { ArrowRight, Search } from "lucide-react";
 
 type FilterKey = "open" | "overdue" | "paid" | "discrepancy" | "all";
 
-const FILTERS: { key: FilterKey; label: string }[] = [
-  { key: "open", label: "Open" },
-  { key: "overdue", label: "Overdue" },
-  { key: "paid", label: "Paid" },
-  { key: "discrepancy", label: "Discrepancies" },
-  { key: "all", label: "All" },
+const FILTERS: { value: FilterKey; label: string }[] = [
+  { value: "open", label: "Open" },
+  { value: "overdue", label: "Overdue" },
+  { value: "paid", label: "Paid" },
+  { value: "discrepancy", label: "Discrepancies" },
+  { value: "all", label: "All" },
 ];
 
 /** Overdue first, then chased, then due, then paid; within a band, oldest first. */
@@ -97,7 +97,7 @@ function Ledger() {
 
   if (!money) {
     return (
-      <Page width="text">
+      <Page width="wide">
         <PageHeader back="/briefing" crumb="Briefing" title="Commissions" />
         <Section>
           <p className="t-body">
@@ -133,49 +133,38 @@ function Ledger() {
 
       {/* ── summary strip ── */}
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border border-border bg-card p-4">
+        <Section>
           <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">
             Total outstanding
           </div>
           <div className="mt-1 t-display tnum">{eur(outstanding)}</div>
           <div className="t-meta tnum">{open.length} open commissions</div>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
+        </Section>
+        <Section>
           <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Overdue</div>
           <div className="mt-1 t-display tnum">{overdueCount}</div>
           <div className="t-meta tnum">
             {eur(commissions.filter((c) => c.state === "overdue").reduce((n, c) => n + c.amount, 0))} unrecovered
           </div>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
+        </Section>
+        <Section>
           <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">
             Collected this week
           </div>
           <div className="mt-1 t-display tnum">{eur(briefing.headline.collectedThisWeek)}</div>
           <div className="t-meta">actuals read-only from the booking system</div>
-        </div>
+        </Section>
       </div>
 
       {/* ── filter bar ── */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <div className="flex flex-wrap items-center rounded-md border border-border p-0.5">
-          {FILTERS.map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => { setFilter(f.key); setSelected(null); }}
-              aria-pressed={filter === f.key}
-              className={cn(
-                "cursor-pointer rounded-[5px] px-3 py-1 t-body transition-colors",
-                filter === f.key
-                  ? "bg-muted font-semibold text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          value={filter}
+          onChange={(v) => { setFilter(v); setSelected(null); }}
+          options={FILTERS}
+          label="Commission state"
+          className="flex-wrap"
+        />
         <div className="relative min-w-0 flex-1 sm:max-w-[280px]">
           <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input
@@ -196,7 +185,7 @@ function Ledger() {
           panelTitle={active ? active.bookingRef : "Commission"}
           panel={active ? <DetailPanel c={active} /> : null}
           list={
-            <div className="overflow-hidden rounded-lg border border-border bg-card">
+            <Section flush bodyClassName="p-0">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
@@ -252,7 +241,7 @@ function Ledger() {
                   )}
                 </TableBody>
               </Table>
-            </div>
+            </Section>
           }
         />
       </div>

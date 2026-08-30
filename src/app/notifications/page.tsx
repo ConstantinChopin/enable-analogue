@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { useDemo, type NoticeState } from "@/lib/store";
 import { notificationsFor, type Notification, type NotifTag } from "@/data/seed";
 import { Page, PageHeader, SplitView } from "@/components/layouts";
-import { Chip, NarrationNote, SchematicBadge } from "@/components/bits";
+import { Chip, Section, Segmented, NarrationNote, SchematicBadge } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Check, CircleAlert, Clock, Info, OctagonAlert, TriangleAlert } from "lucide-react";
 
@@ -32,10 +32,10 @@ function recency(when: string) {
 }
 
 type StateFilter = "open" | "actioned" | "deferred";
-const STATE_FILTERS: { key: StateFilter; label: string }[] = [
-  { key: "open", label: "Open" },
-  { key: "actioned", label: "Actioned" },
-  { key: "deferred", label: "Deferred" },
+const STATE_FILTERS: { value: StateFilter; label: string }[] = [
+  { value: "open", label: "Open" },
+  { value: "actioned", label: "Actioned" },
+  { value: "deferred", label: "Deferred" },
 ];
 
 const inStateFilter = (state: NoticeState, f: StateFilter) =>
@@ -148,45 +148,28 @@ function Triage() {
         list={
           <div className="min-w-0">
             {/* ── tag filter ── */}
-            <div className="mt-3 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-              <TagChip label="All" count={byState.length} on={tag === "all"} onClick={() => setTag("all")} />
-              {tagsPresent.map((t) => (
-                <TagChip
-                  key={t}
-                  label={t}
-                  count={tagCounts[t]}
-                  on={tag === t}
-                  onClick={() => setTag(tag === t ? "all" : t)}
-                />
-              ))}
+            <div className="mt-3">
+              <Segmented<NotifTag | "all">
+                value={tag}
+                /* Clicking the live tag clears it, as the pill row did. */
+                onChange={(v) => setTag(v === tag ? "all" : v)}
+                options={[
+                  { value: "all" as const, label: "All", count: byState.length },
+                  ...tagsPresent.map((t) => ({ value: t, label: t, count: tagCounts[t] })),
+                ]}
+                label="Tag"
+                className="max-w-full flex-wrap"
+              />
             </div>
 
             {/* ── state filter ── */}
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <div
-                role="tablist"
-                aria-label="Triage state"
-                className="inline-flex items-center rounded-md border border-border p-0.5"
-              >
-                {STATE_FILTERS.map((f) => {
-                  const on = f.key === stateFilter;
-                  return (
-                    <button
-                      key={f.key}
-                      role="tab"
-                      type="button"
-                      aria-selected={on}
-                      onClick={() => setStateFilter(f.key)}
-                      className={cn(
-                        "cursor-pointer rounded-[5px] px-3 py-1 t-body transition-colors",
-                        on ? "bg-muted font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {f.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <Segmented
+                value={stateFilter}
+                onChange={setStateFilter}
+                options={STATE_FILTERS}
+                label="Triage state"
+              />
               <p className="t-meta">
                 Nothing here clears itself. An item is actioned or deferred deliberately.
               </p>
@@ -205,7 +188,8 @@ function Triage() {
                 onClear={() => { setTag("all"); setStateFilter("open"); }}
               />
             ) : (
-              <ul className="mt-3 overflow-hidden rounded-lg border border-border bg-card">
+              <Section flush className="mt-3" bodyClassName="p-0">
+                <ul>
                 {rows.map((n, i) => {
                   const st = stateOf(n);
                   const isNew = st === "new";
@@ -244,7 +228,8 @@ function Triage() {
                     </li>
                   );
                 })}
-              </ul>
+                </ul>
+              </Section>
             )}
 
             {rows.length > 0 && (
@@ -260,28 +245,9 @@ function Triage() {
   );
 }
 
-function TagChip({ label, count, on, onClick }: { label: string; count: number; on: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={on}
-      className={cn(
-        "flex shrink-0 cursor-pointer items-center gap-2 rounded-full border px-3 py-1 t-body transition-colors",
-        on
-          ? "border-foreground bg-foreground font-semibold text-background"
-          : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
-      )}
-    >
-      {label}
-      <span className="t-micro tnum opacity-70">{count}</span>
-    </button>
-  );
-}
-
 function EmptyState({ title, body, onClear }: { title: string; body: string; onClear?: () => void }) {
   return (
-    <div className="mt-3 rounded-lg border border-border bg-card px-4 py-12 text-center">
+    <Section className="mt-3 py-12 text-center">
       <p className="t-title">{title}</p>
       <p className="mx-auto mt-1 max-w-[46ch] t-meta">{body}</p>
       {onClear && (
@@ -289,7 +255,7 @@ function EmptyState({ title, body, onClear }: { title: string; body: string; onC
           Show everything open
         </Button>
       )}
-    </div>
+    </Section>
   );
 }
 
