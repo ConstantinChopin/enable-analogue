@@ -1,29 +1,45 @@
 "use client";
 /**
- * Demo state — persona, world (v1/v2), presenter layer, and the seeded day's mutations.
- * Deterministic; reset returns to the opening state (presenter key 0).
+ * Session + demo state.
+ *
+ * Two layers live here and they are deliberately separate:
+ *  - session: who is signed in. Changing it is a sign-out/sign-in, not a toggle.
+ *  - demo:    the presenter's affordances (build vintage, narration, checkpoints).
+ *             These never render as product chrome; they are reached by keyboard,
+ *             or set on the sign-in screen, which sits outside the product.
  */
 import React, { createContext, useContext, useReducer } from "react";
 import type { Persona, World } from "@/data/seed";
 
+export type NoticeState = "new" | "seen" | "actioned" | "deferred";
+
 export interface DemoState {
-  persona: Persona;
+  /* session */
+  signedIn: boolean;
+  role: Persona;
+
+  /* presenter */
   world: World;
-  narration: boolean; // presenter overlay (key N)
-  conflictResolved: boolean; // commission conflict → 12% kept at agency layer
+  narration: boolean;
+
+  /* the seeded day's mutations */
+  conflictResolved: boolean;
   reminder: "idle" | "draft" | "sent";
   spaNoticeClosed: boolean;
-  verlaineAcked: boolean; // Critical acknowledgment
+  verlaineAcked: boolean;
   candidateConfirmed: boolean;
+  paymentMatched: boolean;
   shareTier: "private" | "full" | "basic";
-  requestFiled: boolean; // E-U5 pipeline request
+  requestFiled: boolean;
   noteSaved: boolean;
-  prefConfirmed: boolean; // kaiseki suggestion → preference
-  askScope: string | null; // EP3/EP4 context carry
+  prefConfirmed: boolean;
+  askScope: string | null;
+  notices: Record<string, NoticeState>;
 }
 
 const initial: DemoState = {
-  persona: "advisor",
+  signedIn: false,
+  role: "advisor",
   world: "v2",
   narration: false,
   conflictResolved: false,
@@ -31,16 +47,19 @@ const initial: DemoState = {
   spaNoticeClosed: false,
   verlaineAcked: false,
   candidateConfirmed: false,
+  paymentMatched: false,
   shareTier: "private",
   requestFiled: false,
   noteSaved: false,
   prefConfirmed: false,
   askScope: null,
+  notices: {},
 };
 
 export type Action =
   | { type: "hydrate"; state: DemoState }
-  | { type: "persona"; persona: Persona }
+  | { type: "signIn"; role: Persona }
+  | { type: "signOut" }
   | { type: "world"; world: World }
   | { type: "narration"; on?: boolean }
   | { type: "resolveConflict" }
@@ -48,17 +67,20 @@ export type Action =
   | { type: "closeSpaNotice" }
   | { type: "ackVerlaine" }
   | { type: "confirmCandidate" }
+  | { type: "matchPayment" }
   | { type: "share"; tier: DemoState["shareTier"] }
   | { type: "fileRequest" }
   | { type: "saveNote" }
   | { type: "confirmPref" }
   | { type: "askScope"; scope: string | null }
+  | { type: "notice"; id: string; state: NoticeState }
   | { type: "reset" };
 
 function reducer(s: DemoState, a: Action): DemoState {
   switch (a.type) {
     case "hydrate": return a.state;
-    case "persona": return { ...s, persona: a.persona };
+    case "signIn": return { ...s, signedIn: true, role: a.role };
+    case "signOut": return { ...initial, world: s.world, narration: s.narration };
     case "world": return { ...s, world: a.world };
     case "narration": return { ...s, narration: a.on ?? !s.narration };
     case "resolveConflict": return { ...s, conflictResolved: true };
@@ -66,12 +88,14 @@ function reducer(s: DemoState, a: Action): DemoState {
     case "closeSpaNotice": return { ...s, spaNoticeClosed: true };
     case "ackVerlaine": return { ...s, verlaineAcked: true };
     case "confirmCandidate": return { ...s, candidateConfirmed: true };
+    case "matchPayment": return { ...s, paymentMatched: true };
     case "share": return { ...s, shareTier: a.tier };
     case "fileRequest": return { ...s, requestFiled: true };
     case "saveNote": return { ...s, noteSaved: true };
     case "confirmPref": return { ...s, prefConfirmed: true };
     case "askScope": return { ...s, askScope: a.scope };
-    case "reset": return { ...initial, narration: s.narration };
+    case "notice": return { ...s, notices: { ...s.notices, [a.id]: a.state } };
+    case "reset": return { ...initial, signedIn: s.signedIn, role: s.role, world: s.world, narration: s.narration };
   }
 }
 
@@ -80,9 +104,8 @@ const Ctx = createContext<{ s: DemoState; d: React.Dispatch<Action> } | null>(nu
 export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [s, d] = useReducer(reducer, initial);
   const wroteOnce = React.useRef(false);
-  // Survive an accidental hard reload mid-demo. Read-then-dispatch on mount; the write
-  // effect skips its first run so StrictMode's double-effect can never persist `initial`
-  // over a stored state before hydration settles.
+  // Survive an accidental reload mid-demo. The write effect skips its first run so
+  // StrictMode's double-invocation can never persist `initial` over a stored state.
   React.useEffect(() => {
     try {
       const raw = sessionStorage.getItem("enable-demo-state");
@@ -103,7 +126,7 @@ export function useDemo() {
   return v;
 }
 
-/** Gate helper: commissions are absent (not masked) for the colleague persona. */
-export function canViewCommissions(p: Persona) {
-  return p !== "colleague";
+/** Commission figures are absent — never masked — for roles without the entitlement. */
+export function canViewCommissions(role: Persona) {
+  return role !== "colleague";
 }

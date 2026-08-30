@@ -1,103 +1,209 @@
 "use client";
-/** Publish queue + sharing defaults — the agency lead's home (Journey B EP4, admin plate). */
-import { useState } from "react";
+/**
+ * Publish queue and sharing defaults — the agency lead's governance surface.
+ * The Document archetype (§7): main column plus a context rail.
+ */
+import React, { useState } from "react";
 import { people, publishQueue, adminPolicy } from "@/data/seed";
-import { Chip, Section, PageHeader, NarrationNote, ConfirmBanner } from "@/components/bits";
+import { Page, PageHeader } from "@/components/layouts";
+import { Chip, Section, NarrationNote, ConfirmBanner } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Inbox, ShieldAlert, SlidersHorizontal } from "lucide-react";
+
+/** A card whose body is a full-bleed list: the header keeps its own padding, the
+ *  rows run to the card's edge. */
+function ListCard({
+  title, chips, intro, footer, children,
+}: {
+  title: React.ReactNode;
+  chips?: React.ReactNode;
+  intro?: React.ReactNode;
+  footer?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-lg border border-border bg-card">
+      <h3 className="flex flex-wrap items-center gap-2 border-b border-border p-4 t-title">
+        {title}
+        {chips}
+      </h3>
+      {intro && <p className="border-b border-border p-4 t-meta">{intro}</p>}
+      {children}
+      {footer && <div className="border-t border-border p-4 t-meta">{footer}</div>}
+    </section>
+  );
+}
 
 export default function AdminPublish() {
   const [published, setPublished] = useState<Record<string, boolean>>({});
   const [banner, setBanner] = useState(false);
 
+  const pending = publishQueue.filter((q) => !published[q.id]).length;
+
   return (
-    <div className="mx-auto max-w-[1180px] px-6 py-6">
-      <PageHeader crumb="Settings / Admin" title={<>Publish queue &amp; sharing defaults <Chip tone="neutral">workspace policy</Chip></>} />
+    <Page width="wide">
+      <PageHeader
+        title={
+          <>
+            Publish queue and sharing defaults
+            <Chip tone="neutral">workspace policy</Chip>
+          </>
+        }
+      >
+        <p className="mt-2 max-w-[62ch] t-body text-muted-foreground">
+          Every kind of record arrives closed. Opening one is an act somebody performs, and the log
+          records it.
+        </p>
+      </PageHeader>
 
-      <div className="mt-1 grid gap-4 lg:grid-cols-[1fr_320px]">
-        {/* ── Main ── */}
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        {/* ── Main column ── */}
         <div className="min-w-0 space-y-4">
-          {banner && <ConfirmBanner show>Published agency-wide; owner preserved</ConfirmBanner>}
+          {banner && <ConfirmBanner show>Published agency-wide — owner preserved.</ConfirmBanner>}
 
-          <Section title={<span className="inline-flex items-center gap-1.5"><Inbox className="size-3.5 text-muted-foreground" aria-hidden /> Publish queue</span>} chips={<Chip tone="primary">{publishQueue.filter((q) => !published[q.id]).length} pending</Chip>}>
-            <ul className="divide-y divide-border text-[13.5px]">
+          <ListCard
+            title={
+              <span className="inline-flex items-center gap-2">
+                <Inbox className="size-3.5 text-muted-foreground" aria-hidden /> Publish queue
+              </span>
+            }
+            chips={
+              <Chip tone={pending > 0 ? "primary" : "ok"}>
+                <span className="tnum">{pending}</span> pending
+              </Chip>
+            }
+            footer="An advisor's notice reaches the agency layer only through this review. Publication keeps the original owner on the record."
+          >
+            <ul className="divide-y divide-border">
               {publishQueue.map((q) => (
-                <li key={q.id} className="flex flex-wrap items-center gap-2 py-2.5">
-                  <span className="min-w-0">{q.text}</span>
-                  <span className="ml-auto" />
-                  {published[q.id] ? (
-                    <Chip tone="ok">published · owner preserved</Chip>
-                  ) : q.action.startsWith("Publish") ? (
-                    <Button size="sm" onClick={() => { setPublished((m) => ({ ...m, [q.id]: true })); setBanner(true); }}>{q.action}</Button>
-                  ) : (
-                    <Button variant="outline" size="sm">{q.action}</Button>
-                  )}
+                <li key={q.id} className="row-grid px-4">
+                  <span className="row-primary t-body">{q.text}</span>
+                  <span className="row-trailing">
+                    {published[q.id] ? (
+                      <Chip tone="ok">published · owner preserved</Chip>
+                    ) : q.action.startsWith("Publish") ? (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setPublished((m) => ({ ...m, [q.id]: true }));
+                          setBanner(true);
+                        }}
+                      >
+                        {q.action}
+                      </Button>
+                    ) : (
+                      <Button variant="outline" size="sm">
+                        {q.action}
+                      </Button>
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-[12px] text-muted-foreground">
-              An advisor&apos;s notice reaches the agency layer only through this review. Publication keeps the original owner on the record.
-            </p>
-          </Section>
+          </ListCard>
 
-          <Section title={<span className="inline-flex items-center gap-1.5"><SlidersHorizontal className="size-3.5 text-muted-foreground" aria-hidden /> Default visibility</span>} chips={<Chip tone="neutral">{adminPolicy.defaults.length} record kinds</Chip>}>
+          <ListCard
+            title={
+              <span className="inline-flex items-center gap-2">
+                <SlidersHorizontal className="size-3.5 text-muted-foreground" aria-hidden /> Default
+                visibility
+              </span>
+            }
+            chips={
+              <Chip tone="neutral">
+                <span className="tnum">{adminPolicy.defaults.length}</span> record kinds
+              </Chip>
+            }
+          >
             <ul className="divide-y divide-border">
               {adminPolicy.defaults.map((row) => (
-                <li key={row.kind} className="flex flex-wrap items-center gap-2 py-2.5 text-[13.5px]">
-                  <div className="min-w-0">
-                    <div className="font-medium">{row.kind}</div>
-                    <div className="text-[11.5px] text-muted-foreground">{row.detail}</div>
-                  </div>
-                  <span className="ml-auto rounded-md border border-border bg-muted px-2.5 py-1 text-[12.5px]">{row.value}</span>
+                <li key={row.kind} className="row-grid px-4">
+                  <span className="row-primary">
+                    <span className="block truncate type-data-strong">{row.kind}</span>
+                    <span className="block truncate t-meta">{row.detail}</span>
+                  </span>
+                  <span className="row-trailing rounded-md border border-border bg-muted px-3 py-1 t-body">
+                    {row.value}
+                  </span>
                 </li>
               ))}
             </ul>
-          </Section>
+          </ListCard>
 
-          <Section title={<span className="inline-flex items-center gap-1.5"><ShieldAlert className="size-3.5 text-muted-foreground" aria-hidden /> Admin access to personal records</span>} chips={<Chip tone="neutral">per agency policy</Chip>}>
-            <p className="text-[12.5px] text-muted-foreground">
-              Every admin access is logged with a reason and a time limit, and the owner can be notified.
-            </p>
-            <ul className="mt-2 divide-y divide-border text-[13px]">
+          <ListCard
+            title={
+              <span className="inline-flex items-center gap-2">
+                <ShieldAlert className="size-3.5 text-muted-foreground" aria-hidden /> Admin access to
+                personal records
+              </span>
+            }
+            chips={<Chip tone="neutral">per agency policy</Chip>}
+            intro="Every admin access is logged with a reason and a time limit, and the owner can be notified."
+          >
+            <ul className="divide-y divide-border">
               {adminPolicy.breakGlass.map((row) => (
-                <li key={row.when} className="flex flex-wrap items-start gap-2 py-2.5">
-                  <span className="mt-1.5 size-2 shrink-0 rounded-full bg-warn" aria-hidden />
-                  <div className="min-w-0">
-                    <div className="font-medium">{row.actor} {row.action}</div>
-                    <div className="text-[11.5px] text-muted-foreground">reason: {row.reason} · {"expiry" in row && row.expiry ? row.expiry : "note" in row && row.note ? row.note : ""}</div>
-                  </div>
-                  <span className="ml-auto text-[12px] text-muted-foreground tnum">{row.when}</span>
+                <li key={row.when} className="row-grid px-4">
+                  <span className="row-primary flex items-start gap-3">
+                    <span className="mt-2 size-2 shrink-0 rounded-full bg-warn" aria-hidden />
+                    <span className="min-w-0">
+                      <span className="block truncate type-data-strong">
+                        {row.actor} {row.action}
+                      </span>
+                      <span className="block truncate t-meta">
+                        reason: {row.reason}
+                        {"expiry" in row && row.expiry
+                          ? ` · ${row.expiry}`
+                          : "note" in row && row.note
+                            ? ` · ${row.note}`
+                            : ""}
+                      </span>
+                    </span>
+                  </span>
+                  <span className="row-trailing tnum t-meta">{row.when}</span>
                 </li>
               ))}
             </ul>
-          </Section>
+          </ListCard>
         </div>
 
-        {/* ── Rail ── */}
+        {/* ── Context rail ── */}
         <div className="space-y-4">
-          <Section title="Who this applies to">
-            <ul className="text-[13px]">
-              <li className="flex items-center justify-between py-1"><span>Advisors</span><span className="tnum text-muted-foreground">{adminPolicy.governed.advisors}</span></li>
-              <li className="flex items-center justify-between py-1"><span>Admins</span><span className="tnum text-muted-foreground">{adminPolicy.governed.admins}</span></li>
-              <li className="flex items-center justify-between py-1"><span>Desks</span><span className="tnum text-muted-foreground">{adminPolicy.governed.desks}</span></li>
+          <ListCard title="Who this applies to">
+            <ul className="divide-y divide-border">
+              <li className="row-grid px-4">
+                <span className="row-primary t-body">Advisors</span>
+                <span className="row-trailing tnum t-meta">{adminPolicy.governed.advisors}</span>
+              </li>
+              <li className="row-grid px-4">
+                <span className="row-primary t-body">Admins</span>
+                <span className="row-trailing tnum t-meta">{adminPolicy.governed.admins}</span>
+              </li>
+              <li className="row-grid px-4">
+                <span className="row-primary t-body">Desks</span>
+                <span className="row-trailing tnum t-meta">{adminPolicy.governed.desks}</span>
+              </li>
+              <li className="row-grid px-4">
+                <span className="row-primary t-body font-semibold">Records governed</span>
+                <span className="row-trailing tnum t-body font-semibold">
+                  {adminPolicy.governed.records.toLocaleString("en-GB")}
+                </span>
+              </li>
             </ul>
-            <div className="mt-2 flex items-center justify-between border-t border-border pt-2 text-[13px] font-medium">
-              <span>Records governed</span><span className="tnum">{adminPolicy.governed.records.toLocaleString("en-GB")}</span>
-            </div>
-          </Section>
+          </ListCard>
 
           <NarrationNote>
-            Why defaults, not exceptions: a permission model that depends on people remembering to close something will leak. Every kind of record arrives closed, and opening it is an act somebody performs and the log records.
+            Why defaults, not exceptions: a permission model that depends on people remembering to
+            close something will leak.
           </NarrationNote>
 
           <Section title="Last change">
-            <p className="flex items-center gap-1.5 text-[13px]">
+            <p className="flex items-center gap-2 t-body">
               <span className="size-2 rounded-full bg-ok" aria-hidden /> Policy saved
             </p>
-            <p className="mt-0.5 text-[12px] text-muted-foreground">{people.leadShort} · 09:12 today</p>
+            <p className="mt-1 t-meta">{people.leadShort} · 09:12 today</p>
           </Section>
         </div>
       </div>
-    </div>
+    </Page>
   );
 }

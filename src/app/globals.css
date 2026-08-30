@@ -1,36 +1,122 @@
 @import "tailwindcss";
 
-/* Enable analogue — plate-matched tokens. Deliberately light-committed (the plates' world). */
+/* ═══════════════════════════════════════════════════════════════════
+   Enable — design language
+   Tech humanist. Two voices: Inter for the machine, Newsreader for the
+   person. Flat by decision (Apple's own rule: no glass in the content
+   layer, and this product is almost entirely content layer).
+
+   Three token tiers, the tier written into the name:
+     ref-*   primitives. Never referenced by a component.
+     sys-*   semantic aliases. What components consume.
+     comp-*  component tokens. Never leave their component.
+   Precedence: alias by default; primitives only where no alias exists.
+   Name for use, never for value.
+   ═══════════════════════════════════════════════════════════════════ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #1c1d22;
-  --sidebar: #fafafa;
-  --card: #ffffff;
-  --card-foreground: #1c1d22;
-  --popover: #ffffff;
-  --popover-foreground: #1c1d22;
-  --muted: #f4f4f5;
-  --muted-foreground: #5f6066;
-  --subtle: #f8f8f9;
-  --border: #e5e6ea;
-  --input: #e5e6ea;
-  --primary: #5b5bd6;            /* plate indigo */
-  --primary-foreground: #ffffff;
-  --primary-soft: #eef0fd;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #1c1d22;
-  --accent: #f4f4f5;
-  --accent-foreground: #1c1d22;
-  --destructive: #c53a30;
-  --destructive-foreground: #ffffff;
-  --ok: #11703b;
-  --ok-soft: #e8f5ee;
-  --warn: #855b06;
-  --warn-soft: #fdf4e0;
-  --crit: #b02e24;
-  --crit-soft: #fbeeec;
-  --ring: #5b5bd6;
-  --radius: 0.55rem;
+  /* ── ref: primitives ─────────────────────────────────────────────
+     Warm throughout. There is no neutral grey in this product; every
+     neutral carries a warm hue bias so the interface reads warm
+     continuously rather than at a few accent points. */
+  --ref-paper-00: #ffffff;
+  --ref-paper-05: #fdfcfa;
+  --ref-paper-10: #f7f5f2;
+  --ref-paper-20: #efebe6;
+  --ref-paper-30: #e7e3de;
+  --ref-clay-40:  #b8b0a7;
+  --ref-clay-60:  #8a827a;
+  --ref-clay-75:  #57514b;
+  --ref-ink-90:   #2a2320;
+  --ref-ink-95:   #1c1917;
+
+  /* earth semantics — the trust states leave the primary-colour register */
+  --ref-moss:        #4c6a44;
+  --ref-moss-soft:   #edf1ea;
+  --ref-ochre:       #8a6212;
+  --ref-ochre-soft:  #f7f0df;
+  --ref-claret:      #8f3a34;
+  --ref-claret-soft: #f6eae8;
+
+  /* ── sys: backgrounds — three levels, Apple's hierarchy ───────── */
+  --sys-bg-base:    var(--ref-paper-10);
+  --sys-bg-raised:  var(--ref-paper-05);
+  --sys-bg-overlay: var(--ref-paper-00);
+  --sys-bg-sunken:  var(--ref-paper-20);
+
+  /* ── sys: labels — four levels, Apple's hierarchy ──────────────
+     Tertiary sits at 3.7:1 and is restricted to non-essential text. */
+  --sys-label-primary:    var(--ref-ink-95);
+  --sys-label-secondary:  var(--ref-clay-75);
+  --sys-label-tertiary:   var(--ref-clay-60);
+  --sys-label-quaternary: var(--ref-clay-40);
+
+  /* ── sys: strokes — two weights, no more ───────────────────────
+     The frame separates the application from the page; the divider
+     separates content from content. */
+  --sys-stroke-frame:   rgba(28, 25, 23, 0.16);
+  --sys-stroke-divider: var(--ref-paper-30);
+  --sys-stroke-subtle:  var(--ref-paper-20);
+
+  /* ── sys: accent — ink. Emphasis is fill and weight, not hue. ── */
+  --sys-accent:       var(--ref-ink-90);
+  --sys-accent-hover: #3a322d;
+  --sys-accent-on:    var(--ref-paper-05);
+  --sys-accent-soft:  var(--ref-paper-20);
+
+  /* ── sys: trust states — the only real chroma in the product ─── */
+  --sys-ok:          var(--ref-moss);
+  --sys-ok-soft:     var(--ref-moss-soft);
+  --sys-warn:        var(--ref-ochre);
+  --sys-warn-soft:   var(--ref-ochre-soft);
+  --sys-crit:        var(--ref-claret);
+  --sys-crit-soft:   var(--ref-claret-soft);
+
+  --sys-focus: var(--ref-ink-90);
+
+  /* ── sys: geometry ─────────────────────────────────────────────── */
+  --radius: 10px;
+  --radius-panel: 12px;
+  --radius-card: 10px;
+  --radius-control: 6px;
+
+  --frame-inset: 12px;
+  --frame-stroke: var(--sys-stroke-frame);
+  --panel-pad: 24px;
+
+  /* shadcn compatibility — mapped onto the semantic tier */
+  --background: var(--sys-bg-raised);
+  --foreground: var(--sys-label-primary);
+  --sidebar: var(--sys-bg-base);
+  --card: var(--sys-bg-raised);
+  --card-foreground: var(--sys-label-primary);
+  --popover: var(--sys-bg-overlay);
+  --popover-foreground: var(--sys-label-primary);
+  --muted: var(--ref-paper-20);
+  --muted-foreground: var(--sys-label-secondary);
+  --subtle: var(--sys-bg-base);
+  --border: var(--sys-stroke-divider);
+  --input: var(--sys-stroke-divider);
+  --primary: var(--sys-accent);
+  --primary-foreground: var(--sys-accent-on);
+  --primary-soft: var(--sys-accent-soft);
+  --secondary: var(--ref-paper-20);
+  --secondary-foreground: var(--sys-label-primary);
+  --accent: var(--ref-paper-20);
+  --accent-foreground: var(--sys-label-primary);
+  --destructive: var(--sys-crit);
+  --destructive-foreground: var(--ref-paper-05);
+  --ok: var(--sys-ok);
+  --ok-soft: var(--sys-ok-soft);
+  --warn: var(--sys-warn);
+  --warn-soft: var(--sys-warn-soft);
+  --crit: var(--sys-crit);
+  --crit-soft: var(--sys-crit-soft);
+  --ring: var(--sys-focus);
+}
+
+@media (max-width: 640px) {
+  :root { --frame-inset: 8px; --panel-pad: 16px; --radius-panel: 10px; }
 }
 
 @theme inline {
@@ -62,26 +148,93 @@
   --color-crit: var(--crit);
   --color-crit-soft: var(--crit-soft);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: 4px;
+  --radius-md: var(--radius-control);
+  --radius-lg: var(--radius-card);
+  --radius-xl: var(--radius-panel);
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-serif), ui-serif, Georgia, serif;
   --font-mono: var(--font-mono-stack), ui-monospace, monospace;
+
+  /* Optical weight stops, not mechanical ones. At 11–13px the 500/600 pair
+     reads as either invisible or heavy; 510/590 is the usable contrast.
+     Re-pointed here so every `font-medium` / `font-semibold` in the app
+     inherits the rule rather than each call site being corrected. */
+  --font-weight-medium: 510;
+  --font-weight-semibold: 590;
+  --font-weight-bold: 680;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  background: var(--sys-bg-base);
+  color: var(--sys-label-primary);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "cv11";
 }
 
-/* money and counts always tabular */
 .tnum { font-variant-numeric: tabular-nums; }
 
-*:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+*:focus-visible { outline: 2px solid var(--sys-focus); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* ═══ Type roles ══════════════════════════════════════════════════
+   Composite tokens, not sizes. Each bundles family, size, weight,
+   leading and tracking, so the sans/serif split is carried by the ROLE
+   — a table cell cannot be set in serif by accident.
+
+   Data sizes and leading follow Apple's macOS table, not the iOS one:
+   body is 13/16, a ratio of 1.23 rather than the web's habitual 1.5.
+   That is what buys density honestly — the rows tighten because the
+   type is set correctly, not because the padding was squeezed.
+
+   Emphasis is weight before size or colour. Apple's macOS Headline is
+   13pt Bold against 13pt Regular Body: identical size, identical
+   leading. Weight stops are optical (510/590) rather than mechanical
+   (500/600), which at 11–13px read as invisible or heavy.
+
+   The serif never appears below 15px.
+   ═══════════════════════════════════════════════════════════════════ */
+@layer components {
+  /* the machine */
+  .type-data-cell   { font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 400; }
+  .type-data-strong { font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 590; }
+  .type-data-meta   { font-family: var(--font-sans); font-size: 12px; line-height: 15px; font-weight: 400; color: var(--sys-label-secondary); }
+  .type-data-micro  { font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 510; letter-spacing: 0.01em; }
+  .type-data-figure { font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 400; font-variant-numeric: tabular-nums; }
+
+  /* the person */
+  .type-prose-lead  { font-family: var(--font-serif); font-size: 18px; line-height: 27px; font-weight: 400; }
+  .type-prose-body  { font-family: var(--font-serif); font-size: 16px; line-height: 25px; font-weight: 400; }
+  .type-prose-quote { font-family: var(--font-serif); font-size: 15px; line-height: 24px; font-weight: 400; font-style: italic; }
+
+  /* titles — the serif names the thing you are reading */
+  .type-title-page    { font-family: var(--font-serif); font-size: 24px; line-height: 28px; font-weight: 500; letter-spacing: -0.01em; }
+  .type-title-section { font-family: var(--font-sans);  font-size: 13px; line-height: 16px; font-weight: 590; }
+
+  /* ── migration aliases ──────────────────────────────────────────
+     The five size classes now resolve to roles, so every existing
+     surface adopts the language without being rewritten. New work
+     uses the role names directly. */
+  .t-display { font-family: var(--font-serif); font-size: 24px; line-height: 28px; font-weight: 500; letter-spacing: -0.01em; }
+  .t-title   { font-family: var(--font-sans);  font-size: 13px; line-height: 16px; font-weight: 590; }
+  .t-body    { font-family: var(--font-sans);  font-size: 13px; line-height: 16px; font-weight: 400; }
+  .t-meta    { font-family: var(--font-sans);  font-size: 12px; line-height: 15px; font-weight: 400; color: var(--sys-label-secondary); }
+  .t-micro   { font-family: var(--font-sans);  font-size: 11px; line-height: 14px; font-weight: 510; letter-spacing: 0.01em; }
+}
+
+/* ── row primitive: exactly one element truncates ────────────────── */
+.row-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding-block: 10px;
+}
+.row-grid > .row-primary { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-grid > .row-meta,
+.row-grid > .row-trailing { white-space: nowrap; flex-shrink: 0; }
+@media (max-width: 640px) { .row-grid > .row-meta { display: none; } }

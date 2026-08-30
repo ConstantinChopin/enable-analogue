@@ -1,321 +1,569 @@
 "use client";
-/** Records directory — Journey E EP1. Master–detail: segmented tabs, filters, table + quick-look rail. */
-import { useEffect, useState } from "react";
+/**
+ * Records — the Catalogue archetype (§7).
+ *
+ * Grid of products with imagery is the default; the table is the alternate view
+ * (§10.5). Category tabs, a real filter bar, and one right panel that both views
+ * feed. Query params arrive from briefing widgets: ?evidence=stale | incentive.
+ */
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useDemo, canViewCommissions } from "@/lib/store";
-import { products, directoryCounts, directoryFooter, leandreFields, people } from "@/data/seed";
-import { Chip, Section, PageHeader, SeverityBanner, NarrationNote, FreshnessDate, EvidenceDot, ConfirmBanner, SchematicBadge } from "@/components/bits";
+import {
+  products, directoryCounts, filterOptions, leandreFields, notices, people,
+  type Product, type ProductCategory, type EvidenceKind, type Layer,
+} from "@/data/seed";
+import { Page, PageHeader, SplitView, ViewToggle, PropertyImage } from "@/components/layouts";
+import { Chip, EvidenceDot, FreshnessDate, SeverityBanner, NarrationNote, SourceTag } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { X, ArrowRight, ArrowUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ArrowRight, ChevronDown, MessageSquareText, X } from "lucide-react";
 
-const tabToCategory: Record<string, string> = { Hotels: "Hotel", Cruises: "Cruise", DMCs: "DMC", "Rep firms": "Rep firm" };
+/* ── evidence mark ──────────────────────────────────────────────────────────────
+   EvidenceDot carries the four settled states. "unconfirmed" is not a trust state
+   but the absence of one, so it reads as a chip rather than a dot.               */
+function EvidenceMark({ kind, label }: { kind: EvidenceKind; label: string }) {
+  if (kind === "unconfirmed") return <Chip tone="warn">{label}</Chip>;
+  return <EvidenceDot kind={kind} label={label} />;
+}
 
-export default function RecordsDirectory() {
-  const { s, d } = useDemo();
-  const money = canViewCommissions(s.persona);
-  const [tab, setTab] = useState<keyof typeof directoryCounts>("Hotels");
-  const [filters, setFilters] = useState([
-    { id: "paris", label: "Paris" },
-    { id: "prog", label: "Programme: Atelier" },
-  ]);
-  const [checked, setChecked] = useState<string[]>(["maison-leandre"]);
-  const [selected, setSelected] = useState<string | null>("maison-leandre");
-  // PhoneStack (Layout 8): below md the quick-look renders as a bottom sheet, opened per row tap.
-  const [quickLookOpen, setQuickLookOpen] = useState(false);
-  const [isPhone, setIsPhone] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 767px)");
-    const update = () => setIsPhone(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
-  // Close the quick-look on Escape (rail and sheet alike).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || e.defaultPrevented) return;
-      setQuickLookOpen(false);
-      setSelected(null);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+/* ── facets ─────────────────────────────────────────────────────────────────── */
+type FacetKey = "region" | "luxuryTier" | "programme" | "status" | "consortia" | "evidence";
+type Filters = Record<FacetKey, string[]>;
 
-  // An unconfirmed candidate never surfaces in the directory for working personas —
-  // it appears only once confirmed (or to the reviewing lead/ops personas, marked unconfirmed).
-  const reviewer = s.persona === "lead" || s.persona === "ops";
-  const rows = products.filter(
-    (p) => p.category === tabToCategory[tab] && (p.id !== "sereno-kyoto" || s.candidateConfirmed || reviewer)
+const EMPTY: Filters = { region: [], luxuryTier: [], programme: [], status: [], consortia: [], evidence: [] };
+
+const FACETS: {
+  key: FacetKey;
+  label: string;
+  options: { value: string; label: string }[];
+  match: (p: Product, v: string) => boolean;
+}[] = [
+  {
+    key: "region", label: "Region",
+    options: filterOptions.region.map((r) => ({ value: r, label: r })),
+    match: (p, v) => p.region === v,
+  },
+  {
+    key: "luxuryTier", label: "Tier",
+    options: filterOptions.luxuryTier.map((t) => ({ value: t, label: t })),
+    match: (p, v) => p.luxuryTier === v,
+  },
+  {
+    key: "programme", label: "Programme",
+    options: filterOptions.programme.map((t) => ({ value: t, label: t })),
+    match: (p, v) => p.programs.includes(v),
+  },
+  {
+    key: "status", label: "Status",
+    options: filterOptions.status.map((t) => ({ value: t, label: t })),
+    match: (p, v) => p.status === v,
+  },
+  {
+    key: "consortia", label: "Consortia",
+    options: filterOptions.consortia.map((t) => ({ value: t, label: t })),
+    match: (p, v) => p.consortia.includes(v),
+  },
+  {
+    key: "evidence", label: "Evidence",
+    options: filterOptions.evidence.map((e) => ({ value: e.key, label: e.label })),
+    match: (p, v) => p.evidence.kind === v,
+  },
+];
+
+const facetLabel = (key: FacetKey) => FACETS.find((f) => f.key === key)!.label;
+const optionLabel = (key: FacetKey, value: string) =>
+  FACETS.find((f) => f.key === key)!.options.find((o) => o.value === value)?.label ?? value;
+
+/* ── page ───────────────────────────────────────────────────────────────────── */
+export default function RecordsPage() {
+  return (
+    <Suspense fallback={null}>
+      <RecordsCatalogue />
+    </Suspense>
   );
-  const selectedProduct = selected ? products.find((p) => p.id === selected) : undefined;
+}
 
-  const pick = (id: string) => {
-    setSelected(id);
-    if (isPhone) setQuickLookOpen(true);
-  };
+function RecordsCatalogue() {
+  const { s } = useDemo();
+  const money = canViewCommissions(s.role);
+  const search = useSearchParams();
 
-  const toggleChecked = (id: string, on: boolean) =>
-    setChecked((c) => (on ? [...new Set([...c, id])] : c.filter((x) => x !== id)));
+  /* Briefing widgets are saved views (§8): the query string is the view, applied on entry. */
+  const evidenceParam = search?.get("evidence") ?? null;
+
+  const [category, setCategory] = useState<ProductCategory>("Hotel");
+  const [view, setView] = useState<"grid" | "table">("grid");
+  const [filters, setFilters] = useState<Filters>(() =>
+    evidenceParam && filterOptions.evidence.some((e) => e.key === evidenceParam)
+      ? { ...EMPTY, evidence: [evidenceParam] }
+      : EMPTY,
+  );
+  const [selected, setSelected] = useState<string | null>(null);
+
+  /* An unconfirmed candidate never surfaces to a working advisor before it is
+     confirmed. Lead and ops see it, marked unconfirmed, because reviewing it is
+     their work. */
+  const reviewer = s.role === "lead" || s.role === "ops";
+  const visible = useMemo(
+    () => products.filter((p) => p.id !== "sereno-kyoto" || s.candidateConfirmed || reviewer),
+    [s.candidateConfirmed, reviewer],
+  );
+
+  const inCategory = useMemo(() => visible.filter((p) => p.category === category), [visible, category]);
+
+  const rows = useMemo(
+    () =>
+      inCategory.filter((p) =>
+        FACETS.every((f) => {
+          const picked = filters[f.key];
+          return picked.length === 0 || picked.some((v) => f.match(p, v));
+        }),
+      ),
+    [inCategory, filters],
+  );
+
+  const applied = useMemo(
+    () => FACETS.flatMap((f) => filters[f.key].map((v) => ({ key: f.key, value: v }))),
+    [filters],
+  );
+
+  const toggle = (key: FacetKey, value: string) =>
+    setFilters((prev) => ({
+      ...prev,
+      [key]: prev[key].includes(value) ? prev[key].filter((v) => v !== value) : [...prev[key], value],
+    }));
+
+  // A record filtered out of the list takes its panel with it — derived, never synced.
+  const selectedProduct = selected ? rows.find((p) => p.id === selected) : undefined;
 
   return (
-    <div className="mx-auto max-w-[1280px] px-6 py-6">
-      <PageHeader crumb={`Records / ${tab}`} title={tab}
-        right={
-          <div role="tablist" aria-label="Record categories" className="flex max-w-full overflow-x-auto rounded-md border border-border">
-            {(Object.keys(directoryCounts) as (keyof typeof directoryCounts)[]).map((t) => (
-              <button key={t} role="tab" aria-selected={t === tab} onClick={() => setTab(t)}
+    <Page width="wide">
+      <PageHeader
+        crumb="Records"
+        title="Records"
+        actions={<ViewToggle value={view} onChange={setView} />}
+      >
+        {/* ── category tabs ── */}
+        <div
+          role="tablist"
+          aria-label="Record categories"
+          className="mt-4 -mx-1 flex gap-1 overflow-x-auto px-1 pb-px"
+        >
+          {filterOptions.category.map((c) => {
+            const on = c === category;
+            return (
+              <button
+                key={c}
+                role="tab"
+                type="button"
+                aria-selected={on}
+                onClick={() => { setCategory(c); setSelected(null); }}
                 className={cn(
-                  "border-b-2 px-3 py-1.5 text-[12.5px] cursor-pointer whitespace-nowrap",
-                  t === tab ? "border-b-primary bg-muted font-semibold text-foreground" : "border-b-transparent text-muted-foreground hover:text-foreground"
-                )}>
-                {t} <span className="tnum text-muted-foreground">{directoryCounts[t]}</span>
+                  "flex shrink-0 cursor-pointer items-baseline gap-2 border-b-2 px-3 py-2 t-body whitespace-nowrap transition-colors",
+                  on
+                    ? "border-b-foreground font-semibold text-foreground"
+                    : "border-b-transparent text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {c}
+                <span className="t-micro text-muted-foreground tnum">{directoryCounts[c]}</span>
               </button>
-            ))}
+            );
+          })}
+        </div>
+      </PageHeader>
+
+      <NarrationNote>
+        The catalogue door into the same reconciled model the chat answers from. Every trust state is
+        visible on the card, before it is ever felt in a conversation.
+      </NarrationNote>
+
+      <SplitView
+        panelOpen={!!selectedProduct}
+        onClosePanel={() => setSelected(null)}
+        panelTitle={selectedProduct?.name ?? "Record"}
+        panel={selectedProduct ? <RecordPanel p={selectedProduct} /> : null}
+        list={
+          <div className="min-w-0">
+            {/* ── filter bar ── */}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {FACETS.map((f) => (
+                <Popover key={f.key}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className={cn(
+                        "flex cursor-pointer items-center gap-1 rounded-md border border-border px-3 py-1 t-body transition-colors hover:bg-muted",
+                        filters[f.key].length > 0 ? "font-semibold text-foreground" : "text-muted-foreground",
+                      )}
+                    >
+                      {f.label}
+                      {filters[f.key].length > 0 && (
+                        <span className="t-micro tnum">{filters[f.key].length}</span>
+                      )}
+                      <ChevronDown className="size-3" aria-hidden />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-56 p-2">
+                    <div className="mb-2 px-1 font-mono t-micro uppercase tracking-widest text-muted-foreground">
+                      {f.label}
+                    </div>
+                    <div className="space-y-0.5">
+                      {f.options.map((o) => {
+                        const id = `${f.key}-${o.value}`;
+                        return (
+                          <label
+                            key={o.value}
+                            htmlFor={id}
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-2 t-body hover:bg-muted"
+                          >
+                            <Checkbox
+                              id={id}
+                              checked={filters[f.key].includes(o.value)}
+                              onCheckedChange={() => toggle(f.key, o.value)}
+                            />
+                            {o.label}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              ))}
+
+              <span className="ml-auto t-meta">
+                <span className="tnum">{rows.length}</span> {rows.length === 1 ? "record" : "records"}
+              </span>
+            </div>
+
+            {/* ── applied chips ── */}
+            {applied.length > 0 && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {applied.map((a) => (
+                  <Chip key={`${a.key}-${a.value}`} tone="primary" className="pr-1">
+                    <span className="text-muted-foreground">{facetLabel(a.key)}</span>
+                    {optionLabel(a.key, a.value)}
+                    <button
+                      type="button"
+                      aria-label={`Remove filter ${facetLabel(a.key)} ${optionLabel(a.key, a.value)}`}
+                      onClick={() => toggle(a.key, a.value)}
+                      className="grid size-4 cursor-pointer place-items-center rounded-full hover:bg-border"
+                    >
+                      <X className="size-3" aria-hidden />
+                    </button>
+                  </Chip>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setFilters(EMPTY)}
+                  className="cursor-pointer t-body text-primary underline underline-offset-2"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+
+            {/* ── the two views ── */}
+            {rows.length === 0 ? (
+              <div className="mt-4 rounded-lg border border-border bg-card px-4 py-10 text-center">
+                <p className="t-title">No records match these filters.</p>
+                <p className="mt-1 t-meta">
+                  Nothing is hidden by accident — remove a filter to widen the set.
+                </p>
+                <Button variant="outline" size="sm" className="mt-3" onClick={() => setFilters(EMPTY)}>
+                  Clear all filters
+                </Button>
+              </div>
+            ) : view === "grid" ? (
+              <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {rows.map((p) => (
+                  <li key={p.id}>
+                    <RecordCard
+                      p={p}
+                      money={money}
+                      selected={selected === p.id}
+                      confirmedToday={p.id === "sereno-kyoto" && s.candidateConfirmed}
+                      onSelect={() => setSelected(p.id)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="mt-4 rounded-lg border border-border bg-card">
+                <div className="overflow-x-auto">
+                  <table className="w-full t-body">
+                    <thead>
+                      <tr className="border-b border-border text-left t-micro text-muted-foreground">
+                        <th className="py-2 pl-3 pr-3 font-normal">Record</th>
+                        <th className="hidden py-2 pr-3 font-normal sm:table-cell">Tier</th>
+                        <th className="hidden py-2 pr-3 font-normal md:table-cell">Programme</th>
+                        <th className="py-2 pr-3 font-normal">Evidence</th>
+                        {money && <th className="py-2 pr-3 font-normal">Rate</th>}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {rows.map((p) => (
+                        <tr
+                          key={p.id}
+                          onClick={() => setSelected(p.id)}
+                          aria-selected={selected === p.id}
+                          className={cn(
+                            "cursor-pointer",
+                            selected === p.id ? "bg-muted/70" : "hover:bg-muted/40",
+                          )}
+                        >
+                          <td className="py-3 pl-3 pr-3">
+                            <div className="flex items-center gap-3">
+                              <span className="size-8 shrink-0 overflow-hidden rounded-md border border-border">
+                                <PropertyImage id={p.id} name={p.name} category={p.category} />
+                              </span>
+                              <span className="min-w-0">
+                                <button type="button" className="block cursor-pointer text-left font-medium">
+                                  {p.name}
+                                </button>
+                                <span className="block t-meta">
+                                  {p.city} · {p.country}
+                                </span>
+                              </span>
+                            </div>
+                          </td>
+                          <td className="hidden py-3 pr-3 sm:table-cell">
+                            <span className="t-meta">{p.luxuryTier}</span>
+                          </td>
+                          <td className="hidden py-3 pr-3 md:table-cell">
+                            <span className="flex flex-wrap gap-1">
+                              {p.programs.length === 0
+                                ? <span className="t-meta">—</span>
+                                : p.programs.map((pr) => (
+                                    <Chip key={pr} tone="neutral" className="border border-border bg-background">{pr}</Chip>
+                                  ))}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-3">
+                            {p.id === "sereno-kyoto" && s.candidateConfirmed
+                              ? <Chip tone="ok">confirmed today</Chip>
+                              : <EvidenceMark kind={p.evidence.kind} label={p.evidence.label} />}
+                          </td>
+                          {money && <td className="py-3 pr-3 tnum">{p.rate}</td>}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* ── footer line ── */}
+            <p className="mt-3 t-meta">
+              <span className="tnum">{rows.length}</span> of <span className="tnum">{inCategory.length}</span>{" "}
+              {category} records shown · <span className="tnum">{directoryCounts[category]}</span> in the full directory
+            </p>
           </div>
         }
       />
+    </Page>
+  );
+}
 
-      <NarrationNote>
-        The catalogue door into the same reconciled model the chat answers from — every trust state on the record is visible before it is ever felt in a conversation.
-      </NarrationNote>
+/* ── grid card ──────────────────────────────────────────────────────────────── */
+function RecordCard({
+  p, money, selected, confirmedToday, onSelect,
+}: {
+  p: Product; money: boolean; selected: boolean; confirmedToday: boolean; onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={cn(
+        "flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-lg border bg-card text-left transition-colors",
+        selected ? "border-primary bg-muted/40" : "border-border hover:bg-muted/30",
+      )}
+    >
+      <span className="block aspect-[16/9] w-full overflow-hidden border-b border-border">
+        <PropertyImage id={p.id} name={p.name} category={p.category} />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-2 p-4">
+        <span className="flex items-baseline justify-between gap-2">
+          <span className="min-w-0 truncate t-title">{p.name}</span>
+          {money && p.rate !== "—" && <span className="shrink-0 t-body tnum">{p.rate}</span>}
+        </span>
+        <span className="t-meta">
+          {p.city} · {p.country}
+        </span>
+        <span className="flex flex-wrap gap-1">
+          <Chip tone="neutral">{p.luxuryTier}</Chip>
+          {p.programs.map((pr) => (
+            <Chip key={pr} tone="neutral" className="border border-border bg-background">{pr}</Chip>
+          ))}
+          {p.status !== "Active" && <Chip tone="warn">{p.status}</Chip>}
+        </span>
+        <span className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2">
+          {confirmedToday
+            ? <Chip tone="ok">confirmed today</Chip>
+            : <EvidenceMark kind={p.evidence.kind} label={p.evidence.label} />}
+          <span className="ml-auto"><FreshnessDate stale={!!p.staleDays}>updated {p.updated}</FreshnessDate></span>
+        </span>
+      </span>
+    </button>
+  );
+}
 
-      <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        {/* ── table column ── */}
-        <div className="min-w-0">
-          {/* filter chips */}
-          <div className="flex flex-wrap items-center gap-2">
-            {filters.map((f) => (
-              <Chip key={f.id} tone="neutral" className="pr-1">
-                {f.label}
-                <button aria-label={`Remove filter ${f.label}`} onClick={() => setFilters((fs) => fs.filter((x) => x.id !== f.id))}
-                  className="grid size-4 place-items-center rounded-full hover:bg-border cursor-pointer">
-                  <X className="size-3" />
-                </button>
-              </Chip>
-            ))}
-            <span className="ml-auto text-[12px] text-muted-foreground">
-              {directoryFooter.inParis} in Paris{money && " · commission, highest first"}
-            </span>
-          </div>
+/* ── right panel ────────────────────────────────────────────────────────────── */
+function RecordPanel({ p }: { p: Product }) {
+  const { s, d } = useDemo();
+  const money = canViewCommissions(s.role);
+  const notice = notices.find((n) => n.productId === p.id);
+  const confirmedToday = p.id === "sereno-kyoto" && s.candidateConfirmed;
 
-          {/* bulk bar */}
-          {checked.length > 0 && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-primary/40 bg-primary-soft/50 px-3 py-2">
-              <span className="text-[13px] font-medium tnum">{checked.length} selected</span>
-              <Button variant="outline" size="sm">Add to a list</Button>
-              <Button variant="outline" size="sm">Compare <SchematicBadge /></Button>
-              <Button variant="outline" size="sm">Export <SchematicBadge /></Button>
-              <button onClick={() => setChecked([])} className="ml-auto text-[12.5px] text-primary underline underline-offset-2 cursor-pointer">Clear</button>
-            </div>
-          )}
-
-          {/* table — wide content scrolls in its own container, never the page */}
-          <div className="mt-3 rounded-lg border border-border bg-card">
-            <div className="overflow-x-auto">
-            <table className="w-full text-[13.5px]">
-              <thead>
-                <tr className="border-b border-border text-left text-[12px] text-muted-foreground">
-                  <th className="w-9 py-2 pl-3 font-normal" aria-label="Select" />
-                  <th className="py-2 pr-3 font-normal">Property</th>
-                  <th className="hidden py-2 pr-3 font-normal md:table-cell">Programme</th>
-                  {money && (
-                    <th className="py-2 pr-3 font-normal">
-                      <span className="inline-flex items-center gap-1">Rate <ArrowUpDown className="size-3" aria-hidden /></span>
-                    </th>
-                  )}
-                  <th className="py-2 pr-3 font-normal">Evidence</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {rows.map((p) => (
-                  <tr key={p.id} onClick={() => pick(p.id)} aria-selected={selected === p.id}
-                    className={cn("cursor-pointer", selected === p.id ? "bg-muted/70" : "hover:bg-muted/40")}>
-                    <td className="py-2.5 pl-3 align-top" onClick={(e) => e.stopPropagation()}>
-                      <Checkbox checked={checked.includes(p.id)} onCheckedChange={(v) => toggleChecked(p.id, v === true)} aria-label={`Select ${p.name}`} />
-                    </td>
-                    <td className="py-2.5 pr-3">
-                      <button onClick={() => pick(p.id)} className="text-left font-medium cursor-pointer">{p.name}</button>
-                      <div className="text-[12px] text-muted-foreground">{p.city} · updated {p.updated}</div>
-                    </td>
-                    <td className="hidden py-2.5 pr-3 md:table-cell">
-                      <span className="flex flex-wrap gap-1">
-                        {p.programs.map((pr) => <Chip key={pr} tone="neutral" className="border border-border bg-background">{pr}</Chip>)}
-                      </span>
-                    </td>
-                    {money && <td className="py-2.5 pr-3 tnum">{p.rate}</td>}
-                    <td className="py-2.5 pr-3">
-                      {p.id === "sereno-kyoto" && s.candidateConfirmed
-                        ? <Chip tone="ok">confirmed today</Chip>
-                        : <EvidenceDot kind={p.evidence.kind} label={p.evidence.label} />}
-                    </td>
-                  </tr>
-                ))}
-                {rows.length === 0 && (
-                  <tr><td colSpan={money ? 5 : 4} className="px-3 py-6 text-center text-[13px] text-muted-foreground">No records match the current filters.</td></tr>
-                )}
-              </tbody>
-            </table>
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2 text-[12px] text-muted-foreground">
-              <span>{directoryFooter.inParis} results in Paris · {directoryFooter.verifiedThisQuarter} fields verified this quarter</span>
-              <span className="tnum">{rows.length} of {directoryFooter.inParis} shown</span>
-            </div>
-          </div>
-
-          {/* E-U5 — record missing from the directory */}
-          <Section className="mt-4" title="Can't find a property?">
-            <p className="text-[13px] text-muted-foreground">
-              A missing record can be requested. The extraction pipeline creates a candidate for review, and the miss is logged to the knowledge-gaps report.
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => d({ type: "fileRequest" })} disabled={s.requestFiled}>
-                Request via the extraction pipeline
-              </Button>
-            </div>
-            <div className="mt-2">
-              <ConfirmBanner show={s.requestFiled}>
-                Request filed. A candidate record now sits in the review queue; the gap is logged.
-              </ConfirmBanner>
-            </div>
-          </Section>
-        </div>
-
-        {/* ── quick-look rail (md and up) ── */}
-        <aside className="hidden min-w-0 md:block">
-          {selectedProduct ? (
-            <div className="relative">
-              <button aria-label="Close quick look" onClick={() => setSelected(null)}
-                className="absolute right-2 top-2 z-10 grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer">
-                <X className="size-3.5" />
-              </button>
-              {selectedProduct.id === "maison-leandre" ? <LeandreQuickLook /> : <GenericQuickLook id={selectedProduct.id} money={money} />}
-            </div>
-          ) : (
-            <Section><p className="text-[13px] text-muted-foreground">Select a row to inspect it here.</p></Section>
-          )}
-        </aside>
+  return (
+    <div className="space-y-4">
+      <div className="aspect-[16/9] w-full overflow-hidden rounded-md border border-border">
+        <PropertyImage id={p.id} name={p.name} category={p.category} />
       </div>
 
-      {/* ── PhoneStack: quick-look as bottom sheet below md ── */}
-      <Sheet open={isPhone && quickLookOpen && !!selectedProduct} onOpenChange={(o) => { if (!o) setQuickLookOpen(false); }}>
-        <SheetContent side="bottom" className="max-h-[80dvh] gap-0 overflow-y-auto p-4">
-          <SheetTitle asChild><span className="sr-only">Quick look</span></SheetTitle>
-          {selectedProduct && (
-            selectedProduct.id === "maison-leandre" ? <LeandreQuickLook /> : <GenericQuickLook id={selectedProduct.id} money={money} />
-          )}
-        </SheetContent>
-      </Sheet>
-    </div>
-  );
-}
+      <div>
+        <h2 className="t-title">{p.name}</h2>
+        <p className="t-meta">
+          {p.category} · {p.city}, {p.country}
+        </p>
+      </div>
 
-/* ── Maison Léandre rich quick-look ── */
-function LeandreQuickLook() {
-  const { s } = useDemo();
-  const money = canViewCommissions(s.persona);
-  const p = products.find((x) => x.id === "maison-leandre")!;
-  const personalNote = leandreFields.find((f) => f.key === "note-rd");
+      {/* The two things you always want are always here, never scrolled to. */}
+      <div className="flex flex-wrap gap-2">
+        <Button asChild size="sm" className="flex-1">
+          <Link href={`/records/${p.id}`}>Open full record <ArrowRight className="size-3.5" aria-hidden /></Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/ask" onClick={() => d({ type: "askScope", scope: p.name })}>
+            <MessageSquareText className="size-3.5" aria-hidden /> Ask about this
+          </Link>
+        </Button>
+      </div>
 
-  return (
-    <div className="space-y-3">
-      <Section>
-        <div className="text-[15px] font-semibold">{p.name}</div>
-        <div className="text-[12.5px] text-muted-foreground">{p.category} · {p.city}</div>
-      </Section>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <Chip tone="neutral">{p.luxuryTier}</Chip>
+        {p.status !== "Active" && <Chip tone="warn">{p.status}</Chip>}
+        {confirmedToday
+          ? <Chip tone="ok">confirmed today</Chip>
+          : <EvidenceMark kind={p.evidence.kind} label={p.evidence.label} />}
+      </div>
 
-      {/* world-aware notice */}
-      {s.world === "v2" && !s.spaNoticeClosed && (
-        <SeverityBanner severity="Important">
-          <div className="font-medium">Open notice</div>
-          <div>Spa closed to 15 Sep. Opened 12 Jun at the agency layer.</div>
-        </SeverityBanner>
-      )}
-      {s.world === "v1" && (
-        <SeverityBanner severity="Info">
-          <span className="text-muted-foreground">The spa notice auto-expired on 1 Aug. The card looks clean — the spa is still closed.</span>
-        </SeverityBanner>
-      )}
-
-      <Section title="The record">
-        <dl className="space-y-1.5 text-[13px]">
-          {([["Address", p.address], ["Rooms", String(p.rooms)], ["Programme", p.brand], ["Rep firm", p.repFirm]] as [string, string | undefined][]).map(([k, v]) => (
-            <div key={k} className="flex items-baseline justify-between gap-3">
-              <dt className="text-muted-foreground">{k}</dt>
-              <dd className={cn("text-right", k === "Rooms" && "tnum")}>{v}</dd>
-            </div>
-          ))}
-        </dl>
-        <div className="mt-2 border-t border-border pt-2">
-          <FreshnessDate>updated {p.updated} · last verified {p.lastVerified}</FreshnessDate>
-        </div>
-      </Section>
-
-      {money && (
-        <Section title="Commission">
-          <div className="flex items-center gap-2">
-            <span className="text-[18px] font-semibold tnum">{p.rate}</span>
-            {s.conflictResolved
-              ? <Chip tone="ok">resolved · agency layer</Chip>
-              : <EvidenceDot kind="disagree" label={p.evidence.label} />}
+      {p.hasNotice && notice && s.world === "v2" && (
+        <SeverityBanner severity={notice.severity}>
+          <div className="font-medium">{notice.severity} notice</div>
+          <div>{notice.text}</div>
+          <div className="mt-1 t-meta">
+            Opened {notice.openedAt} · {notice.scope} scope · {notice.owner}
           </div>
-          {!s.conflictResolved && (
-            <>
-              <p className="mt-1.5 text-[12.5px] text-muted-foreground">Three sources hold three values, and none of them is chosen.</p>
-              <Button asChild size="sm" className="mt-2 w-full">
-                <Link href="/records/maison-leandre">Resolve 3 sources</Link>
-              </Button>
-            </>
-          )}
-        </Section>
+        </SeverityBanner>
+      )}
+      {p.hasNotice && notice && s.world === "v1" && (
+        <SeverityBanner severity="Info">
+          <span className="text-muted-foreground">
+            The notice on this record auto-expired. The card looks clean; nothing at the property changed.
+          </span>
+        </SeverityBanner>
       )}
 
-      {personalNote && (
-        <Section title="Personal note">
-          <p className="text-[13.5px]">{personalNote.value}</p>
-          <p className="mt-1 text-[12px] text-muted-foreground">{people.advisor} · booked Mar 2026</p>
-          <p className="mt-1.5 border-t border-border pt-1.5 text-[12px] text-muted-foreground">Personal until shared.</p>
-        </Section>
-      )}
-
-      <Button asChild variant="ghost" size="sm" className="text-primary">
-        <Link href="/records/maison-leandre">Open full record <ArrowRight className="size-3.5" /></Link>
-      </Button>
+      {p.id === "maison-leandre" ? <LayerSummary money={money} role={s.role} /> : <PlainSummary p={p} money={money} />}
     </div>
   );
 }
 
-/* ── minimal quick-look for other rows ── */
-function GenericQuickLook({ id, money }: { id: string; money: boolean }) {
-  const p = products.find((x) => x.id === id);
-  if (!p) return null;
+/* Compressed three-layer anatomy — the record's structure, two fields per layer. */
+function LayerSummary({ money, role }: { money: boolean; role: string }) {
+  const groups: { layer: Layer; title: string }[] = [
+    { layer: "canonical", title: "Enable canonical" },
+    { layer: "agency", title: "Agency overlay" },
+    { layer: "personal", title: "Personal" },
+  ];
+  const fieldsFor = (layer: Layer) =>
+    leandreFields
+      .filter(
+        (f) =>
+          f.layer === layer &&
+          (money || f.key !== "commission") &&
+          (role === "advisor" || f.key !== "note-rd"),
+      )
+      .slice(0, 2);
+
   return (
     <div className="space-y-3">
-      <Section>
-        <div className="text-[15px] font-semibold">{p.name}</div>
-        <div className="text-[12.5px] text-muted-foreground">{p.category} · {p.city}, {p.country}</div>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          <Chip tone="neutral">{p.luxuryTier}</Chip>
-          {p.programs.map((pr) => <Chip key={pr} tone="neutral" className="border border-border bg-background">{pr}</Chip>)}
-          {p.status !== "Active" && <Chip tone="warn">{p.status}</Chip>}
-        </div>
-      </Section>
-      <Section title="State">
-        <div className="space-y-1.5 text-[13px]">
-          <EvidenceDot kind={p.evidence.kind} label={p.evidence.label} />
-          {money && p.rate !== "—" && (
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-muted-foreground">Commission</span><span className="tnum">{p.rate}</span>
-            </div>
-          )}
-          <div><FreshnessDate>updated {p.updated} · last verified {p.lastVerified}</FreshnessDate></div>
-        </div>
-      </Section>
-      <Button asChild variant="ghost" size="sm" className="text-primary">
-        <Link href={`/records/${p.id}`}>Open full record <ArrowRight className="size-3.5" /></Link>
-      </Button>
+      {groups.map((g) => {
+        const fields = fieldsFor(g.layer);
+        if (fields.length === 0) return null;
+        return (
+          <section key={g.layer} className="rounded-md border border-border p-4">
+            <h3 className="font-mono t-micro uppercase tracking-widest text-muted-foreground">{g.title}</h3>
+            <dl className="mt-2 space-y-2">
+              {fields.map((f) => (
+                <div key={f.key}>
+                  <dt className="t-meta">{f.label}</dt>
+                  <dd className={cn("t-body", f.state === "template" && "italic text-muted-foreground")}>
+                    {f.value}
+                  </dd>
+                  <dd className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <SourceTag kind={f.source.kind} label={f.source.where} />
+                    <FreshnessDate stale={f.state === "stale"}>{f.source.when}</FreshnessDate>
+                    {f.state === "conflict" && <Chip tone="crit">3 sources disagree</Chip>}
+                    {f.state === "edited-overlay" && <Chip tone="primary">agency overlay</Chip>}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        );
+      })}
+      <p className="t-meta">
+        Three layers, one record. The full anatomy — every field, every source — is on the record itself.
+      </p>
+    </div>
+  );
+}
+
+/* Everything else: a shorter panel from the record's own fields. */
+function PlainSummary({ p, money }: { p: Product; money: boolean }) {
+  const rows: [string, string | undefined][] = [
+    ["Region", p.region],
+    ["Rooms", p.rooms ? String(p.rooms) : undefined],
+    ["Programme", p.programs.length ? p.programs.join(" · ") : undefined],
+    ["Consortia", p.consortia.length ? p.consortia.join(" · ") : undefined],
+    ["Rep firm", p.repFirm],
+    ["Rate", money && p.rate !== "—" ? p.rate : undefined],
+  ];
+  return (
+    <div className="space-y-3">
+      {p.blurb && <p className="t-body text-muted-foreground">{p.blurb}</p>}
+      <dl className="rounded-md border border-border p-4 t-body">
+        {rows.filter(([, v]) => !!v).map(([k, v]) => (
+          <div key={k} className="flex items-baseline justify-between gap-3 py-1">
+            <dt className="text-muted-foreground">{k}</dt>
+            <dd className={cn("text-right", (k === "Rooms" || k === "Rate") && "tnum")}>{v}</dd>
+          </div>
+        ))}
+      </dl>
+      <p>
+        <FreshnessDate stale={!!p.staleDays}>
+          updated {p.updated} · last verified {p.lastVerified}
+        </FreshnessDate>
+      </p>
+      {p.repFirm && (
+        <p className="t-meta">
+          Represented by {p.repFirm}. Contacts and terms live on the full record.
+        </p>
+      )}
+      {p.id === "sereno-kyoto" && (
+        <p className="t-meta">
+          A candidate record. It does not answer questions, and it is not offered to a client, until a
+          reviewer confirms it field by field — {people.lead} or {people.ops} hold that queue.
+        </p>
+      )}
     </div>
   );
 }
