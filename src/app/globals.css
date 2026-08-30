@@ -82,7 +82,7 @@
 
   --frame-inset: 12px;
   --frame-stroke: var(--sys-stroke-frame);
-  --panel-pad: 24px;
+  --panel-pad: 32px;
 
   /* shadcn compatibility — mapped onto the semantic tier */
   --background: var(--sys-bg-raised);

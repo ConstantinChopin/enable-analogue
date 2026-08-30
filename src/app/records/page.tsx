@@ -15,7 +15,7 @@ import {
   products, directoryCounts, filterOptions, leandreFields, notices, people,
   type Product, type ProductCategory, type EvidenceKind, type Layer,
 } from "@/data/seed";
-import { Page, PageHeader, SplitView, ViewToggle, PropertyImage } from "@/components/layouts";
+import { PageHeader, SplitPage, ViewToggle, PropertyImage } from "@/components/layouts";
 import { Chip, Section, EvidenceDot, FreshnessDate, SeverityBanner, NarrationNote, SourceTag } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -140,8 +140,8 @@ function RecordsCatalogue() {
   // A record filtered out of the list takes its panel with it — derived, never synced.
   const selectedProduct = selected ? rows.find((p) => p.id === selected) : undefined;
 
-  return (
-    <Page width="wide">
+  const header = (
+    <>
       <PageHeader
         crumb="Records"
         title="Records"
@@ -181,13 +181,18 @@ function RecordsCatalogue() {
         The catalogue door into the same reconciled model the chat answers from. Every trust state is
         visible on the card, before it is ever felt in a conversation.
       </NarrationNote>
+    </>
+  );
 
-      <SplitView
-        panelOpen={!!selectedProduct}
-        onClosePanel={() => setSelected(null)}
-        panelTitle={selectedProduct?.name ?? "Record"}
-        panel={selectedProduct ? <RecordPanel p={selectedProduct} /> : null}
-        list={
+  return (
+    <SplitPage
+      header={header}
+      panelOpen={!!selectedProduct}
+      onClosePanel={() => setSelected(null)}
+      panelTitle={selectedProduct?.name ?? "Record"}
+      panel={selectedProduct ? <RecordPanel p={selectedProduct} /> : null}
+    >
+      {
           <div className="min-w-0">
             {/* ── filter bar ── */}
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -363,9 +368,8 @@ function RecordsCatalogue() {
               {category} records shown · <span className="tnum">{directoryCounts[category]}</span> in the full directory
             </p>
           </div>
-        }
-      />
-    </Page>
+      }
+    </SplitPage>
   );
 }
 

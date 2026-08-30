@@ -18,8 +18,6 @@ import { X, LayoutGrid, Rows3 } from "lucide-react";
    = 84px of furniture, plus breathing room. One constant, used everywhere.      */
 export const DOCK_FOOTPRINT = 84;
 export const DOCK_CLEARANCE = "pb-[112px]";
-/** Height for anything that must run full-height and stop above the dock. */
-export const ABOVE_DOCK_HEIGHT = `calc(100dvh - ${DOCK_FOOTPRINT + 32}px)`;
 
 /* ── PageHeader ─────────────────────────────────────────────────────────────── */
 export function PageHeader({
@@ -56,41 +54,34 @@ export function Page({
   className?: string;
   children: React.ReactNode;
 }) {
-  const max = {
-    wide: "max-w-[1280px]",
-    text: "max-w-[980px]",
-    full: "max-w-none",
-  }[width];
-  /* Panel padding is locked by the visual system; the dock now has its own row in the
-     frame, so pages no longer pad for it. */
+  /* Content fills the panel at a fixed inset on every side, rather than being centred
+     inside a max-width column — the centred column produced ~97px side gutters on a
+     wide screen while the top sat at 24px, which read as three different paddings.
+     Only genuine prose keeps a measure. The page owns its scroll; the frame does not. */
+  const max = { wide: "max-w-none", text: "max-w-[72ch]", full: "max-w-none" }[width];
   return (
-    <div className={cn("w-full p-[var(--panel-pad)]", className)}>
-      <div className={cn("mx-auto w-full min-w-0", max)}>{children}</div>
+    <div className={cn("h-full w-full overflow-y-auto p-[var(--panel-pad)]", className)}>
+      <div className={cn("w-full min-w-0", max)}>{children}</div>
     </div>
   );
 }
 
-/* ── SplitView ──────────────────────────────────────────────────────────────── */
-function useIsDesktop() {
-  const [is, setIs] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const sync = () => setIs(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-  return is;
-}
-
-export function SplitView({
-  list, panel, panelOpen, onClosePanel, panelTitle = "Detail",
+/* ── SplitPage ───────────────────────────────────────────────────────────────
+   A catalogue or ledger with an inspector. The inspector is a full-height column
+   at the right edge of the frame — the way Notion's side panel and Claude Code's
+   preview behave — and the page's own header, tabs and filters stay to its left,
+   narrowing as it opens. The previous arrangement nested the panel inside the
+   content column below the header, which made it read as a card rather than as an
+   inspector. */
+export function SplitPage({
+  header, panel, panelOpen, onClosePanel, panelTitle = "Detail", children,
 }: {
-  list: React.ReactNode;
+  header?: React.ReactNode;
   panel: React.ReactNode;
   panelOpen: boolean;
   onClosePanel: () => void;
   panelTitle?: string;
+  children: React.ReactNode;
 }) {
   const isDesktop = useIsDesktop();
 
@@ -101,59 +92,70 @@ export function SplitView({
     return () => window.removeEventListener("keydown", onKey);
   }, [panelOpen, onClosePanel]);
 
-  const closeButton = (
-    <button
-      type="button"
-      onClick={onClosePanel}
-      aria-label="Close panel"
-      className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-    >
-      <X className="size-4" aria-hidden />
-    </button>
-  );
+  const open = isDesktop && panelOpen;
 
   return (
-    <>
-      <div className="flex w-full min-w-0 items-start gap-6">
-        <div className="min-w-0 flex-1">{list}</div>
-
-        {isDesktop && panelOpen && (
-          <aside
-            aria-label={panelTitle}
-            className="sticky top-4 flex w-[380px] shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-card"
-            style={{ height: ABOVE_DOCK_HEIGHT }}
-          >
-            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
-              <span className="truncate t-meta font-mono uppercase tracking-widest text-muted-foreground">
-                {panelTitle}
-              </span>
-              {closeButton}
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-4">{panel}</div>
-          </aside>
-        )}
+    <div className="flex h-full min-h-0 w-full">
+      <div className="min-w-0 flex-1 overflow-y-auto p-[var(--panel-pad)]">
+        {header}
+        {children}
       </div>
+
+      {open && (
+        <aside
+          aria-label={panelTitle}
+          className="flex h-full w-[400px] shrink-0 flex-col border-l border-border bg-card"
+        >
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-3">
+            <span className="truncate t-title">{panelTitle}</span>
+            <button
+              type="button"
+              onClick={onClosePanel}
+              aria-label="Close panel"
+              className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <X className="size-4" aria-hidden />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">{panel}</div>
+        </aside>
+      )}
 
       {!isDesktop && (
         <Sheet open={panelOpen} onOpenChange={(o) => { if (!o) onClosePanel(); }}>
-          <SheetContent
-            side="bottom"
-            showCloseButton={false}
-            className="max-h-[85dvh] gap-0 rounded-t-2xl p-0"
-          >
+          <SheetContent side="bottom" showCloseButton={false} className="max-h-[85dvh] gap-0 rounded-t-2xl p-0">
             <SheetTitle asChild><span className="sr-only">{panelTitle}</span></SheetTitle>
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-              <span className="truncate t-meta font-mono uppercase tracking-widest text-muted-foreground">
-                {panelTitle}
-              </span>
-              {closeButton}
+              <span className="truncate t-title">{panelTitle}</span>
+              <button
+                type="button"
+                onClick={onClosePanel}
+                aria-label="Close panel"
+                className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-8">{panel}</div>
           </SheetContent>
         </Sheet>
       )}
-    </>
+    </div>
   );
+}
+
+/* ── the desktop query ────────────────────────────────────────────────────────
+   One breakpoint decides whether the inspector is a column or a sheet.          */
+function useIsDesktop() {
+  const [is, setIs] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const sync = () => setIs(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return is;
 }
 
 /* ── ViewToggle ───────────────────────────────────────────────────────────────

@@ -15,7 +15,7 @@ import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useDemo, canViewCommissions } from "@/lib/store";
 import { commissions, briefing, personName, roleLabel, type Commission } from "@/data/seed";
-import { Page, PageHeader, SplitView } from "@/components/layouts";
+import { Page, PageHeader, SplitPage } from "@/components/layouts";
 import { Chip, Section, Segmented, MoneyValue, SourceTag, SeverityBanner, NarrationNote } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,8 +113,8 @@ function Ledger() {
     );
   }
 
-  return (
-    <Page width="wide">
+  const header = (
+    <>
       <PageHeader
         back="/briefing"
         crumb="Briefing"
@@ -130,122 +130,124 @@ function Ledger() {
         The briefing widget arrives here with its filter already applied. The widget is a
         saved view onto this ledger, not a page of its own.
       </NarrationNote>
+    </>
+  );
 
-      {/* ── summary strip ── */}
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <Section>
-          <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">
-            Total outstanding
-          </div>
-          <div className="mt-1 t-display tnum">{eur(outstanding)}</div>
-          <div className="t-meta tnum">{open.length} open commissions</div>
-        </Section>
-        <Section>
-          <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Overdue</div>
-          <div className="mt-1 t-display tnum">{overdueCount}</div>
-          <div className="t-meta tnum">
-            {eur(commissions.filter((c) => c.state === "overdue").reduce((n, c) => n + c.amount, 0))} unrecovered
-          </div>
-        </Section>
-        <Section>
-          <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">
-            Collected this week
-          </div>
-          <div className="mt-1 t-display tnum">{eur(briefing.headline.collectedThisWeek)}</div>
-          <div className="t-meta">actuals read-only from the booking system</div>
-        </Section>
-      </div>
-
-      {/* ── filter bar ── */}
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Segmented
-          value={filter}
-          onChange={(v) => { setFilter(v); setSelected(null); }}
-          options={FILTERS}
-          label="Commission state"
-          className="flex-wrap"
-        />
-        <div className="relative min-w-0 flex-1 sm:max-w-[280px]">
-          <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Property, booking reference, traveller…"
-            aria-label="Filter commissions"
-            className="pl-8 t-body"
-          />
+  return (
+    <SplitPage
+      header={header}
+      panelOpen={Boolean(active)}
+      onClosePanel={() => setSelected(null)}
+      panelTitle={active ? active.bookingRef : "Commission"}
+      panel={active ? <DetailPanel c={active} /> : null}
+    >
+      <div className="min-w-0">
+        {/* ── summary strip ── */}
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <Section>
+            <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">
+              Total outstanding
+            </div>
+            <div className="mt-1 t-display tnum">{eur(outstanding)}</div>
+            <div className="t-meta tnum">{open.length} open commissions</div>
+          </Section>
+          <Section>
+            <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Overdue</div>
+            <div className="mt-1 t-display tnum">{overdueCount}</div>
+            <div className="t-meta tnum">
+              {eur(commissions.filter((c) => c.state === "overdue").reduce((n, c) => n + c.amount, 0))} unrecovered
+            </div>
+          </Section>
+          <Section>
+            <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">
+              Collected this week
+            </div>
+            <div className="mt-1 t-display tnum">{eur(briefing.headline.collectedThisWeek)}</div>
+            <div className="t-meta">actuals read-only from the booking system</div>
+          </Section>
         </div>
-      </div>
 
-      {/* ── table ⇄ panel ── */}
-      <div className="mt-4">
-        <SplitView
-          panelOpen={Boolean(active)}
-          onClosePanel={() => setSelected(null)}
-          panelTitle={active ? active.bookingRef : "Commission"}
-          panel={active ? <DetailPanel c={active} /> : null}
-          list={
-            <Section flush bodyClassName="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="t-micro font-mono uppercase tracking-wide">Property</TableHead>
-                    <TableHead className="hidden t-micro font-mono uppercase tracking-wide sm:table-cell">
-                      Booking
-                    </TableHead>
-                    <TableHead className="hidden t-micro font-mono uppercase tracking-wide lg:table-cell">
-                      Traveller
-                    </TableHead>
-                    <TableHead className="text-right t-micro font-mono uppercase tracking-wide">Amount</TableHead>
-                    <TableHead className="t-micro font-mono uppercase tracking-wide">State</TableHead>
-                    <TableHead className="hidden t-micro font-mono uppercase tracking-wide md:table-cell">
-                      Due
-                    </TableHead>
-                    <TableHead className="hidden t-micro font-mono uppercase tracking-wide md:table-cell">
-                      Ageing
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((c) => (
-                    <TableRow
-                      key={c.id}
-                      onClick={() => setSelected(c.id === selected ? null : c.id)}
-                      aria-selected={c.id === selected}
-                      className={cn(
-                        "cursor-pointer t-body",
-                        c.id === selected && "bg-muted",
-                      )}
-                    >
-                      <TableCell className="max-w-[220px] truncate font-medium">
-                        {c.property}
-                        {c.discrepancy && <Chip tone="warn" className="ml-2">under projection</Chip>}
-                        {c.creditNotRefund && <Chip tone="crit" className="ml-2">credit</Chip>}
-                      </TableCell>
-                      <TableCell className="hidden font-mono t-meta sm:table-cell">
-                        {c.bookingRef}
-                      </TableCell>
-                      <TableCell className="hidden text-muted-foreground lg:table-cell">{c.traveller ?? "—"}</TableCell>
-                      <TableCell className="text-right font-medium tnum">{eur(c.amount)}</TableCell>
-                      <TableCell>{stateChip(c)}</TableCell>
-                      <TableCell className="hidden text-muted-foreground tnum md:table-cell">{c.dueDate}</TableCell>
-                      <TableCell className="hidden text-muted-foreground tnum md:table-cell">{ageing(c)}</TableCell>
-                    </TableRow>
-                  ))}
-                  {rows.length === 0 && (
-                    <TableRow className="hover:bg-transparent">
-                      <TableCell colSpan={7} className="py-8 text-center t-body text-muted-foreground">
-                        No commissions match this view.
-                      </TableCell>
-                    </TableRow>
+        {/* ── filter bar ── */}
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Segmented
+            value={filter}
+            onChange={(v) => { setFilter(v); setSelected(null); }}
+            options={FILTERS}
+            label="Commission state"
+            className="flex-wrap"
+          />
+          <div className="relative min-w-0 flex-1 sm:max-w-[280px]">
+            <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Property, booking reference, traveller…"
+              aria-label="Filter commissions"
+              className="pl-8 t-body"
+            />
+          </div>
+        </div>
+
+        {/* ── the table ── */}
+        <Section flush className="mt-4" bodyClassName="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="t-micro font-mono uppercase tracking-wide">Property</TableHead>
+                <TableHead className="hidden t-micro font-mono uppercase tracking-wide sm:table-cell">
+                  Booking
+                </TableHead>
+                <TableHead className="hidden t-micro font-mono uppercase tracking-wide lg:table-cell">
+                  Traveller
+                </TableHead>
+                <TableHead className="text-right t-micro font-mono uppercase tracking-wide">Amount</TableHead>
+                <TableHead className="t-micro font-mono uppercase tracking-wide">State</TableHead>
+                <TableHead className="hidden t-micro font-mono uppercase tracking-wide md:table-cell">
+                  Due
+                </TableHead>
+                <TableHead className="hidden t-micro font-mono uppercase tracking-wide md:table-cell">
+                  Ageing
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((c) => (
+                <TableRow
+                  key={c.id}
+                  onClick={() => setSelected(c.id === selected ? null : c.id)}
+                  aria-selected={c.id === selected}
+                  className={cn(
+                    "cursor-pointer t-body",
+                    c.id === selected && "bg-muted",
                   )}
-                </TableBody>
-              </Table>
-            </Section>
-          }
-        />
+                >
+                  <TableCell className="max-w-[220px] truncate font-medium">
+                    {c.property}
+                    {c.discrepancy && <Chip tone="warn" className="ml-2">under projection</Chip>}
+                    {c.creditNotRefund && <Chip tone="crit" className="ml-2">credit</Chip>}
+                  </TableCell>
+                  <TableCell className="hidden font-mono t-meta sm:table-cell">
+                    {c.bookingRef}
+                  </TableCell>
+                  <TableCell className="hidden text-muted-foreground lg:table-cell">{c.traveller ?? "—"}</TableCell>
+                  <TableCell className="text-right font-medium tnum">{eur(c.amount)}</TableCell>
+                  <TableCell>{stateChip(c)}</TableCell>
+                  <TableCell className="hidden text-muted-foreground tnum md:table-cell">{c.dueDate}</TableCell>
+                  <TableCell className="hidden text-muted-foreground tnum md:table-cell">{ageing(c)}</TableCell>
+                </TableRow>
+              ))}
+              {rows.length === 0 && (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={7} className="py-8 text-center t-body text-muted-foreground">
+                    No commissions match this view.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </Section>
       </div>
-    </Page>
+    </SplitPage>
   );
 }
 

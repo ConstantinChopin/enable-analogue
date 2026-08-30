@@ -158,14 +158,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <div className="flex h-full flex-col gap-[var(--frame-inset)]">
         <FrameBar />
         <main
-          className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-background"
+          /* The frame does not scroll — each page owns its scroll, so an inspector can
+             be a genuinely full-height column beside content that scrolls independently. */
+          className="min-h-0 flex-1 overflow-hidden bg-background"
           style={{
             border: "1px solid var(--frame-stroke)",
             borderRadius: "var(--radius-panel)",
-            /* Reserve the scrollbar gutter always. Without it a scrolling surface is
-               16px narrower than a non-scrolling one, and the centred column — so the
-               page title with it — jumps 8px sideways as you move between dock tiles. */
-            scrollbarGutter: "stable",
           }}
         >
           {children}

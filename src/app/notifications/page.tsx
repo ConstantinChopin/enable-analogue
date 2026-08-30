@@ -15,7 +15,7 @@ import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useDemo, type NoticeState } from "@/lib/store";
 import { notificationsFor, type Notification, type NotifTag } from "@/data/seed";
-import { Page, PageHeader, SplitView } from "@/components/layouts";
+import { PageHeader, SplitPage } from "@/components/layouts";
 import { Chip, Section, Segmented, NarrationNote, SchematicBadge } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Check, CircleAlert, Clock, Info, OctagonAlert, TriangleAlert } from "lucide-react";
@@ -114,8 +114,8 @@ function Triage() {
   const openCount = mine.filter((n) => inStateFilter(stateOf(n), "open")).length;
   const tagsPresent = TAG_ORDER.filter((t) => mine.some((n) => n.tag === t));
 
-  return (
-    <Page width="wide">
+  const header = (
+    <>
       <PageHeader
         crumb="Notifications"
         title={
@@ -139,13 +139,18 @@ function Triage() {
         product exists partly because the inbox failed, so the rule here is that an item is never a
         message you must interpret and act on somewhere else.
       </NarrationNote>
+    </>
+  );
 
-      <SplitView
-        panelOpen={!!active}
-        onClosePanel={() => setSelected(null)}
-        panelTitle={active ? active.tag : "Item"}
-        panel={active ? <ItemPanel n={active} state={stateOf(active)} /> : null}
-        list={
+  return (
+    <SplitPage
+      header={header}
+      panelOpen={!!active}
+      onClosePanel={() => setSelected(null)}
+      panelTitle={active ? active.tag : "Item"}
+      panel={active ? <ItemPanel n={active} state={stateOf(active)} /> : null}
+    >
+      {
           <div className="min-w-0">
             {/* ── tag filter ── */}
             <div className="mt-3">
@@ -239,9 +244,8 @@ function Triage() {
               </p>
             )}
           </div>
-        }
-      />
-    </Page>
+      }
+    </SplitPage>
   );
 }
 

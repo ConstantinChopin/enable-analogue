@@ -15,7 +15,7 @@ import { useDemo, canViewCommissions } from "@/lib/store";
 import {
   trips, itinerary, productById, type ItineraryStatus, type Trip,
 } from "@/data/seed";
-import { Page, PageHeader, SplitView, PropertyImage } from "@/components/layouts";
+import { PageHeader, SplitPage, PropertyImage } from "@/components/layouts";
 import { Chip, Section, SeverityBanner, NarrationNote, SchematicBadge } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,8 +90,8 @@ function Itineraries() {
 
   const active = selected ? rows.find((t) => t.id === selected) : undefined;
 
-  return (
-    <Page width="wide">
+  const header = (
+    <>
       <PageHeader
         title={
           <>
@@ -113,13 +113,18 @@ function Itineraries() {
         the trips, with the view applied — which is what makes the briefing proof that the underlying
         surfaces are real.
       </NarrationNote>
+    </>
+  );
 
-      <SplitView
-        panelOpen={!!active}
-        onClosePanel={() => setSelected(null)}
-        panelTitle={active?.title ?? "Trip"}
-        panel={active ? <TripPanel t={active} /> : null}
-        list={
+  return (
+    <SplitPage
+      header={header}
+      panelOpen={!!active}
+      onClosePanel={() => setSelected(null)}
+      panelTitle={active?.title ?? "Trip"}
+      panel={active ? <TripPanel t={active} /> : null}
+    >
+      {
           <div className="min-w-0">
             {/* ── filters ── */}
             <div className="mt-4 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
@@ -235,12 +240,11 @@ function Itineraries() {
               <span className="tnum">{trips.length}</span> trips shown · sorted by days to departure
             </p>
           </div>
-        }
-      />
+      }
 
-      {/* ── the worked example, full width beneath the ledger ── */}
+      {/* ── the worked example, beneath the ledger ── */}
       <WorkedExample money={money} />
-    </Page>
+    </SplitPage>
   );
 }
 

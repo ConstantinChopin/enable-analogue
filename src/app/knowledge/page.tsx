@@ -9,7 +9,7 @@
 import React, { useMemo, useState, useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
 import { vaultDocs, vaultStats, connections, type VaultDoc } from "@/data/seed";
-import { Page, PageHeader, SplitView } from "@/components/layouts";
+import { PageHeader, SplitPage } from "@/components/layouts";
 import { Chip, Section, NarrationNote, SchematicBadge } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -63,7 +63,7 @@ export default function KnowledgeVault() {
   const [selected, setSelected] = useState<string | null>("Atelier Collection terms.pdf");
 
   /* The panel is the vault's second column, so it opens with the page — but only
-     where there is a column for it. On a phone SplitView is a sheet, and a sheet
+     where there is a column for it. On a phone SplitPage is a sheet, and a sheet
      that opens by itself is an ambush. `null` means "follow the layout"; opening
      or closing it by hand pins it. */
   const desktop = useSyncExternalStore(
@@ -85,8 +85,8 @@ export default function KnowledgeVault() {
     : undefined;
   const inbound = connections.find((c) => c.name.startsWith("Inbound mail"));
 
-  return (
-    <Page width="wide">
+  const header = (
+    <>
       <PageHeader
         title={
           <>
@@ -139,13 +139,18 @@ export default function KnowledgeVault() {
         Access defaults are the governance posture — a document arrives at the tightest scope its
         source allows, and every widening is an act somebody performs and the log records.
       </NarrationNote>
+    </>
+  );
 
-      <SplitView
-        panelOpen={panelOpen}
-        onClosePanel={() => setPanelOpen(false)}
-        panelTitle="Provenance"
-        panel={<ProvenancePanel sel={sel} />}
-        list={
+  return (
+    <SplitPage
+      header={header}
+      panelOpen={panelOpen}
+      onClosePanel={() => setPanelOpen(false)}
+      panelTitle="Provenance"
+      panel={<ProvenancePanel sel={sel} />}
+    >
+      {
           <div className="min-w-0">
             {/* ── applied filters and connector state ── */}
             <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -252,9 +257,8 @@ export default function KnowledgeVault() {
               {inbound?.name.replace("Inbound mail — ", "")} · {inbound?.posture}
             </p>
           </div>
-        }
-      />
-    </Page>
+      }
+    </SplitPage>
   );
 }
 

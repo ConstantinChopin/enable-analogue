@@ -11,7 +11,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useDemo } from "@/lib/store";
 import { travellerCards, traveller, people, type TravellerCard } from "@/data/seed";
-import { Page, PageHeader, SplitView, ViewToggle } from "@/components/layouts";
+import { PageHeader, SplitPage, ViewToggle } from "@/components/layouts";
 import { Chip, Section, NarrationNote, ConfirmBanner } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Lock, Share2, Users } from "lucide-react";
@@ -70,8 +70,8 @@ export default function TravellersPage() {
 
   const active = selected ? rows.find((c) => c.id === selected) : undefined;
 
-  return (
-    <Page width="wide">
+  const header = (
+    <>
       <PageHeader
         title={
           <>
@@ -91,7 +91,26 @@ export default function TravellersPage() {
         Ownership and sharing are the only two rules that differ from product records. Everything
         else on a profile inherits the layered anatomy.
       </NarrationNote>
+    </>
+  );
 
+  return (
+    <SplitPage
+      header={header}
+      panelOpen={!!active}
+      onClosePanel={() => setSelected(null)}
+      panelTitle={active?.name ?? "Traveller"}
+      panel={
+        active ? (
+          <TravellerPanel
+            c={active}
+            basic={basic}
+            share={shareStateFor(active)}
+            sharedWith={sharedWithFor(active)}
+          />
+        ) : null
+      }
+    >
       {rows.length === 0 ? (
         <div className="mt-4 space-y-4">
           {requested && (
@@ -115,21 +134,6 @@ export default function TravellersPage() {
           </Section>
         </div>
       ) : (
-        <SplitView
-          panelOpen={!!active}
-          onClosePanel={() => setSelected(null)}
-          panelTitle={active?.name ?? "Traveller"}
-          panel={
-            active ? (
-              <TravellerPanel
-                c={active}
-                basic={basic}
-                share={shareStateFor(active)}
-                sharedWith={sharedWithFor(active)}
-              />
-            ) : null
-          }
-          list={
             <div className="min-w-0">
               <p className="mt-3 t-meta">
                 <span className="tnum">{rows.length}</span>{" "}
@@ -194,10 +198,8 @@ export default function TravellersPage() {
                   : "Every profile here is yours. Sharing one is an act, and it is recorded."}
               </p>
             </div>
-          }
-        />
       )}
-    </Page>
+    </SplitPage>
   );
 }
 
