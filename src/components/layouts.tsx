@@ -52,10 +52,16 @@ export function PageHeader({
 
 /* ── Page ───────────────────────────────────────────────────────────────────── */
 export function Page({
-  width = "wide", className, children,
+  width = "wide", className, fill = false, children,
 }: {
   width?: "wide" | "text" | "full";
   className?: string;
+  /**
+   * Give the inner column the panel's own height, so a page that pins something to
+   * its foot — Ask's composer — can size against the panel instead of the viewport.
+   * Off by default: a scrolling page wants this column to grow with its content.
+   */
+  fill?: boolean;
   children: React.ReactNode;
 }) {
   /* Content fills the panel at a fixed inset on every side, rather than being centred
@@ -65,7 +71,7 @@ export function Page({
   const max = { wide: "max-w-none", text: "max-w-[72ch]", full: "max-w-none" }[width];
   return (
     <div className={cn("h-full w-full overflow-y-auto p-[var(--panel-pad)]", className)}>
-      <div className={cn("w-full min-w-0", max)}>{children}</div>
+      <div className={cn("w-full min-w-0", max, fill && "h-full")}>{children}</div>
     </div>
   );
 }

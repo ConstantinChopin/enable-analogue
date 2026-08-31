@@ -18,7 +18,7 @@ import {
   askThreads, commissionConflict, traceFor, keptSource, connections, notices, people, conversations,
   type Conversation,
 } from "@/data/seed";
-import { Page, PageHeader, DOCK_FOOTPRINT } from "@/components/layouts";
+import { Page, PageHeader } from "@/components/layouts";
 import {
   Chip, Section, SeverityBanner, NarrationNote, ConfidenceMeter, LayerBadge, ConfirmBanner,
   SchematicBadge,
@@ -84,11 +84,11 @@ function Ask() {
   return (
     // Same column as every other surface, so the title lands where the eye expects it
     // when moving between dock tiles. Ask still manages its own height below.
-    <Page width="wide" className="pb-0">
-      <div
-        className="flex min-h-0 flex-col"
-        style={{ height: `calc(100dvh - ${DOCK_FOOTPRINT + 36}px)` }}
-      >
+    <Page width="wide" fill>
+      {/* Height comes from the panel this sits in, not from the viewport. Measuring
+          100dvh here double-counted the shell's own chrome and padding, so the pinned
+          composer ended up past the panel's bottom edge and under the dock. */}
+      <div className="flex h-full min-h-0 flex-col">
         <PageHeader
           className="mb-4 shrink-0"
           /* Scope lives on the composer, where it is removable. One place only. */
