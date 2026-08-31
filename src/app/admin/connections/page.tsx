@@ -165,7 +165,7 @@ export default function Connections() {
               <div className="flex items-start gap-3">
                 <RadioGroupItem value="mcp" id="conn-mcp" className="mt-1" />
                 <Label htmlFor="conn-mcp" className="flex flex-col items-start gap-1 font-normal">
-                  <span className="type-data font-semibold">MCP upstream</span>
+                  <span className="type-data-strong">MCP upstream</span>
                   <span className="type-meta">
                     Consume the source&rsquo;s own MCP server where one exists.
                   </span>
@@ -174,7 +174,7 @@ export default function Connections() {
               <div className="flex items-start gap-3">
                 <RadioGroupItem value="self" id="conn-self" className="mt-1" />
                 <Label htmlFor="conn-self" className="flex flex-col items-start gap-1 font-normal">
-                  <span className="type-data font-semibold">Self-hosted connector</span>
+                  <span className="type-data-strong">Self-hosted connector</span>
                   <span className="type-meta">Fallback where no upstream MCP exists.</span>
                 </Label>
               </div>

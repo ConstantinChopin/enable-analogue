@@ -144,7 +144,7 @@ export default function KnowledgeVault() {
                 aria-selected={on}
                 onClick={() => setTab(t)}
                 className={cn(
-                  "flex shrink-0 cursor-pointer items-baseline gap-2 border-b-2 px-3 py-2 type-data whitespace-nowrap transition-colors",
+                  "flex h-[var(--control-h-md)] shrink-0 cursor-pointer items-center gap-2 border-b-2 px-3 type-data whitespace-nowrap transition-colors",
                   on
                     ? "border-b-foreground font-semibold text-foreground"
                     : "border-b-transparent text-muted-foreground hover:text-foreground",
@@ -342,7 +342,7 @@ export default function KnowledgeVault() {
                       <div key={o.v} className="flex items-start gap-3">
                         <RadioGroupItem value={o.v} id={`acc-${o.v}`} className="mt-1" />
                         <Label htmlFor={`acc-${o.v}`} className="flex flex-col items-start gap-1 font-normal">
-                          <span className="type-data font-semibold">{o.label}</span>
+                          <span className="type-data-strong">{o.label}</span>
                           <span className="type-meta">{o.detail}</span>
                         </Label>
                       </div>

@@ -120,7 +120,7 @@ export default function SignInPage() {
 
         {/* Demo accounts */}
         <section className="mt-6" aria-label="Demo accounts">
-          <div className="mb-2 px-1 font-mono type-micro uppercase tracking-widest text-muted-foreground">
+          <div className="mb-2 px-1 type-code uppercase tracking-widest text-muted-foreground">
             Demo accounts
           </div>
           <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -180,7 +180,7 @@ export default function SignInPage() {
                 type="button"
                 onClick={() => d({ type: "world", world: w })}
                 className={cn(
-                  "flex-1 cursor-pointer px-2 py-1 font-mono type-micro whitespace-nowrap",
+                  "flex-1 cursor-pointer px-2 py-1 type-code whitespace-nowrap",
                   s.world === w ? "bg-muted font-semibold text-foreground" : "hover:text-foreground",
                 )}
               >

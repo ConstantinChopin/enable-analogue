@@ -226,6 +226,11 @@ body {
 
 .tnum { font-variant-numeric: tabular-nums; }
 
+/* `<b>` and `<strong>` default to 700 — a weight the system does not declare, and one
+   that reads heavy at 13px. Emphasis inside running text is the same stop as the
+   data-strong role, so inline emphasis and a row's subject agree. */
+b, strong { font-weight: 590; }
+
 *:focus-visible { outline: 2px solid var(--sys-focus); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -257,7 +262,12 @@ body {
   .type-data-strong { font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 590; }
   .type-meta        { font-family: var(--font-sans); font-size: 12px; line-height: 15px; font-weight: 400; color: var(--sys-label-secondary); }
   .type-micro       { font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 510; letter-spacing: 0.01em; }
-  .type-code        { font-family: var(--font-mono); font-size: 11px; line-height: 14px; font-weight: 510; }
+  /* `--font-mono-stack` is the Next font variable set on `body`. `--font-mono` is
+     declared in `@theme inline`, which Tailwind inlines into utilities rather than
+     emitting as a custom property — so referencing it here silently yields nothing
+     and the text falls back to the sans. `--font-sans` and `--font-serif` are real
+     because Next sets those two names directly. */
+  .type-code        { font-family: var(--font-mono-stack), ui-monospace, monospace; font-size: 11px; line-height: 14px; font-weight: 510; }
 
   /* ── the person ─────────────────────────────────────────────────
      `prose-quote` is a size step below `prose`, not merely an italic:
@@ -272,7 +282,14 @@ body {
 
 /* ── control geometry, as classes ──────────────────────────────────
    So a control's height, padding, radius and type arrive together and
-   cannot drift apart at a call site.                                  */
+   cannot drift apart at a call site.
+
+   One declared distinction inside the control layer:
+     a FIELD's text is what the user typed  → weight 400 (below)
+     a LABEL on a control is the product's  → weight 510 (Button)
+   A 400-weight button label reads weak at 13px, and 590 reads as a
+   heading. 510 is the stop between them — the same optical reasoning
+   that produced the weight ramp itself.                               */
 @layer components {
   .control-sm {
     height: var(--control-h-sm);

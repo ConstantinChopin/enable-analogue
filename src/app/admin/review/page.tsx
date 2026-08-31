@@ -57,7 +57,7 @@ export default function ReviewQueue() {
                 >
                   <span className="row-primary">
                     <span className="block truncate type-data-strong">{c.name}</span>
-                    <span className="block truncate font-mono type-micro text-muted-foreground">
+                    <span className="block truncate type-code text-muted-foreground">
                       {c.uri}
                     </span>
                   </span>
@@ -83,7 +83,7 @@ export default function ReviewQueue() {
             <li className="row-grid border-t border-border px-4">
               <span className="row-primary">
                 <span className="block truncate type-data-strong">Requested from directory</span>
-                <span className="block truncate font-mono type-micro text-muted-foreground">
+                <span className="block truncate type-code text-muted-foreground">
                   advisor request · gap logged
                 </span>
               </span>
@@ -119,7 +119,7 @@ export default function ReviewQueue() {
               <div className="px-4 py-3">
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                   <span className="type-data-strong">{c.name}</span>
-                  <span className="font-mono type-micro text-muted-foreground">{c.uri}</span>
+                  <span className="type-code text-muted-foreground">{c.uri}</span>
                   <span className="ml-auto type-meta">{c.by} · {c.when}</span>
                 </div>
                 <p className="mt-1 type-meta">{c.note}</p>

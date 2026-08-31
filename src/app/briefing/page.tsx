@@ -133,7 +133,7 @@ export default function Briefing() {
                   .slice(0, 4)
                   .map((c) => (
                     <Row key={c.id}>
-                      <Link href={`/commissions/${c.id}`} className="row-primary font-medium hover:text-primary">
+                      <Link href={`/commissions/${c.id}`} className="row-primary type-data-strong hover:text-primary">
                         {c.property}
                       </Link>
                       <span className="row-trailing flex items-center gap-2">
@@ -160,7 +160,7 @@ export default function Briefing() {
             {visibleDepartures.map((t) => (
               <Row key={t.id}>
                 <span className="row-primary">
-                  <span className="font-medium">{t.traveller}</span>
+                  <span className="type-data-strong">{t.traveller}</span>
                   <span className="text-muted-foreground"> · {t.title}</span>
                 </span>
                 <span className="row-meta type-meta tnum">in {t.startsInDays}d</span>
@@ -180,7 +180,7 @@ export default function Briefing() {
               {activeNotices.map((n) => (
                 <Row key={n.id}>
                   <Link href={`/records/${n.productId}`} className="row-primary hover:text-primary">
-                    <span className="font-medium">{n.productName}</span>{" "}
+                    <span className="type-data-strong">{n.productName}</span>{" "}
                     <span className="text-muted-foreground">— {n.text}</span>
                   </Link>
                   <span className="row-trailing flex items-center gap-2">
@@ -218,7 +218,7 @@ export default function Briefing() {
                 }
               >
                 <span className="row-primary">
-                  <span className="font-medium">{p.productName}</span>
+                  <span className="type-data-strong">{p.productName}</span>
                   <span> · {p.rate}</span>
                 </span>
                 <span className="row-trailing">
@@ -255,7 +255,7 @@ export default function Briefing() {
           <Rows>
             {publishQueue.map((q) => (
               <StackRow key={q.id} detail={q.action}>
-                <span className="row-primary font-medium">{q.text}</span>
+                <span className="row-primary type-data-strong">{q.text}</span>
               </StackRow>
             ))}
           </Rows>
@@ -267,7 +267,7 @@ export default function Briefing() {
             {candidates.map((c) => (
               <Row key={c.id}>
                 <span className="row-primary">
-                  <span className="font-medium">{c.name}</span>
+                  <span className="type-data-strong">{c.name}</span>
                   <span className="text-muted-foreground"> · {c.from}</span>
                 </span>
                 <span className="row-trailing">
@@ -285,7 +285,7 @@ export default function Briefing() {
           <Rows>
             {connections.map((c) => (
               <Row key={c.name}>
-                <span className="row-primary font-medium">{c.name}</span>
+                <span className="row-primary type-data-strong">{c.name}</span>
                 <span className="row-trailing">
                   <Chip tone={c.state === "ok" ? "ok" : c.state === "credentials" ? "crit" : "warn"}>
                     {c.state === "ok" ? `last success ${c.lastSuccess}`
@@ -304,7 +304,7 @@ export default function Briefing() {
             <Rows>
               {adminPolicy.defaults.map((p) => (
                 <Row key={p.kind}>
-                  <span className="row-primary font-medium">{p.kind}</span>
+                  <span className="row-primary type-data-strong">{p.kind}</span>
                   <span className="row-trailing text-muted-foreground">{p.value}</span>
                 </Row>
               ))}
@@ -338,7 +338,7 @@ export default function Briefing() {
                 {orphanedPayments.map((p) => (
                   <StackRow key={p.id} detail={p.note}>
                     <span className="row-primary">
-                      <span className="font-medium tnum">{eur(p.amount)}</span>
+                      <span className="type-data-strong tnum">{eur(p.amount)}</span>
                       <span className="text-muted-foreground"> {p.raw}</span>
                     </span>
                   </StackRow>
@@ -355,12 +355,12 @@ export default function Briefing() {
           <>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Collected</div>
+                <div className="type-code uppercase tracking-widest text-muted-foreground">Collected</div>
                 <div className="mt-1 type-data-strong tnum">{eur(collected)}</div>
                 <div className="type-meta tnum">{paid.length} settled</div>
               </div>
               <div>
-                <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Outstanding</div>
+                <div className="type-code uppercase tracking-widest text-muted-foreground">Outstanding</div>
                 <div className="mt-1 type-data-strong tnum">{eur(outstanding)}</div>
                 <div className="type-meta tnum">
                   {openCommissions.length} open · {overdueCount} overdue
@@ -394,7 +394,7 @@ export default function Briefing() {
                   </span>
                 }
               >
-                <Link href={`/commissions/${c.id}`} className="row-primary font-medium hover:text-primary">
+                <Link href={`/commissions/${c.id}`} className="row-primary type-data-strong hover:text-primary">
                   {c.property}
                 </Link>
                 <span className="row-trailing">

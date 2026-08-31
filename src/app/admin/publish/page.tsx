@@ -182,8 +182,8 @@ export default function AdminPublish() {
                 <span className="row-trailing tnum type-meta">{adminPolicy.governed.desks}</span>
               </li>
               <li className="row-grid px-4">
-                <span className="row-primary type-data font-semibold">Records governed</span>
-                <span className="row-trailing tnum type-data font-semibold">
+                <span className="row-primary type-data-strong">Records governed</span>
+                <span className="row-trailing tnum type-data-strong">
                   {adminPolicy.governed.records.toLocaleString("en-GB")}
                 </span>
               </li>
@@ -220,7 +220,7 @@ export default function AdminPublish() {
               <dl className="divide-y divide-border">
                 <div className="row-grid">
                   <dt className="row-primary type-data text-muted-foreground">From</dt>
-                  <dd className="row-trailing font-mono type-micro">{source.from}</dd>
+                  <dd className="row-trailing type-code">{source.from}</dd>
                 </div>
                 <div className="row-grid">
                   <dt className="row-primary type-data text-muted-foreground">Received</dt>
@@ -232,7 +232,7 @@ export default function AdminPublish() {
                 </div>
                 <div className="row-grid">
                   <dt className="row-primary type-data text-muted-foreground">Arrived at</dt>
-                  <dd className="row-trailing font-mono type-micro">{source.via}</dd>
+                  <dd className="row-trailing type-code">{source.via}</dd>
                 </div>
               </dl>
               <blockquote className="mt-4 rounded-md border border-border bg-subtle p-4 type-data">

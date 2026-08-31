@@ -26,7 +26,7 @@ export default function AppError({
           changed, and no answer was published from a partial read.
         </p>
         {error.digest && (
-          <p className="mt-3 font-mono type-micro text-muted-foreground">
+          <p className="mt-3 type-code text-muted-foreground">
             reference {error.digest}
           </p>
         )}

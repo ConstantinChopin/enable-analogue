@@ -218,7 +218,7 @@ function Itineraries() {
                       )}
                     >
                       <span className="row-primary">
-                        <span className="block truncate type-data font-semibold">{t.title}</span>
+                        <span className="block truncate type-data-strong">{t.title}</span>
                         <span className="block truncate type-meta">
                           {t.traveller} · {t.destinations.join(", ")}
                         </span>
@@ -264,7 +264,7 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={on}
       className={cn(
-        "flex shrink-0 cursor-pointer items-center gap-2 rounded-full border px-3 py-1 type-data transition-colors",
+        "control-sm flex shrink-0 cursor-pointer items-center gap-2 rounded-full border transition-colors",
         on
           ? "border-foreground bg-foreground font-semibold text-background"
           : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -380,7 +380,7 @@ function WorkedExample({ money }: { money: boolean }) {
        ground, on its own tinted plane. */
     <section className="-mx-[var(--panel-pad)] mt-8 border-t border-border bg-subtle px-[var(--panel-pad)] pb-8 pt-6">
       <header className="mb-4">
-        <p className="font-mono type-micro uppercase tracking-widest text-muted-foreground">
+        <p className="type-code uppercase tracking-widest text-muted-foreground">
           One trip, opened
         </p>
         <h2 className="mt-1 flex flex-wrap items-center gap-2 type-data-strong">
@@ -416,7 +416,7 @@ function WorkedExample({ money }: { money: boolean }) {
                   disabled={!built}
                   onClick={() => setOpenDay(n)}
                   className={cn(
-                    "rounded-md px-3 py-1 type-data transition-colors",
+                    "control-sm transition-colors",
                     on
                       ? "border border-border bg-card font-semibold"
                       : built
@@ -509,7 +509,7 @@ function WorkedExample({ money }: { money: boolean }) {
                     i === 0 ? "border border-primary/40 bg-card" : "border border-border bg-subtle",
                   )}
                 >
-                  <div className="type-data font-semibold">{r.name}</div>
+                  <div className="type-data-strong">{r.name}</div>
                   <div className="type-meta">{r.meta}</div>
                   {"primary" in r && r.primary ? (
                     added ? (

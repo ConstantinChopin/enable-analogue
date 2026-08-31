@@ -205,7 +205,7 @@ function ConversationList({
         </Button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="px-3 pt-3 type-micro font-mono uppercase tracking-widest text-muted-foreground">
+        <div className="px-3 pt-3 type-code uppercase tracking-widest text-muted-foreground">
           Recent
         </div>
         <ul className="p-2">
@@ -326,7 +326,7 @@ function Landing({ onPick }: { onPick: (id: ThreadId) => void }) {
       </div>
 
       <div className="mt-6 lg:hidden">
-        <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">
+        <div className="type-code uppercase tracking-widest text-muted-foreground">
           Recent conversations
         </div>
         <Section flush className="mt-2" bodyClassName="p-0">
@@ -719,7 +719,7 @@ function UnbuiltThread({ id }: { id: ThreadId }) {
       <Q>{c?.preview ?? "…"}</Q>
       <A>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-medium">{c?.title}</span>
+          <span className="type-data-strong">{c?.title}</span>
           <SchematicBadge />
         </div>
         <p className="mt-2 type-data text-muted-foreground">
@@ -969,7 +969,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
                 <span className="ml-auto type-data-strong tnum">{src.value}</span>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-3">
-                <span className="type-data font-semibold">{src.status}</span>
+                <span className="type-data-strong">{src.status}</span>
                 <ConfidenceMeter agree={src.agree} total={src.total} />
                 <Button
                   size="sm"
@@ -984,7 +984,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
           ))}
 
           <div className="rounded-md border border-border bg-subtle p-4">
-            <div className="font-mono type-micro uppercase tracking-widest text-muted-foreground">
+            <div className="type-code uppercase tracking-widest text-muted-foreground">
               Where this value goes
             </div>
             <p className="mt-2 type-meta">
@@ -995,7 +995,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
               {commissionConflict.impact.map((row) => (
                 <div key={row.surface} className="flex items-baseline justify-between gap-3">
                   <dt className="text-muted-foreground">{row.surface}</dt>
-                  <dd className="font-medium tnum">{chosen ? chosen.value : row.value}</dd>
+                  <dd className="type-data-strong tnum">{chosen ? chosen.value : row.value}</dd>
                 </div>
               ))}
             </dl>
@@ -1005,7 +1005,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
               asks for a justification of a decision, not of an empty form. */}
           {picked && (
             <div className="rounded-md border border-border p-4">
-              <span className="type-data font-semibold">Why this value</span>
+              <span className="type-data-strong">Why this value</span>
               <p className="mt-1 type-meta">Stored with the decision, so the next person sees what was kept and why.</p>
               <Textarea
                 className="mt-2"

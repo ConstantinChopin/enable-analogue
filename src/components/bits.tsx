@@ -265,7 +265,18 @@ export function Segmented<T extends string>({
   className?: string;
 }) {
   return (
-    <div role="tablist" aria-label={label} className={cn("inline-flex shrink-0 items-center rounded-md border border-border p-0.5", className)}>
+    /* The container is `control-sm` tall (28px) and its tabs fill it, so a segmented
+       control and any other filter-class control on the same line agree. It measured
+       29px against a 36px search input on the ledger — close enough to look like an
+       accident, which is what it was: nothing decided either number. */
+    <div
+      role="tablist"
+      aria-label={label}
+      className={cn(
+        "inline-flex h-[var(--control-h-sm)] shrink-0 items-center rounded-[var(--radius-control)] border border-border p-0.5",
+        className,
+      )}
+    >
       {options.map((o) => {
         const on = o.value === value;
         const Icon = o.icon;
@@ -277,11 +288,11 @@ export function Segmented<T extends string>({
             aria-selected={on}
             onClick={() => onChange(o.value)}
             className={cn(
-              "flex cursor-pointer items-center gap-1.5 rounded-[4px] px-2.5 py-1 type-meta transition-colors",
+              "flex h-full cursor-pointer items-center gap-1.5 rounded-[4px] px-2.5 type-data transition-colors",
               on ? "bg-muted font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {Icon && <Icon className="size-3.5" aria-hidden />}
+            {Icon && <Icon className="size-[var(--icon-md)]" aria-hidden />}
             {o.label}
             {o.count !== undefined && <span className="type-micro tnum opacity-70">{o.count}</span>}
           </button>

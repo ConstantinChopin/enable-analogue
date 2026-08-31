@@ -175,7 +175,7 @@ function RecordsCatalogue() {
                 aria-selected={on}
                 onClick={() => { setCategory(c); setSelected(null); }}
                 className={cn(
-                  "flex shrink-0 cursor-pointer items-baseline gap-2 border-b-2 px-3 py-2 type-data whitespace-nowrap transition-colors",
+                  "flex h-[var(--control-h-md)] shrink-0 cursor-pointer items-center gap-2 border-b-2 px-3 type-data whitespace-nowrap transition-colors",
                   on
                     ? "border-b-foreground font-semibold text-foreground"
                     : "border-b-transparent text-muted-foreground hover:text-foreground",
@@ -220,7 +220,7 @@ function RecordsCatalogue() {
                     <button
                       type="button"
                       className={cn(
-                        "flex cursor-pointer items-center gap-1 rounded-md border border-border px-3 py-1 type-data transition-colors hover:bg-muted",
+                        "control-sm flex cursor-pointer items-center gap-1 border border-border transition-colors hover:bg-muted",
                         filters[f.key].length > 0 ? "font-semibold text-foreground" : "text-muted-foreground",
                       )}
                     >
@@ -232,7 +232,7 @@ function RecordsCatalogue() {
                     </button>
                   </PopoverTrigger>
                   <PopoverContent align="start" className="w-56 p-2">
-                    <div className="mb-2 px-1 font-mono type-micro uppercase tracking-widest text-muted-foreground">
+                    <div className="mb-2 px-1 type-code uppercase tracking-widest text-muted-foreground">
                       {f.label}
                     </div>
                     <div className="space-y-0.5">
@@ -346,7 +346,7 @@ function RecordsCatalogue() {
                                 <PropertyImage id={p.id} name={p.name} category={p.category} />
                               </span>
                               <span className="min-w-0">
-                                <button type="button" className="block cursor-pointer text-left font-medium">
+                                <button type="button" className="block cursor-pointer text-left type-data-strong">
                                   {p.name}
                                 </button>
                                 <span className="block type-meta">
@@ -479,7 +479,7 @@ function RecordPanel({ p }: { p: Product }) {
 
       {p.hasNotice && notice && s.world === "v2" && (
         <SeverityBanner severity={notice.severity}>
-          <div className="font-medium">{notice.severity} notice</div>
+          <div className="type-data-strong">{notice.severity} notice</div>
           <div>{notice.text}</div>
           <div className="mt-1 type-meta">
             Opened {notice.openedAt} · {notice.scope} scope · {notice.owner}
@@ -519,7 +519,7 @@ function LayerSummary({ money, role }: { money: boolean; role: string }) {
         if (fields.length === 0) return null;
         return (
           <section key={g.layer} className="rounded-md border border-border p-4">
-            <h3 className="font-mono type-micro uppercase tracking-widest text-muted-foreground">{g.title}</h3>
+            <h3 className="type-code uppercase tracking-widest text-muted-foreground">{g.title}</h3>
             <dl className="mt-2 space-y-2">
               {fields.map((f) => (
                 <div key={f.key}>

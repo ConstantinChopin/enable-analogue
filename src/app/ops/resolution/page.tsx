@@ -80,7 +80,7 @@ export default function ResolutionQueue() {
                   <span className="row-primary flex items-center gap-3">
                     <CircleDollarSign className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                     <span className="min-w-0">
-                      <span className="block truncate type-data font-semibold">
+                      <span className="block truncate type-data-strong">
                         {money ? (
                           <>
                             <MoneyValue amount={p.amount} currency={p.currency} /> · {p.raw}

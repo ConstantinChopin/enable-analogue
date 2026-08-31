@@ -98,7 +98,7 @@ export default function CandidateDetail() {
           </>
         }
       >
-        <p className="mt-2 font-mono type-micro text-muted-foreground">
+        <p className="mt-2 type-code text-muted-foreground">
           {candidate.from} · {candidate.uri}
         </p>
       </PageHeader>
@@ -186,7 +186,7 @@ export default function CandidateDetail() {
               <>
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <span className="w-24 shrink-0 type-meta">Name</span>
-                  <span className="type-data font-semibold">{corrected.Name}</span>
+                  <span className="type-data-strong">{corrected.Name}</span>
                   <Chip tone="ok">corrected · {people.lead}</Chip>
                 </div>
                 <p className="mt-2 type-meta">
@@ -219,7 +219,7 @@ export default function CandidateDetail() {
                         {held ? (
                           <MoneyValue amount="" held />
                         ) : (
-                          <span className="type-data font-semibold">
+                          <span className="type-data-strong">
                             {corrected[f.label] ?? f.value}
                           </span>
                         )}
@@ -228,7 +228,7 @@ export default function CandidateDetail() {
                         )}
                         {template && <Chip tone="warn">template copy</Chip>}
                       </div>
-                      <div className="mt-1 font-mono type-micro text-muted-foreground">{f.snippet}</div>
+                      <div className="mt-1 type-code text-muted-foreground">{f.snippet}</div>
                       {held && (
                         <p className="mt-2 type-meta">
                           A converted figure without its source currency is never committed —
@@ -389,8 +389,8 @@ export default function CandidateDetail() {
             </SheetDescription>
           </SheetHeader>
           <div className="px-4">
-            <div className="font-mono type-micro text-muted-foreground">{raw?.where}</div>
-            <pre className="mt-2 overflow-x-auto rounded-md border border-border bg-subtle p-4 font-mono type-micro">
+            <div className="type-code text-muted-foreground">{raw?.where}</div>
+            <pre className="mt-2 overflow-x-auto rounded-md border border-border bg-subtle p-4 type-code">
               {raw?.text}
             </pre>
             <p className="mt-4 type-data text-muted-foreground">{raw?.note}</p>
@@ -465,9 +465,9 @@ export default function CandidateDetail() {
                     <span className="text-muted-foreground" aria-hidden>
                       ⟷
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-right font-medium">{f.value}</span>
+                    <span className="min-w-0 flex-1 truncate text-right type-data-strong">{f.value}</span>
                   </div>
-                  <div className="mt-1 flex justify-between font-mono type-micro text-muted-foreground">
+                  <div className="mt-1 flex justify-between type-code text-muted-foreground">
                     <span>canonical</span>
                     <span>incoming</span>
                   </div>

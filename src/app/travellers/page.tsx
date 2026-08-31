@@ -180,7 +180,7 @@ export default function TravellersPage() {
                           <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-soft type-micro text-primary">
                             {initialsOf(c.name)}
                           </span>
-                          <span className="min-w-0 truncate type-data font-semibold">{c.name}</span>
+                          <span className="min-w-0 truncate type-data-strong">{c.name}</span>
                         </span>
                         <span className="row-meta type-meta">
                           {basic ? "contact on file" : (c.nextTrip ?? "no trip on file")}

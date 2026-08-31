@@ -95,7 +95,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
                 <span className="ml-auto type-data-strong tnum">{src.value}</span>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-3">
-                <span className="type-data font-semibold">{src.status}</span>
+                <span className="type-data-strong">{src.status}</span>
                 <ConfidenceMeter agree={src.agree} total={src.total} />
                 <Button
                   size="sm"
@@ -113,7 +113,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
               asks one question at a time. */}
           {chosen && (
             <div className="rounded-lg border border-primary/50 bg-card p-4">
-              <Label htmlFor="resolve-reason" className="type-data font-semibold">
+              <Label htmlFor="resolve-reason" className="type-data-strong">
                 Why {chosen.value}? <span className="text-muted-foreground">(required)</span>
               </Label>
               <p className="mt-1 type-meta">
@@ -136,7 +136,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
 
           {/* ImpactPanel */}
           <div className="rounded-md border border-border bg-subtle p-4">
-            <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Where this value goes</div>
+            <div className="type-code uppercase tracking-widest text-muted-foreground">Where this value goes</div>
             <p className="mt-2 type-meta">
               The value you keep is what the directory shows, what a quote uses, and what the chat answers with. One decision, three places.
             </p>
@@ -151,7 +151,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
           </div>
 
           <div className="rounded-md border border-border p-4">
-            <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">The other fields</div>
+            <div className="type-code uppercase tracking-widest text-muted-foreground">The other fields</div>
             <dl className="mt-2 space-y-1 type-data">
               {commissionConflict.otherFields.map((f) => (
                 <div key={f.label} className="flex items-baseline justify-between gap-3">
@@ -272,24 +272,24 @@ function LeandreRecord() {
           <Section title="Amenities">
             <div className="space-y-3 type-data">
               <div>
-                <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Facility · freeform</div>
+                <div className="type-code uppercase tracking-widest text-muted-foreground">Facility · freeform</div>
                 <p className="mt-1 text-muted-foreground italic">“View Hotel — experience refined luxury…”</p>
                 <Chip tone="warn" className="mt-1">template copy — needs editorial</Chip>
               </div>
               <div className="border-t border-border pt-3">
-                <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Client amenities · programme</div>
+                <div className="type-code uppercase tracking-widest text-muted-foreground">Client amenities · programme</div>
                 <ul className="divide-y divide-border">
                   {leandreContext.clientAmenities.map((a) => (
                     <li key={a.slug} className="row-grid">
                       <span className="row-primary">{a.benefit}</span>
-                      <span className="row-trailing font-mono type-micro text-muted-foreground">{a.slug}</span>
+                      <span className="row-trailing type-code text-muted-foreground">{a.slug}</span>
                     </li>
                   ))}
                 </ul>
               </div>
               {money && (
                 <div className="border-t border-border pt-3">
-                  <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Agent terms</div>
+                  <div className="type-code uppercase tracking-widest text-muted-foreground">Agent terms</div>
                   {leandreContext.agentAmenities.map((a) => (
                     <p key={a.category} className="mt-1"><Chip tone="primary">{a.category}</Chip> <span className="tnum">{a.text}</span></p>
                   ))}
@@ -304,7 +304,7 @@ function LeandreRecord() {
                 <li key={c.name}>
                   <div className="row-grid">
                     <span className="row-primary">
-                      <span className="font-medium">{c.name}</span>
+                      <span className="type-data-strong">{c.name}</span>
                       <span className="text-muted-foreground"> · {c.role}</span>
                     </span>
                   </div>

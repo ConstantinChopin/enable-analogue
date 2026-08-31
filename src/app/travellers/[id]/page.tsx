@@ -221,7 +221,7 @@ function MarchettiProfile() {
                 const confirmed = p.id === "kaiseki" && s.prefConfirmed;
                 return (
                   <div key={p.id} className="rounded-md border border-border bg-subtle p-4">
-                    <div className="type-data font-semibold">{p.text}</div>
+                    <div className="type-data-strong">{p.text}</div>
                     <div className="mt-2">
                       <SourceTag kind={p.source.kind} label={`${p.source.label} · ${p.source.when}`} />
                     </div>
@@ -278,7 +278,7 @@ function MarchettiProfile() {
                 suggestion !== "discarded" &&
                 traveller.suggestions.map((sg) => (
                   <div key={sg.id} className="rounded-md border border-ok/50 bg-subtle p-4">
-                    <div className="type-data font-semibold">{sg.text}</div>
+                    <div className="type-data-strong">{sg.text}</div>
                     <div className="mt-2">
                       <SourceTag kind="manual" label="confirmed from suggestion · today" />
                     </div>
@@ -458,8 +458,8 @@ function MarchettiProfile() {
                 </li>
               ))}
               <li className="row-grid px-4">
-                <span className="row-primary type-data font-semibold">Signals held</span>
-                <span className="row-trailing tnum type-data font-semibold">9</span>
+                <span className="row-primary type-data-strong">Signals held</span>
+                <span className="row-trailing tnum type-data-strong">9</span>
               </li>
             </ul>
           </Section>
@@ -507,14 +507,14 @@ function MarchettiProfile() {
               <div className="flex items-start gap-3">
                 <RadioGroupItem value="private" id="tier-private" className="mt-1" />
                 <Label htmlFor="tier-private" className="flex flex-col items-start gap-1 font-normal">
-                  <span className="type-data font-semibold">Private to you</span>
+                  <span className="type-data-strong">Private to you</span>
                   <span className="type-meta">Nobody else at the agency can read it.</span>
                 </Label>
               </div>
               <div className="flex items-start gap-3">
                 <RadioGroupItem value="full" id="tier-full" className="mt-1" />
                 <Label htmlFor="tier-full" className="flex flex-col items-start gap-1 font-normal">
-                  <span className="type-data font-semibold">Collaborator — Full</span>
+                  <span className="type-data-strong">Collaborator — Full</span>
                   <span className="type-meta">
                     All fields; can edit and run Acuity. Cannot re-share or delete.
                   </span>
@@ -523,7 +523,7 @@ function MarchettiProfile() {
               <div className="flex items-start gap-3">
                 <RadioGroupItem value="basic" id="tier-basic" className="mt-1" />
                 <Label htmlFor="tier-basic" className="flex flex-col items-start gap-1 font-normal">
-                  <span className="type-data font-semibold">Collaborator — Basic</span>
+                  <span className="type-data-strong">Collaborator — Basic</span>
                   <span className="type-meta">Name and contact only, for a limited introduction.</span>
                 </Label>
               </div>

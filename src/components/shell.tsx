@@ -248,7 +248,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div
           /* Above the dock, not beside it. At 375px the dock fills the width and the
              badge sat on top of the first tile. */
-          className="pointer-events-none fixed bottom-[84px] left-4 z-50 rounded-full border border-border bg-card/90 px-2.5 py-1 font-mono type-micro uppercase tracking-widest text-muted-foreground sm:bottom-6"
+          className="pointer-events-none fixed bottom-[84px] left-4 z-50 rounded-full border border-border bg-card/90 px-2.5 py-1 type-code uppercase tracking-widest text-muted-foreground sm:bottom-6"
           role="status"
         >
           narration

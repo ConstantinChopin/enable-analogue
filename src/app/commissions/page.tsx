@@ -120,7 +120,7 @@ function Ledger() {
         crumb="Briefing"
         title="Commissions"
         actions={
-          <span className="type-micro font-mono text-muted-foreground tnum">
+          <span className="type-code text-muted-foreground tnum">
             {rows.length} of {commissions.length} records
           </span>
         }
@@ -145,21 +145,21 @@ function Ledger() {
         {/* ── summary strip ── */}
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           <Section>
-            <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">
+            <div className="type-code uppercase tracking-widest text-muted-foreground">
               Total outstanding
             </div>
             <div className="mt-1 type-data-strong tnum">{eur(outstanding)}</div>
             <div className="type-meta tnum">{open.length} open commissions</div>
           </Section>
           <Section>
-            <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Overdue</div>
+            <div className="type-code uppercase tracking-widest text-muted-foreground">Overdue</div>
             <div className="mt-1 type-data-strong tnum">{overdueCount}</div>
             <div className="type-meta tnum">
               {eur(commissions.filter((c) => c.state === "overdue").reduce((n, c) => n + c.amount, 0))} unrecovered
             </div>
           </Section>
           <Section>
-            <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">
+            <div className="type-code uppercase tracking-widest text-muted-foreground">
               Collected this week
             </div>
             <div className="mt-1 type-data-strong tnum">{eur(briefing.headline.collectedThisWeek)}</div>
@@ -176,14 +176,17 @@ function Ledger() {
             label="Commission state"
             className="flex-wrap"
           />
+          {/* Both controls are filters, so both are `sm`. This row was the audit's
+              exhibit: a 29px segmented beside a 36px input, neither number decided. */}
           <div className="relative min-w-0 flex-1 sm:max-w-[280px]">
-            <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Search className="absolute left-[10px] top-1/2 size-[var(--icon-md)] -translate-y-1/2 text-muted-foreground" aria-hidden />
             <Input
+              size="sm"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Property, booking reference, traveller…"
               aria-label="Filter commissions"
-              className="pl-8 type-data"
+              className="pl-8"
             />
           </div>
         </div>
@@ -193,19 +196,19 @@ function Ledger() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="type-micro font-mono uppercase tracking-wide">Property</TableHead>
-                <TableHead className="hidden type-micro font-mono uppercase tracking-wide sm:table-cell">
+                <TableHead className="type-code uppercase tracking-wide">Property</TableHead>
+                <TableHead className="hidden type-code uppercase tracking-wide sm:table-cell">
                   Booking
                 </TableHead>
-                <TableHead className="hidden type-micro font-mono uppercase tracking-wide lg:table-cell">
+                <TableHead className="hidden type-code uppercase tracking-wide lg:table-cell">
                   Traveller
                 </TableHead>
-                <TableHead className="text-right type-micro font-mono uppercase tracking-wide">Amount</TableHead>
-                <TableHead className="type-micro font-mono uppercase tracking-wide">State</TableHead>
-                <TableHead className="hidden type-micro font-mono uppercase tracking-wide md:table-cell">
+                <TableHead className="text-right type-code uppercase tracking-wide">Amount</TableHead>
+                <TableHead className="type-code uppercase tracking-wide">State</TableHead>
+                <TableHead className="hidden type-code uppercase tracking-wide md:table-cell">
                   Due
                 </TableHead>
-                <TableHead className="hidden type-micro font-mono uppercase tracking-wide md:table-cell">
+                <TableHead className="hidden type-code uppercase tracking-wide md:table-cell">
                   Ageing
                 </TableHead>
               </TableRow>
@@ -221,16 +224,16 @@ function Ledger() {
                     c.id === selected && "bg-muted",
                   )}
                 >
-                  <TableCell className="max-w-[220px] truncate font-medium">
+                  <TableCell className="max-w-[220px] truncate type-data-strong">
                     {c.property}
                     {c.discrepancy && <Chip tone="warn" className="ml-2">under projection</Chip>}
                     {c.creditNotRefund && <Chip tone="crit" className="ml-2">credit</Chip>}
                   </TableCell>
-                  <TableCell className="hidden font-mono type-meta sm:table-cell">
+                  <TableCell className="hidden type-code sm:table-cell">
                     {c.bookingRef}
                   </TableCell>
                   <TableCell className="hidden text-muted-foreground lg:table-cell">{c.traveller ?? "—"}</TableCell>
-                  <TableCell className="text-right font-medium tnum">{eur(c.amount)}</TableCell>
+                  <TableCell className="text-right type-data-strong tnum">{eur(c.amount)}</TableCell>
                   <TableCell>{stateChip(c)}</TableCell>
                   <TableCell className="hidden text-muted-foreground tnum md:table-cell">{c.dueDate}</TableCell>
                   <TableCell className="hidden text-muted-foreground tnum md:table-cell">{ageing(c)}</TableCell>
@@ -262,7 +265,7 @@ function DetailPanel({ c }: { c: Commission }) {
           <h3 className="type-data-strong">{c.property}</h3>
           {stateChip(c)}
         </div>
-        <p className="mt-1 font-mono type-meta">
+        <p className="mt-1 type-code">
           {c.bookingRef}
           {c.traveller && ` · ${c.traveller}`}
         </p>
@@ -271,7 +274,7 @@ function DetailPanel({ c }: { c: Commission }) {
       <dl className="space-y-2">
         <div className="flex items-baseline justify-between gap-3">
           <dt className="text-muted-foreground">Projected</dt>
-          <dd className="font-medium">
+          <dd className="type-data-strong">
             <MoneyValue amount={c.amount} currency={c.currency} /> · {c.projected.rate}
           </dd>
         </div>
@@ -289,7 +292,7 @@ function DetailPanel({ c }: { c: Commission }) {
       </dl>
 
       <div className="rounded-md border border-border bg-subtle p-4">
-        <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Rate provenance</div>
+        <div className="type-code uppercase tracking-widest text-muted-foreground">Rate provenance</div>
         <div className="mt-2"><SourceTag kind="portal" label={c.projected.source} /></div>
         {c.projected.incentive && <Chip tone="primary" className="mt-2">{c.projected.incentive}</Chip>}
       </div>
