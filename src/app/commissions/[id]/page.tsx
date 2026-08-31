@@ -222,12 +222,12 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
           chips={<Chip tone="warn">actual under projection</Chip>}
         >
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-md border border-border p-4">
+            <div className="rounded-lg border border-border p-4">
               <div className="type-code uppercase tracking-widest text-muted-foreground">Expected</div>
               <div className="mt-1 type-data-strong"><MoneyValue amount={c.discrepancy.expected} /></div>
               <div className="mt-1"><SourceTag kind="portal" label="projection · partner terms" /></div>
             </div>
-            <div className="rounded-md border border-warn p-4">
+            <div className="rounded-lg border border-warn p-4">
               <div className="type-code uppercase tracking-widest text-muted-foreground">Actual</div>
               <div className="mt-1 type-data-strong"><MoneyValue amount={c.discrepancy.actual} /></div>
               <div className="mt-1"><SourceTag kind="tripsuite" label="booking system remittance · read-only" /></div>
@@ -261,12 +261,12 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
             flagged, never silently absorbed.
           </p>
           <div className="mt-2 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-md border border-border p-4">
+            <div className="rounded-lg border border-border p-4">
               <div className="type-code uppercase tracking-widest text-muted-foreground">Expected</div>
               <div className="mt-1 type-data-strong"><MoneyValue amount={sibling.expected} /></div>
               <div className="mt-1"><SourceTag kind="portal" label="projection · partner terms" /></div>
             </div>
-            <div className="rounded-md border border-warn p-4">
+            <div className="rounded-lg border border-warn p-4">
               <div className="type-code uppercase tracking-widest text-muted-foreground">Actual</div>
               <div className="mt-1 type-data-strong"><MoneyValue amount={sibling.actual} /></div>
               <div className="mt-1"><SourceTag kind="tripsuite" label="booking system remittance · read-only" /></div>
@@ -356,7 +356,7 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
             </SheetDescription>
           </SheetHeader>
           <div className="px-4 type-meta">
-            <div className="rounded-md border border-border bg-subtle p-4 type-code whitespace-pre-wrap">
+            <div className="rounded-lg border border-border bg-subtle p-4 type-code whitespace-pre-wrap">
               {`Re: commission remittance — ${sibling.property}\n\nProjected ${eur(sibling.expected)} (partner terms) against ${eur(sibling.actual)} received. Possible causes on our side: ${sibling.causes.join("; ")}. Could you share the remittance breakdown?`}
             </div>
             <p className="mt-2 text-muted-foreground">

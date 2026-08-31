@@ -389,7 +389,7 @@ export default function CandidateDetail() {
           </SheetHeader>
           <div className="px-4">
             <div className="type-code text-muted-foreground">{raw?.where}</div>
-            <pre className="mt-2 overflow-x-auto rounded-md border border-border bg-subtle p-4 type-code">
+            <pre className="mt-2 overflow-x-auto rounded-lg border border-border bg-subtle p-4 type-code">
               {raw?.text}
             </pre>
             <p className="mt-4 type-data text-muted-foreground">{raw?.note}</p>

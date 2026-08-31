@@ -47,7 +47,7 @@ export function DataList({
   className?: string;
 }) {
   return (
-    <dl className={cn("rounded-md border border-border px-4 type-data", className)}>
+    <dl className={cn("rounded-lg border border-border px-4 type-data", className)}>
       {rows.map((r, i) => (
         <div
           key={r.label}
@@ -133,15 +133,19 @@ export function RowStack({
    outrank a subject. Everything else — trust, lifecycle, counts — is outlined: the
    tone still carries the meaning, and the subject returns to the top of the row.  */
 export function Chip({ tone = "neutral", className, title, children }: { tone?: "neutral" | "ok" | "warn" | "crit" | "primary"; className?: string; title?: string; children: React.ReactNode }) {
+  /* Every chip carries a border, so outlined and filled chips are the same height.
+     Previously only the outlined ones did, and the border added to the box — a filled
+     chip measured 18px and an outlined one 20px, staggering any row that held both.
+     A filled chip's border matches its own fill, so it stays invisible.              */
   const tones = {
-    neutral: "border border-border text-muted-foreground",
-    ok: "border border-ok/35 text-ok",
-    primary: "border border-primary/30 text-primary",
-    /* severity — filled */
-    warn: "bg-warn-soft text-warn",
-    crit: "bg-crit-soft text-crit",
+    neutral: "border-border text-muted-foreground",
+    ok: "border-ok/35 text-ok",
+    primary: "border-primary/30 text-primary",
+    /* severity — filled, and the border takes the fill so the box is unchanged */
+    warn: "border-warn-soft bg-warn-soft text-warn",
+    crit: "border-crit-soft bg-crit-soft text-crit",
   } as const;
-  return <span title={title} className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 type-micro whitespace-nowrap", tones[tone], className)}>{children}</span>;
+  return <span title={title} className={cn("inline-flex h-5 items-center gap-1 rounded-full border px-2 type-micro whitespace-nowrap", tones[tone], className)}>{children}</span>;
 }
 
 /* ── EvidenceDot: state in words + dot, never color alone ── */
@@ -223,13 +227,13 @@ export function MoneyValue({ amount, currency = "EUR", converted, held }: { amou
 /* ── ConfirmBanner: transient success (distinct from NoticeBanner) ── */
 export function ConfirmBanner({ show, children }: { show: boolean; children: React.ReactNode }) {
   if (!show) return null;
-  return <div className="rounded-md border-l-3 border-ok bg-ok-soft px-3 py-2 type-data" role="status">{children}</div>;
+  return <div className="rounded-lg border-l-3 border-ok bg-ok-soft px-3 py-2 type-data" role="status">{children}</div>;
 }
 
 /* ── NoticeBanner tones ── */
 export function SeverityBanner({ severity, className, children }: { severity: "Info" | "Important" | "Critical" | "ok"; className?: string; children: React.ReactNode }) {
   const tones = { Info: "border-border bg-subtle", Important: "border-warn bg-warn-soft", Critical: "border-crit bg-crit-soft", ok: "border-ok bg-ok-soft" } as const;
-  return <div className={cn("rounded-md border-l-3 px-3 py-2.5 type-data", tones[severity], className)}>{children}</div>;
+  return <div className={cn("rounded-lg border-l-3 px-3 py-2.5 type-data", tones[severity], className)}>{children}</div>;
 }
 
 /* ── SchematicBadge ──────────────────────────────────────────────────────────
@@ -257,7 +261,7 @@ export function NarrationNote({ children }: { children: React.ReactNode }) {
   const { s } = useDemo();
   if (!s.narration) return null;
   return (
-    <aside className="rounded-md border border-dashed border-primary/50 bg-primary-soft/50 px-3 py-2.5 type-data text-foreground/90 flex gap-2">
+    <aside className="rounded-lg border border-dashed border-primary/50 bg-primary-soft/50 px-3 py-2.5 type-data text-foreground/90 flex gap-2">
       <Presentation className="size-4 shrink-0 text-primary mt-0.5" aria-hidden />
       <span>{children}</span>
     </aside>

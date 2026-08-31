@@ -348,7 +348,7 @@ export default function KnowledgeVault() {
                     ))}
                   </RadioGroup>
                   {accessDone && (
-                    <p className="mt-4 rounded-md border border-ok/40 bg-ok/10 p-3 type-meta">
+                    <p className="mt-4 rounded-lg border border-ok/40 bg-ok/10 p-3 type-meta">
                       Access set to {accessScope} · {personName[s.role]} · today. Recorded in this
                       document&rsquo;s history.
                     </p>
@@ -374,7 +374,7 @@ function ProvenancePanel({ sel, onManageAccess }: { sel: VaultDoc | undefined; o
     <div className="space-y-4">
       {sel ? (
         <>
-          <section className="rounded-md border border-border p-4">
+          <section className="rounded-lg border border-border p-4">
             <h3 className="type-data-strong">{sel.name}</h3>
             {/* The same DataList every other panel uses. */}
             <DataList
@@ -411,7 +411,7 @@ function ProvenancePanel({ sel, onManageAccess }: { sel: VaultDoc | undefined; o
           </section>
 
           {sel.detail ? (
-            <section className="rounded-md border border-border p-4">
+            <section className="rounded-lg border border-border p-4">
               <h3 className="flex items-center gap-2 type-micro uppercase tracking-widest text-muted-foreground">
                 <History className="size-3.5" aria-hidden /> History
               </h3>

@@ -269,6 +269,14 @@ b, strong { font-weight: 590; }
      because Next sets those two names directly. */
   .type-code        { font-family: var(--font-mono-stack), ui-monospace, monospace; font-size: 11px; line-height: 14px; font-weight: 510; }
 
+  /* A summary figure — a total, a score, the number a card is about. One step above
+     the row values beneath it, because `EUR 12,532` (the total) and `EUR 2,240` (one
+     commission) were both 13px and separated only by weight, so a card's headline did
+     not read as a headline. Deliberately still sans and still tabular: it is machine
+     output, not a title, and 17/20 keeps it inside the data rhythm rather than
+     competing with the serif page name. */
+  .type-figure      { font-family: var(--font-sans); font-size: 17px; line-height: 20px; font-weight: 510; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
   /* ── the person ─────────────────────────────────────────────────
      `prose-quote` is a size step below `prose`, not merely an italic:
      a quotation should sit under the sentence that introduces it. */
@@ -302,6 +310,45 @@ b, strong { font-weight: 590; }
     padding-inline: var(--control-px-md);
     border-radius: var(--radius-control);
     font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 400;
+  }
+}
+
+/* ── document layout ───────────────────────────────────────────────
+   A record, a profile, a commission: a body with a margin.
+
+   The archetype was documented but had no owner, so three surfaces hand-rolled the
+   same two-column grid inline — which made the breakpoint a per-page accident and
+   left the collapsed state undesigned. Below 1024px the rail's cards simply queued
+   under the body's: six identical cards, with nothing saying which three were the
+   record and which three were commentary. The archetype vanished at the width the
+   product is most often seen at.
+
+   Here the collapse is a decision. Above `lg` the margin is a column. Below it the
+   margin becomes an appendix — a labelled rule, then its sections stripped of card
+   treatment — so it reads as marginalia rather than as a peer. The body keeps its
+   cards, and that alone restores the distinction without spending colour on it.   */
+.doc-layout { display: grid; align-items: start; gap: var(--space-6); }
+@media (min-width: 1024px) {
+  .doc-layout { grid-template-columns: minmax(0, 1fr) 320px; }
+}
+@media (max-width: 1023px) {
+  .doc-layout > .doc-rail {
+    border-top: 1px solid var(--sys-stroke-divider);
+    padding-top: var(--space-4);
+  }
+  .doc-layout > .doc-rail::before {
+    content: attr(data-rail-label);
+    display: block;
+    margin-bottom: var(--space-3);
+    font-family: var(--font-mono-stack), ui-monospace, monospace;
+    font-size: 11px; line-height: 14px; font-weight: 510;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--sys-label-tertiary);
+  }
+  /* The margin stops being cards. */
+  .doc-layout > .doc-rail section {
+    border: 0; background: transparent; border-radius: 0;
+    padding-left: 0; padding-right: 0;
   }
 }
 

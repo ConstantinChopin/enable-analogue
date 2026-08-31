@@ -135,7 +135,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
           )}
 
           {/* ImpactPanel */}
-          <div className="rounded-md border border-border bg-subtle p-4">
+          <div className="rounded-lg border border-border bg-subtle p-4">
             <div className="type-code uppercase tracking-widest text-muted-foreground">Where this value goes</div>
             <p className="mt-2 type-meta">
               The value you keep is what the directory shows, what a quote uses, and what the chat answers with. One decision, three places.
@@ -150,7 +150,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
             </dl>
           </div>
 
-          <div className="rounded-md border border-border p-4">
+          <div className="rounded-lg border border-border p-4">
             <div className="type-code uppercase tracking-widest text-muted-foreground">The other fields</div>
             <dl className="mt-2 space-y-1 type-data">
               {commissionConflict.otherFields.map((f) => (
@@ -242,7 +242,7 @@ function LeandreRecord() {
         <ConfirmBanner show={s.noteSaved}>Note saved — {scopeLabel} · attributed and dated.</ConfirmBanner>
       </div>
 
-      <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="mt-4 doc-layout">
         {/* ── main: three layer groups ── */}
         <div className="min-w-0 space-y-4">
           {/* The layer is a property of the whole card, so it belongs to the card's
@@ -281,7 +281,7 @@ function LeandreRecord() {
         </div>
 
         {/* ── context rail ── */}
-        <aside className="min-w-0 space-y-3">
+        <aside className="doc-rail min-w-0 space-y-3" data-rail-label="About this record">
           <Section title="Amenities">
             <div className="space-y-3 type-data">
               <div>
@@ -428,7 +428,7 @@ function FieldRow({ f, resolved, onResolve }: { f: Field; resolved: boolean; onR
           <>
             <div className="flex flex-wrap items-center gap-2">
               {commissionConflict.sources.map((src) => (
-                <span key={src.id} className="rounded-md border border-border px-2 py-1 type-data">
+                <span key={src.id} className="rounded-lg border border-border px-2 py-1 type-data">
                   <b className="tnum">{src.value}</b> <span className="text-muted-foreground">{src.label} · {src.when}</span>
                 </span>
               ))}
@@ -561,7 +561,7 @@ function VerlaineRecord() {
         <div className="mt-1 type-meta">Opened {crit.openedAt} · {crit.scope} scope · {crit.owner}</div>
       </SeverityBanner>
 
-      <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="mt-4 doc-layout">
         <div className="min-w-0 space-y-4">
           <Section title="The record">
             <p className="mb-3 type-data text-muted-foreground">{p.blurb}</p>
@@ -591,7 +591,7 @@ function VerlaineRecord() {
           </Section>
         </div>
 
-        <aside className="min-w-0 space-y-3">
+        <aside className="doc-rail min-w-0 space-y-3" data-rail-label="About this record">
           <Section title="Open notices">
             {notices.filter((n) => n.productId === p.id).map((n) => (
               <div key={n.id} className="type-data">
@@ -690,7 +690,7 @@ function GenericRecord({ id }: { id: string }) {
         <RecordPlate p={p} />
       </PageHeader>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="doc-layout">
         <div className="min-w-0 space-y-4">
           <Section title="The record">
             {p.blurb && <p className="mb-3 type-data text-muted-foreground">{p.blurb}</p>}
@@ -740,7 +740,7 @@ function GenericRecord({ id }: { id: string }) {
           )}
         </div>
 
-        <aside className="min-w-0 space-y-3">
+        <aside className="doc-rail min-w-0 space-y-3" data-rail-label="About this record">
           <Section title="Evidence">
             <div className="space-y-2 type-data">
               {p.evidence.kind === "unconfirmed"

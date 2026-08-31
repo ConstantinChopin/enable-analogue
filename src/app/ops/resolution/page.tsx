@@ -195,7 +195,7 @@ export default function ResolutionQueue() {
                     {open.candidates.map((c) => (
                       <label
                         key={c.ref}
-                        className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3 has-[[data-state=checked]]:border-primary"
+                        className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 has-[[data-state=checked]]:border-primary"
                       >
                         <RadioGroupItem value={c.ref} className="mt-1" />
                         <span className="min-w-0">

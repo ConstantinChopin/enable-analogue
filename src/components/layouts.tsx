@@ -66,6 +66,12 @@ export function Page({
   );
 }
 
+/* The Document archetype's layout lives in globals.css as .doc-layout / .doc-rail,
+   not as a component here. A React wrapper would have meant restructuring three large
+   surfaces to pass a ail prop; the rule is the same either way, and in CSS it applies
+   to the markup those surfaces already have. .doc-rail carries data-rail-label. */
+
+
 /* ── SplitPage ───────────────────────────────────────────────────────────────
    A catalogue or ledger with an inspector. The inspector is a full-height column
    at the right edge of the frame — the way Notion's side panel and Claude Code's

@@ -27,10 +27,16 @@ const buttonVariants = cva(
           "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         link: "text-primary underline-offset-4 hover:underline",
       },
-      /* Two heights, from the control geometry system. `sm` and `default` were 32 and
-         36 — two sizes that differed by 4px and meant nothing different. They now map
-         onto the declared pair: 28 for dense filter rows, 36 for actions. `lg` is gone;
-         nothing used a third size for a reason anyone could state. */
+      /* Two heights, from the control geometry system, and a rule for choosing:
+
+           md (36) — the action a surface exists for. At most ONE filled `md` per
+                     screen, because a second one cancels the first.
+           sm (28) — everything else: filters, inline actions, sheet controls,
+                     anything sitting in a dense row.
+
+         Without the rule the sizes split 42/45 across 87 call sites by habit, and the
+         page header's routine action carried the same weight as the one action a
+         refusal exists to offer. */
       size: {
         default: "h-[var(--control-h-md)] px-[var(--control-px-md)] has-[>svg]:pl-[10px]",
         sm: "h-[var(--control-h-sm)] gap-1.5 px-[var(--control-px-sm)] has-[>svg]:pl-2",

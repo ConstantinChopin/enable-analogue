@@ -167,7 +167,7 @@ function Itineraries() {
                 <button
                   type="button"
                   onClick={() => setNear(true)}
-                  className="flex cursor-pointer items-center gap-1.5 rounded-md border border-dashed border-border px-3 py-1 type-data text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-1 type-data text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
                   <Plus className="size-3.5" aria-hidden />
                   Limit to the next 30 days
@@ -296,7 +296,7 @@ function TripPanel({ t }: { t: Trip }) {
         {t.alert && <Chip tone="warn">{t.alert}</Chip>}
       </div>
 
-      <dl className="rounded-md border border-border p-4 type-data">
+      <dl className="rounded-lg border border-border p-4 type-data">
         <div className="flex items-baseline justify-between gap-3 py-1">
           <dt className="text-muted-foreground">Dates</dt>
           <dd className="tnum text-right">{t.dates}</dd>
@@ -331,9 +331,9 @@ function TripPanel({ t }: { t: Trip }) {
               <li key={p.id}>
                 <Link
                   href={`/records/${p.id}`}
-                  className="flex items-center gap-3 rounded-md border border-border p-2 transition-colors hover:bg-muted/50"
+                  className="flex items-center gap-3 rounded-lg border border-border p-2 transition-colors hover:bg-muted/50"
                 >
-                  <span className="size-8 shrink-0 overflow-hidden rounded-md border border-border">
+                  <span className="size-8 shrink-0 overflow-hidden rounded-lg border border-border">
                     <PropertyImage id={p.id} name={p.name} category={p.category} />
                   </span>
                   <span className="min-w-0">
@@ -397,7 +397,7 @@ function WorkedExample({ money }: { money: boolean }) {
         selection.
       </NarrationNote>
 
-      <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="mt-4 doc-layout">
         <div className="min-w-0 space-y-4">
           {/* Day tabs */}
           <div role="tablist" aria-label="Itinerary days" className="flex gap-1">

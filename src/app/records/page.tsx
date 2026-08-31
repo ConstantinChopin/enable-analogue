@@ -304,7 +304,7 @@ function RecordsCatalogue() {
                 }
               />
             ) : view === "grid" ? (
-              <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <ul className="mt-4 grid grid-cols-1 gap-[var(--space-6)] sm:grid-cols-2 xl:grid-cols-3">
                 {rows.map((p) => (
                   <li key={p.id}>
                     <RecordCard
@@ -343,7 +343,7 @@ function RecordsCatalogue() {
                         >
                           <td className="py-3 pl-3 pr-3">
                             <div className="flex items-center gap-3">
-                              <span className="size-8 shrink-0 overflow-hidden rounded-md border border-border">
+                              <span className="size-8 shrink-0 overflow-hidden rounded-lg border border-border">
                                 <PropertyImage id={p.id} name={p.name} category={p.category} />
                               </span>
                               <span className="min-w-0">
@@ -447,7 +447,7 @@ function RecordPanel({ p }: { p: Product }) {
 
   return (
     <div className="space-y-4">
-      <div className="aspect-[16/9] w-full overflow-hidden rounded-md border border-border">
+      <div className="aspect-[16/9] w-full overflow-hidden rounded-lg border border-border">
         <PropertyImage id={p.id} name={p.name} category={p.category} />
       </div>
 
@@ -519,7 +519,7 @@ function LayerSummary({ money, role }: { money: boolean; role: string }) {
         const fields = fieldsFor(g.layer);
         if (fields.length === 0) return null;
         return (
-          <section key={g.layer} className="rounded-md border border-border p-4">
+          <section key={g.layer} className="rounded-lg border border-border p-4">
             <h3 className="type-code uppercase tracking-widest text-muted-foreground">{g.title}</h3>
             <dl className="mt-2 space-y-2">
               {fields.map((f) => (
@@ -560,7 +560,7 @@ function PlainSummary({ p, money }: { p: Product; money: boolean }) {
   return (
     <div className="space-y-3">
       {p.blurb && <p className="type-data text-muted-foreground">{p.blurb}</p>}
-      <dl className="rounded-md border border-border p-4 type-data">
+      <dl className="rounded-lg border border-border p-4 type-data">
         {rows.filter(([, v]) => !!v).map(([k, v]) => (
           <div key={k} className="flex items-baseline justify-between gap-3 py-1">
             <dt className="text-muted-foreground">{k}</dt>

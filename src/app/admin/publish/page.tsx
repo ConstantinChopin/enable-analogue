@@ -37,7 +37,7 @@ export default function AdminPublish() {
         </p>
       </PageHeader>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="doc-layout">
         {/* ── Main column ── */}
         <div className="min-w-0 space-y-4">
           {banner && <ConfirmBanner show>Published agency-wide — owner preserved.</ConfirmBanner>}
@@ -114,7 +114,7 @@ export default function AdminPublish() {
                     <span className="block truncate type-data-strong">{row.kind}</span>
                     <span className="block truncate type-meta">{row.detail}</span>
                   </span>
-                  <span className="row-trailing rounded-md border border-border bg-muted px-3 py-1 type-data">
+                  <span className="row-trailing rounded-lg border border-border bg-muted px-3 py-1 type-data">
                     {row.value}
                   </span>
                 </li>
@@ -232,7 +232,7 @@ export default function AdminPublish() {
                   <dd className="row-trailing type-code">{source.via}</dd>
                 </div>
               </dl>
-              <blockquote className="mt-4 rounded-md border border-border bg-subtle p-4 type-data">
+              <blockquote className="mt-4 rounded-lg border border-border bg-subtle p-4 type-data">
                 {source.body}
               </blockquote>
               <p className="mt-4 type-meta">

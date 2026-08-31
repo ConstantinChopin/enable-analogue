@@ -126,7 +126,7 @@ export default function Briefing() {
           <>
             <Figure>
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="type-data-strong tnum">{eur(outstanding)}</span>
+                <span className="type-figure">{eur(outstanding)}</span>
                 <span className="type-meta">
                   outstanding across {openCommissions.length} commissions
                 </span>
@@ -253,7 +253,7 @@ export default function Briefing() {
         return (
           <Figure>
             <div className="flex items-baseline gap-3">
-              <span className="type-data-strong tnum">{briefing.recordsVerified.done}</span>
+              <span className="type-figure">{briefing.recordsVerified.done}</span>
               <span className="type-meta tnum">
                 of {briefing.recordsVerified.of} in Paris
               </span>
@@ -346,7 +346,7 @@ export default function Briefing() {
         return (
           <>
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-[var(--space-4)]">
-              <span className="type-data-strong tnum">
+              <span className="type-figure">
                 {eur(orphanedPayments.reduce((n, p) => n + p.amount, 0))}
               </span>
               <span className="type-meta">
@@ -381,12 +381,12 @@ export default function Briefing() {
             <div className="grid grid-cols-2 gap-3 px-[var(--space-4)]">
               <div>
                 <div className="type-code uppercase tracking-widest text-muted-foreground">Collected</div>
-                <div className="mt-1 type-data-strong tnum">{eur(collected)}</div>
+                <div className="mt-1 type-figure">{eur(collected)}</div>
                 <div className="type-meta tnum">{paid.length} settled</div>
               </div>
               <div>
                 <div className="type-code uppercase tracking-widest text-muted-foreground">Outstanding</div>
-                <div className="mt-1 type-data-strong tnum">{eur(outstanding)}</div>
+                <div className="mt-1 type-figure">{eur(outstanding)}</div>
                 <div className="type-meta tnum">
                   {openCommissions.length} open · {overdueCount} overdue
                 </div>
@@ -436,15 +436,21 @@ export default function Briefing() {
     }
   };
 
+  /* A header qualifier is a COUNT of what needs attention, not a severity. These were
+     filled crit and warn chips, so a card header spoke in the register reserved for a
+     property you must not book — and "3 overdue" outranked the Critical advisory two
+     cards below it. Counts are outlined; the rows inside carry the severity.
+     The v1 marker is the exception: it is not a count but a statement that the whole
+     surface is a superseded build, which the frame bar already says in crit. */
   const chipFor = (w: Widget): React.ReactNode => {
-    if (w.id === "commissions" && money && overdueCount > 0) return <Chip tone="crit">{overdueCount} overdue</Chip>;
+    if (w.id === "commissions" && money && overdueCount > 0) return <Chip tone="neutral">{overdueCount} overdue</Chip>;
     if (w.id === "notices" && s.world === "v1") return <Chip tone="crit">v1 build</Chip>;
-    if (w.id === "unmatched") return <Chip tone="warn">{orphanedPayments.length} to match</Chip>;
-    if (w.id === "confirm") return <Chip tone="warn">{candidates.length} waiting</Chip>;
+    if (w.id === "unmatched") return <Chip tone="neutral">{orphanedPayments.length} to match</Chip>;
+    if (w.id === "confirm") return <Chip tone="neutral">{candidates.length} waiting</Chip>;
     if (w.id === "connections") {
       /* The seed's one rule, so this chip cannot disagree with /admin/connections. */
       return connectionHealth.needAttention > 0 ? (
-        <Chip tone="warn">{connectionHealth.label}</Chip>
+        <Chip tone="neutral">{connectionHealth.label}</Chip>
       ) : undefined;
     }
     return undefined;
@@ -457,13 +463,15 @@ export default function Briefing() {
             string: a date, a sync time, and a reason to distrust every figure below.
             The caveat is the only one that qualifies the screen, so it leaves the
             list and takes a mark of its own. */}
+        {/* The caveat qualifies every figure on the screen, so it earns its own line —
+            but it is a footnote, not a warning, and a filled amber chip put it in the
+            severity register and made it the second thing the eye met. It keeps the
+            line and the ochre, and gives back the fill. */}
         <p className="mt-2 type-data text-muted-foreground">
           {TODAY} · synced {briefing.syncedAt}
         </p>
-        <p className="mt-1 flex items-center gap-1.5">
-          <Chip tone="warn">
-            Booking-system figures up to 48 hours behind
-          </Chip>
+        <p className="mt-1 type-meta text-warn">
+          Booking-system figures up to 48 hours behind
         </p>
       </PageHeader>
 
@@ -473,7 +481,7 @@ export default function Briefing() {
         story is the layout, not a claim about it.
       </NarrationNote>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-4 grid gap-[var(--space-6)] sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
         {widgets.map((w) => {
           const gated = w.id === "commissions" && !money;
           return (

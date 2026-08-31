@@ -95,11 +95,15 @@ function Ask() {
           title="Ask"
           actions={
             <>
+              {/* Starting a conversation is routine navigation, not the action this
+                  surface exists for — and while a refusal is on screen the one action
+                  that matters is its recovery. Both were filled primaries, so the
+                  ranking inside the refusal was cancelled from the header. */}
               <Button variant="outline" size="sm" className="lg:hidden" onClick={() => setListOpen(true)}>
-                <MessagesSquare className="size-3.5" aria-hidden /> Conversations
+                <MessagesSquare className="size-[var(--icon-md)]" aria-hidden /> Conversations
               </Button>
-              <Button size="sm" onClick={() => choose(null)}>
-                <Plus className="size-3.5" aria-hidden /> New conversation
+              <Button variant="outline" size="sm" onClick={() => choose(null)}>
+                <Plus className="size-[var(--icon-md)]" aria-hidden /> New conversation
               </Button>
             </>
           }
@@ -199,9 +203,12 @@ function ConversationList({
 
   return (
     <>
+      {/* The conversation rail is furniture. A filled, full-width primary here is the
+          third filled button on the surface and competes with whatever the open thread
+          is actually asking the reader to do. */}
       <div className="shrink-0 border-b border-border p-2">
-        <Button size="sm" className="w-full justify-start" onClick={() => onPick(null)}>
-          <Plus className="size-3.5" aria-hidden /> New conversation
+        <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => onPick(null)}>
+          <Plus className="size-[var(--icon-md)]" aria-hidden /> New conversation
         </Button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -462,7 +469,7 @@ function CommissionThread({
             <Scale className="size-4 text-warn" aria-hidden /> Sources disagree — nothing assumed.
           </div>
           <p className="mt-1 type-data text-muted-foreground">{commissionConflict.headline}</p>
-          <div className="mt-3 divide-y divide-border rounded-md border border-border">
+          <div className="mt-3 divide-y divide-border rounded-lg border border-border">
             {commissionConflict.sources.map((src) => (
               <div key={src.id} className="row-grid px-3">
                 <span className="row-primary type-data-strong">{src.label}</span>
@@ -611,7 +618,7 @@ function RefusalThread() {
         {/* The refusal is the most human sentence the product says, and it was set in
             the smallest machine face. It reads as prose; the contract beneath it is a
             check the machine ran, and stays in the machine's voice. */}
-        <div className="rounded-md border border-border bg-subtle px-3 py-3">
+        <div className="rounded-lg border border-border bg-subtle px-3 py-3">
           <div className="flex items-center gap-2">
             <CircleDashed className="size-4 shrink-0 text-muted-foreground" aria-hidden />
             <span className="type-prose-lead">{r.headline}</span>
@@ -848,7 +855,7 @@ function Rail({ active, money }: { active: ThreadId | null; money: boolean }) {
             {sources.map((src) => (
               <div
                 key={src.n}
-                className={cn("rounded-md border p-3", src.n === 1 ? "border-primary/50" : "border-border")}
+                className={cn("rounded-lg border p-3", src.n === 1 ? "border-primary/50" : "border-border")}
               >
                 <div className="flex items-center gap-2 type-data-strong">
                   <span className="inline-grid size-[17px] shrink-0 place-items-center rounded-full border border-border type-micro tnum">
@@ -860,7 +867,7 @@ function Rail({ active, money }: { active: ThreadId | null; money: boolean }) {
                 {/* Someone else's words, quoted verbatim from a contract — prose, and
                     the one place the italic quote role belongs. */}
                 {src.n === 1 && src.quote && (
-                  <blockquote className="mt-2 rounded-md border-l-2 border-primary/60 bg-muted px-3 py-2 type-prose-quote">
+                  <blockquote className="mt-2 rounded-lg border-l-2 border-primary/60 bg-muted px-3 py-2 type-prose-quote">
                     {src.quote}
                   </blockquote>
                 )}
@@ -903,7 +910,7 @@ function HeldBackRail() {
       <Section title="Sources found">
         <div className="space-y-3">
           {r.held.map((h, i) => (
-            <div key={h.label} className="rounded-md border border-dashed border-border p-3">
+            <div key={h.label} className="rounded-lg border border-dashed border-border p-3">
               <div className="flex items-center gap-2 type-data-strong">
                 <span className="inline-grid size-[17px] shrink-0 place-items-center rounded-full border border-border type-micro tnum">
                   {i + 1}
@@ -1000,7 +1007,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
             </div>
           ))}
 
-          <div className="rounded-md border border-border bg-subtle p-4">
+          <div className="rounded-lg border border-border bg-subtle p-4">
             <div className="type-code uppercase tracking-widest text-muted-foreground">
               Where this value goes
             </div>
@@ -1021,7 +1028,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
           {/* The reason, required, and shown only once a value is chosen — so the sheet
               asks for a justification of a decision, not of an empty form. */}
           {picked && (
-            <div className="rounded-md border border-border p-4">
+            <div className="rounded-lg border border-border p-4">
               <span className="type-data-strong">Why this value</span>
               <p className="mt-1 type-meta">Stored with the decision, so the next person sees what was kept and why.</p>
               <Textarea

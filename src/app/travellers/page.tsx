@@ -145,7 +145,7 @@ export default function TravellersPage() {
               </p>
 
               {view === "grid" ? (
-                <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <ul className="mt-4 grid grid-cols-1 gap-[var(--space-6)] sm:grid-cols-2 xl:grid-cols-3">
                   {rows.map((c) => (
                     /* h-full on the row too, or a card whose title wraps grows past its
                        neighbours when the inspector narrows the column. */

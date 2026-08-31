@@ -279,7 +279,7 @@ function DetailPanel({ c }: { c: Commission }) {
         </div>
       </dl>
 
-      <div className="rounded-md border border-border bg-subtle p-4">
+      <div className="rounded-lg border border-border bg-subtle p-4">
         <div className="type-code uppercase tracking-widest text-muted-foreground">Rate provenance</div>
         <div className="mt-2"><SourceTag kind="portal" label={c.projected.source} /></div>
         {c.projected.incentive && <Chip tone="primary" className="mt-2">{c.projected.incentive}</Chip>}

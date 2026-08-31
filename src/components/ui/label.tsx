@@ -13,7 +13,11 @@ function Label({
     <LabelPrimitive.Root
       data-slot="label"
       className={cn(
-        "flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+        /* A label names a field, which makes it the machine's voice at the control's
+           own weight — the same 510 stop Button uses. It shipped at shadcn's 14px,
+           the last live `text-sm` in the product, so every form still spoke a size
+           the type scale does not contain. */
+        "flex items-center gap-2 type-data font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
         className
       )}
       {...props}

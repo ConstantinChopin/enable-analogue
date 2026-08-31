@@ -173,7 +173,7 @@ function MarchettiProfile() {
         </div>
       )}
 
-      <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="mt-4 doc-layout">
         {/* ── Main column ── */}
         <div className="min-w-0 space-y-4">
           {/* The departure checklist used to open this page, so the most sensitive
@@ -220,7 +220,7 @@ function MarchettiProfile() {
               {traveller.preferences.map((p) => {
                 const confirmed = p.id === "kaiseki" && s.prefConfirmed;
                 return (
-                  <div key={p.id} className="rounded-md border border-border bg-subtle p-4">
+                  <div key={p.id} className="rounded-lg border border-border bg-subtle p-4">
                     <div className="type-data-strong">{p.text}</div>
                     <div className="mt-2">
                       <SourceTag kind={p.source.kind} label={`${p.source.label} · ${p.source.when}`} />
@@ -279,7 +279,7 @@ function MarchettiProfile() {
               {s.prefConfirmed &&
                 suggestion !== "discarded" &&
                 traveller.suggestions.map((sg) => (
-                  <div key={sg.id} className="rounded-md border border-ok/50 bg-subtle p-4">
+                  <div key={sg.id} className="rounded-lg border border-ok/50 bg-subtle p-4">
                     <div className="type-data-strong">{sg.text}</div>
                     <div className="mt-2">
                       <SourceTag kind="manual" label="confirmed from suggestion · today" />
@@ -445,7 +445,7 @@ function MarchettiProfile() {
         </div>
 
         {/* ── Context rail ── */}
-        <div className="space-y-4">
+        <div className="doc-rail space-y-4" data-rail-label="About this traveller">
           <Section
             variant="list"
             title="Where these come from"
@@ -628,7 +628,7 @@ function GenericProfile({ id }: { id: string }) {
           </p>
         </Section>
       ) : (
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="doc-layout">
           <div className="min-w-0 space-y-4">
             <Section title="Next journey">
               {trip ? (

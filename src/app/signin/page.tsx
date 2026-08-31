@@ -173,7 +173,7 @@ export default function SignInPage() {
         </summary>
         <Section className="mt-2 p-3">
           <div className="mb-2 type-micro text-muted-foreground">Build vintage</div>
-          <div className="flex overflow-hidden rounded-md border border-border">
+          <div className="flex overflow-hidden rounded-lg border border-border">
             {([["v2", "Current build"], ["v1", "March build"]] as const).map(([w, label]) => (
               <button
                 key={w}
