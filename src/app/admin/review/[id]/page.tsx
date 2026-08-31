@@ -216,7 +216,9 @@ export default function CandidateDetail() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         {held ? (
-                          <MoneyValue amount="" held />
+                          /* Each hold has its own reason. Rendering the rate’s reason on every
+                             held row said a blank cell was a converted figure. */
+                          <Chip tone="crit">{f.value}</Chip>
                         ) : (
                           <span className="type-data-strong">
                             {corrected[f.label] ?? f.value}
@@ -230,8 +232,9 @@ export default function CandidateDetail() {
                       <div className="mt-1 type-code text-muted-foreground">{f.snippet}</div>
                       {held && (
                         <p className="mt-2 type-meta">
-                          A converted figure without its source currency is never committed —
-                          visible here, excluded from answers.
+                          {"heldReason" in f && f.heldReason
+                            ? String(f.heldReason)
+                            : "Held here, and excluded from answers, until a person supplies what is missing."}
                         </p>
                       )}
                       {template && (
