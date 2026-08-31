@@ -137,6 +137,9 @@ function reducer(s: DemoState, a: Action): DemoState {
   }
 }
 
+/** The personas a `?demo=` link is allowed to name. */
+const personas = ["advisor", "colleague", "lead", "ops"] as const;
+
 const Ctx = createContext<{ s: DemoState; d: React.Dispatch<Action> } | null>(null);
 
 export function DemoProvider({ children }: { children: React.ReactNode }) {
@@ -147,9 +150,17 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     try {
       const raw = sessionStorage.getItem("enable-demo-state");
-      if (raw) d({ type: "hydrate", state: { ...initial, ...JSON.parse(raw) } });
+      if (raw) { d({ type: "hydrate", state: { ...initial, ...JSON.parse(raw) } }); return; }
+      // A framed or deep-linked view has no session storage of its own — an iframe is a
+      // separate origin, so nothing carries into it. `?demo=advisor` signs that view in
+      // so a link can open straight onto a screen; the case study embeds the record this
+      // way. A session that already exists always wins, so this can never overwrite one.
+      const who = new URLSearchParams(window.location.search).get("demo");
+      if (who && (personas as readonly string[]).includes(who)) {
+        d({ type: "signIn", role: who as Persona });
+      }
     } catch {}
-     
+
   }, []);
   React.useEffect(() => {
     if (!wroteOnce.current) { wroteOnce.current = true; return; }
