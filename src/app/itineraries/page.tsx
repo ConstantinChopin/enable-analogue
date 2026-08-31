@@ -167,14 +167,14 @@ function Itineraries() {
                 <button
                   type="button"
                   onClick={() => setNear(true)}
-                  className="flex cursor-pointer items-center gap-1.5 rounded-md border border-dashed border-border px-3 py-1 t-body text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="flex cursor-pointer items-center gap-1.5 rounded-md border border-dashed border-border px-3 py-1 type-data text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
                   <Plus className="size-3.5" aria-hidden />
                   Limit to the next 30 days
                 </button>
               )}
               </div>
-              <span className="shrink-0 t-meta">
+              <span className="shrink-0 type-meta">
                 <span className="tnum">{rows.length}</span> {rows.length === 1 ? "trip" : "trips"}
               </span>
             </div>
@@ -182,8 +182,8 @@ function Itineraries() {
             {/* ── the ledger ── */}
             {rows.length === 0 ? (
               <Section className="mt-4 py-12 text-center">
-                <p className="t-title">No trips under this filter.</p>
-                <p className="mx-auto mt-2 max-w-[46ch] t-meta">
+                <p className="type-data-strong">No trips under this filter.</p>
+                <p className="mx-auto mt-2 max-w-[46ch] type-meta">
                   Nothing is hidden by accident — widen the window or clear the status.
                 </p>
                 <Button
@@ -201,7 +201,7 @@ function Itineraries() {
             ) : (
               <Section flush className="mt-4" bodyClassName="p-0">
                 <ul>
-                <li className="row-grid px-4 t-micro uppercase tracking-widest text-muted-foreground">
+                <li className="row-grid px-4 type-micro uppercase tracking-widest text-muted-foreground">
                   <span className="row-primary">Trip</span>
                   <span className="row-meta">Dates</span>
                   <span className="row-trailing">Departs</span>
@@ -218,12 +218,12 @@ function Itineraries() {
                       )}
                     >
                       <span className="row-primary">
-                        <span className="block truncate t-body font-semibold">{t.title}</span>
-                        <span className="block truncate t-meta">
+                        <span className="block truncate type-data font-semibold">{t.title}</span>
+                        <span className="block truncate type-meta">
                           {t.traveller} · {t.destinations.join(", ")}
                         </span>
                       </span>
-                      <span className="row-meta flex items-center gap-2 t-meta">
+                      <span className="row-meta flex items-center gap-2 type-meta">
                         {t.alert && <Chip tone="warn">{t.alert}</Chip>}
                         <span className="tnum">
                           {t.dates} · {t.nights}n
@@ -231,7 +231,7 @@ function Itineraries() {
                       </span>
                       <span className="row-trailing flex items-center gap-2">
                         <Chip tone={statusTone(t.status)}>{t.status}</Chip>
-                        <span className="tnum t-meta">
+                        <span className="tnum type-meta">
                           {t.startsInDays === null ? "—" : `in ${t.startsInDays}d`}
                         </span>
                       </span>
@@ -242,7 +242,7 @@ function Itineraries() {
               </Section>
             )}
 
-            <p className="mt-3 t-meta">
+            <p className="mt-3 type-meta">
               <span className="tnum">{rows.length}</span> of{" "}
               <span className="tnum">{trips.length}</span> trips shown · sorted by days to departure
             </p>
@@ -264,14 +264,14 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={on}
       className={cn(
-        "flex shrink-0 cursor-pointer items-center gap-2 rounded-full border px-3 py-1 t-body transition-colors",
+        "flex shrink-0 cursor-pointer items-center gap-2 rounded-full border px-3 py-1 type-data transition-colors",
         on
           ? "border-foreground bg-foreground font-semibold text-background"
           : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
       {label}
-      <span className="tnum t-micro opacity-70">{count}</span>
+      <span className="tnum type-micro opacity-70">{count}</span>
     </button>
   );
 }
@@ -283,8 +283,8 @@ function TripPanel({ t }: { t: Trip }) {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="t-title">{t.title}</h2>
-        <p className="t-meta">
+        <h2 className="type-data-strong">{t.title}</h2>
+        <p className="type-meta">
           {t.traveller} · {t.destinations.join(" · ")}
         </p>
       </div>
@@ -299,7 +299,7 @@ function TripPanel({ t }: { t: Trip }) {
         {t.alert && <Chip tone="warn">{t.alert}</Chip>}
       </div>
 
-      <dl className="rounded-md border border-border p-4 t-body">
+      <dl className="rounded-md border border-border p-4 type-data">
         <div className="flex items-baseline justify-between gap-3 py-1">
           <dt className="text-muted-foreground">Dates</dt>
           <dd className="tnum text-right">{t.dates}</dd>
@@ -317,7 +317,7 @@ function TripPanel({ t }: { t: Trip }) {
       {t.checklist && (
         <div>
           <Progress value={(t.checklist.done / t.checklist.of) * 100} className="h-1.5" />
-          <p className="mt-2 t-meta">
+          <p className="mt-2 type-meta">
             Departure checklist{" "}
             <span className="tnum">
               {t.checklist.done}/{t.checklist.of}
@@ -327,7 +327,7 @@ function TripPanel({ t }: { t: Trip }) {
       )}
 
       <div>
-        <h3 className="t-micro uppercase tracking-widest text-muted-foreground">Linked products</h3>
+        <h3 className="type-micro uppercase tracking-widest text-muted-foreground">Linked products</h3>
         <ul className="mt-2 space-y-2">
           {linked.map((p) =>
             p ? (
@@ -341,7 +341,7 @@ function TripPanel({ t }: { t: Trip }) {
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate type-data-strong">{p.name}</span>
-                    <span className="block truncate t-meta">
+                    <span className="block truncate type-meta">
                       {p.city} · {p.country}
                     </span>
                   </span>
@@ -350,7 +350,7 @@ function TripPanel({ t }: { t: Trip }) {
             ) : null,
           )}
           {linked.length === 0 && (
-            <li className="t-meta">No record is linked to this trip yet.</li>
+            <li className="type-meta">No record is linked to this trip yet.</li>
           )}
         </ul>
       </div>
@@ -380,15 +380,15 @@ function WorkedExample({ money }: { money: boolean }) {
        ground, on its own tinted plane. */
     <section className="-mx-[var(--panel-pad)] mt-8 border-t border-border bg-subtle px-[var(--panel-pad)] pb-8 pt-6">
       <header className="mb-4">
-        <p className="font-mono t-micro uppercase tracking-widest text-muted-foreground">
+        <p className="font-mono type-micro uppercase tracking-widest text-muted-foreground">
           One trip, opened
         </p>
-        <h2 className="mt-1 flex flex-wrap items-center gap-2 t-title">
+        <h2 className="mt-1 flex flex-wrap items-center gap-2 type-data-strong">
           {itinerary.title} — the day board
           <Chip tone="neutral">{itinerary.status}</Chip>
           <SchematicBadge />
         </h2>
-        <p className="mt-2 t-meta">
+        <p className="mt-2 type-meta">
           {itinerary.client} · <span className="tnum">{itinerary.dates}</span> · shared with{" "}
           {itinerary.sharedWith} · saved 12:04
         </p>
@@ -416,7 +416,7 @@ function WorkedExample({ money }: { money: boolean }) {
                   disabled={!built}
                   onClick={() => setOpenDay(n)}
                   className={cn(
-                    "rounded-md px-3 py-1 t-body transition-colors",
+                    "rounded-md px-3 py-1 type-data transition-colors",
                     on
                       ? "border border-border bg-card font-semibold"
                       : built
@@ -440,7 +440,7 @@ function WorkedExample({ money }: { money: boolean }) {
                       <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                       <span className="min-w-0">
                         <span className="block truncate type-data-strong">{e.title}</span>
-                        <span className="block truncate t-meta">
+                        <span className="block truncate type-meta">
                           {e.type} · {e.note}
                         </span>
                       </span>
@@ -456,14 +456,14 @@ function WorkedExample({ money }: { money: boolean }) {
                           )
                         : null}
                     </span>
-                    <span className="row-trailing tnum t-meta">{e.time}</span>
+                    <span className="row-trailing tnum type-meta">{e.time}</span>
                   </li>
                 );
               })}
             </ul>
             <div className="flex flex-wrap items-center gap-4 border-t border-border p-4">
               {EVENT_TYPES.map(({ type, icon: Icon }) => (
-                <span key={type} className="inline-flex items-center gap-2 t-micro text-muted-foreground">
+                <span key={type} className="inline-flex items-center gap-2 type-micro text-muted-foreground">
                   <Icon className="size-3.5" aria-hidden />
                   {type}
                 </span>
@@ -486,7 +486,7 @@ function WorkedExample({ money }: { money: boolean }) {
                 {itinerary.ideaConflict.action}
               </Link>
             </div>
-            <p className="mt-2 t-meta">A warning, not a block — proceeding is possible and recorded.</p>
+            <p className="mt-2 type-meta">A warning, not a block — proceeding is possible and recorded.</p>
           </SeverityBanner>
         </div>
 
@@ -497,9 +497,9 @@ function WorkedExample({ money }: { money: boolean }) {
                 className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
                 aria-hidden
               />
-              <Input readOnly value="kaiseki" className="h-8 pl-8 t-body" aria-label="Search records" />
+              <Input readOnly value="kaiseki" className="h-8 pl-8 type-data" aria-label="Search records" />
             </div>
-            <p className="mt-2 t-meta">Matches in records — verified first.</p>
+            <p className="mt-2 type-meta">Matches in records — verified first.</p>
             <div className="mt-2 space-y-2">
               {itinerary.addFromRecords.map((r, i) => (
                 <div
@@ -509,8 +509,8 @@ function WorkedExample({ money }: { money: boolean }) {
                     i === 0 ? "border border-primary/40 bg-card" : "border border-border bg-subtle",
                   )}
                 >
-                  <div className="t-body font-semibold">{r.name}</div>
-                  <div className="t-meta">{r.meta}</div>
+                  <div className="type-data font-semibold">{r.name}</div>
+                  <div className="type-meta">{r.meta}</div>
                   {"primary" in r && r.primary ? (
                     added ? (
                       <div className="mt-2">
@@ -528,7 +528,7 @@ function WorkedExample({ money }: { money: boolean }) {
           </Section>
 
           <Section title="Why the warning appeared">
-            <p className="flex gap-2 t-meta">
+            <p className="flex gap-2 type-meta">
               <span className="mt-1 size-2 shrink-0 rounded-full bg-warn" aria-hidden />
               Hôtel Verlaine is tagged contemporary design in the record. The traveller profile holds
               a preference for classic interiors on three sources. The product does not remove the

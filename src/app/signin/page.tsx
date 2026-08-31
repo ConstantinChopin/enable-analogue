@@ -65,21 +65,21 @@ export default function SignInPage() {
       <div className="w-full max-w-[404px]">
         {/* product mark */}
         <div className="mb-6 flex items-center justify-center gap-2.5">
-          <span className="grid size-9 place-items-center rounded-lg bg-primary t-title text-primary-foreground">
+          <span className="grid size-9 place-items-center rounded-lg bg-primary type-data-strong text-primary-foreground">
             E
           </span>
-          <span className="t-title tracking-tight">Enable</span>
+          <span className="type-data-strong tracking-tight">Enable</span>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-6 shadow-[0_1px_2px_rgba(28,29,34,0.06)] sm:p-7">
-          <h1 className="t-display">Sign in to Enable</h1>
-          <p className="mt-1 t-body text-muted-foreground">
+          <h1 className="type-title-page">Sign in to Enable</h1>
+          <p className="mt-1 type-data text-muted-foreground">
             Your desk, your travellers and your agency&rsquo;s terms.
           </p>
 
           <form onSubmit={submit} className="mt-5 space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="t-micro">Work email</Label>
+              <Label htmlFor="email" className="type-micro">Work email</Label>
               <Input
                 id="email"
                 type="email"
@@ -91,8 +91,8 @@ export default function SignInPage() {
 
             <div className="space-y-1.5">
               <div className="flex items-baseline justify-between">
-                <Label htmlFor="password" className="t-micro">Password</Label>
-                <span className="t-meta">Forgotten?</span>
+                <Label htmlFor="password" className="type-micro">Password</Label>
+                <span className="type-meta">Forgotten?</span>
               </div>
               <Input
                 id="password"
@@ -107,7 +107,7 @@ export default function SignInPage() {
 
             <div className="flex items-center gap-3 pt-1">
               <span className="h-px flex-1 bg-border" aria-hidden />
-              <span className="t-micro text-muted-foreground">or</span>
+              <span className="type-micro text-muted-foreground">or</span>
               <span className="h-px flex-1 bg-border" aria-hidden />
             </div>
 
@@ -120,7 +120,7 @@ export default function SignInPage() {
 
         {/* Demo accounts */}
         <section className="mt-6" aria-label="Demo accounts">
-          <div className="mb-2 px-1 font-mono t-micro uppercase tracking-widest text-muted-foreground">
+          <div className="mb-2 px-1 font-mono type-micro uppercase tracking-widest text-muted-foreground">
             Demo accounts
           </div>
           <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -140,15 +140,15 @@ export default function SignInPage() {
                 >
                   <span
                     className={cn(
-                      "grid size-8 shrink-0 place-items-center rounded-full t-micro",
+                      "grid size-8 shrink-0 place-items-center rounded-full type-micro",
                       on ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
                     )}
                   >
                     {a.initials}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate t-title">{a.name}</span>
-                    <span className="block truncate t-meta">{a.title}</span>
+                    <span className="block truncate type-data-strong">{a.name}</span>
+                    <span className="block truncate type-meta">{a.title}</span>
                   </span>
                   <span
                     className={cn(
@@ -166,13 +166,13 @@ export default function SignInPage() {
       {/* Demo setup — the one place a demo control is visible. It used to float
           bottom-right, right-aligned against a centred card and attached to nothing.
           It now sits in the column it belongs to. */}
-      <details className="group mt-8 t-meta">
+      <details className="group mt-8 type-meta">
         <summary className="flex cursor-pointer list-none items-center gap-1">
           Demo setup
           <ChevronDown className="size-3.5 transition-transform group-open:rotate-180" aria-hidden />
         </summary>
         <Section className="mt-2 p-3">
-          <div className="mb-2 t-micro text-muted-foreground">Build vintage</div>
+          <div className="mb-2 type-micro text-muted-foreground">Build vintage</div>
           <div className="flex overflow-hidden rounded-md border border-border">
             {([["v2", "Current build"], ["v1", "March build"]] as const).map(([w, label]) => (
               <button
@@ -180,7 +180,7 @@ export default function SignInPage() {
                 type="button"
                 onClick={() => d({ type: "world", world: w })}
                 className={cn(
-                  "flex-1 cursor-pointer px-2 py-1 font-mono t-micro whitespace-nowrap",
+                  "flex-1 cursor-pointer px-2 py-1 font-mono type-micro whitespace-nowrap",
                   s.world === w ? "bg-muted font-semibold text-foreground" : "hover:text-foreground",
                 )}
               >

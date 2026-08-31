@@ -144,14 +144,14 @@ export default function KnowledgeVault() {
                 aria-selected={on}
                 onClick={() => setTab(t)}
                 className={cn(
-                  "flex shrink-0 cursor-pointer items-baseline gap-2 border-b-2 px-3 py-2 t-body whitespace-nowrap transition-colors",
+                  "flex shrink-0 cursor-pointer items-baseline gap-2 border-b-2 px-3 py-2 type-data whitespace-nowrap transition-colors",
                   on
                     ? "border-b-foreground font-semibold text-foreground"
                     : "border-b-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
                 {t}
-                <span className="tnum t-micro text-muted-foreground">
+                <span className="tnum type-micro text-muted-foreground">
                   {n.toLocaleString("en-GB")}
                 </span>
               </button>
@@ -185,7 +185,7 @@ export default function KnowledgeVault() {
             {/* "Owner: anyone ×" is gone — it dressed the default state as an applied
                 filter you could remove, and removing it changed nothing. */}
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="ml-auto flex items-center gap-4 t-meta">
+              <span className="ml-auto flex items-center gap-4 type-meta">
                 <span className="flex items-center gap-2">
                   <span className="size-2 rounded-full bg-ok" aria-hidden /> drive · live
                 </span>
@@ -205,10 +205,10 @@ export default function KnowledgeVault() {
                 whichever document happened to be selected. */}
             <Section className="mt-4" title="Carrying a verified source">
               <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-                <span className="tnum t-title">{vaultStats.verifiedSourcePct}%</span>
+                <span className="tnum type-data-strong">{vaultStats.verifiedSourcePct}%</span>
                 <span className="flex min-w-[180px] flex-1 flex-col gap-2">
                   <Progress value={vaultStats.verifiedSourcePct} className="h-1" />
-                  <span className="flex flex-wrap items-center gap-x-4 t-meta">
+                  <span className="flex flex-wrap items-center gap-x-4 type-meta">
                     <span className="flex items-center gap-2">
                       <span className="size-2 rounded-full bg-ok" aria-hidden /> verified ·{" "}
                       <span className="tnum">{vaultStats.verified}</span>
@@ -220,7 +220,7 @@ export default function KnowledgeVault() {
                   </span>
                 </span>
               </div>
-              <p className="mt-3 t-meta">
+              <p className="mt-3 type-meta">
                 A document with no verified source still answers — with its date and a freshness
                 warning attached.
               </p>
@@ -238,7 +238,7 @@ export default function KnowledgeVault() {
                  wrap, which dropped the sample note 27px and right-aligned it under the
                  count at 375px. */
               footer={
-                <span className="flex flex-col gap-1 t-meta sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+                <span className="flex flex-col gap-1 type-meta sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
                   <span className="shrink-0">
                     <span className="tnum">{rows.length}</span> shown · newest first
                   </span>
@@ -250,7 +250,7 @@ export default function KnowledgeVault() {
                 </span>
               }
             >
-              <div className="row-grid px-4 t-micro uppercase tracking-widest text-muted-foreground">
+              <div className="row-grid px-4 type-micro uppercase tracking-widest text-muted-foreground">
                 <span className="row-primary">Document</span>
                 <span className="row-meta">Updated</span>
                 <span className="row-trailing">Access</span>
@@ -278,14 +278,14 @@ export default function KnowledgeVault() {
                           <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                           <span
                             className={cn(
-                              "min-w-0 truncate t-body",
+                              "min-w-0 truncate type-data",
                               isSel && "font-semibold",
                             )}
                           >
                             {doc.name}
                           </span>
                         </span>
-                        <span className="row-meta flex items-center gap-2 t-meta">
+                        <span className="row-meta flex items-center gap-2 type-meta">
                           <span
                             className={cn(
                               "size-2 rounded-full",
@@ -314,7 +314,7 @@ export default function KnowledgeVault() {
               </ul>
             </Section>
 
-            <p className="mt-3 t-meta">
+            <p className="mt-3 type-meta">
               Upload a document, or mail one in —{" "}
               {inbound?.name.replace("Inbound mail — ", "")} · {inbound?.posture}
             </p>
@@ -342,14 +342,14 @@ export default function KnowledgeVault() {
                       <div key={o.v} className="flex items-start gap-3">
                         <RadioGroupItem value={o.v} id={`acc-${o.v}`} className="mt-1" />
                         <Label htmlFor={`acc-${o.v}`} className="flex flex-col items-start gap-1 font-normal">
-                          <span className="t-body font-semibold">{o.label}</span>
-                          <span className="t-meta">{o.detail}</span>
+                          <span className="type-data font-semibold">{o.label}</span>
+                          <span className="type-meta">{o.detail}</span>
                         </Label>
                       </div>
                     ))}
                   </RadioGroup>
                   {accessDone && (
-                    <p className="mt-4 rounded-md border border-ok/40 bg-ok/10 p-3 t-meta">
+                    <p className="mt-4 rounded-md border border-ok/40 bg-ok/10 p-3 type-meta">
                       Access set to {accessScope} · {personName[s.role]} · today. Recorded in this
                       document&rsquo;s history.
                     </p>
@@ -376,7 +376,7 @@ function ProvenancePanel({ sel, onManageAccess }: { sel: VaultDoc | undefined; o
       {sel ? (
         <>
           <section className="rounded-md border border-border p-4">
-            <h3 className="t-title">{sel.name}</h3>
+            <h3 className="type-data-strong">{sel.name}</h3>
             {/* The same DataList every other panel uses. */}
             <DataList
               className="mt-3"
@@ -413,14 +413,14 @@ function ProvenancePanel({ sel, onManageAccess }: { sel: VaultDoc | undefined; o
 
           {sel.detail ? (
             <section className="rounded-md border border-border p-4">
-              <h3 className="flex items-center gap-2 t-micro uppercase tracking-widest text-muted-foreground">
+              <h3 className="flex items-center gap-2 type-micro uppercase tracking-widest text-muted-foreground">
                 <History className="size-3.5" aria-hidden /> History
               </h3>
               <ul className="mt-3 space-y-3">
                 {sel.detail.history.map((item, i) => {
                   const parts = item.split(" · ");
                   return (
-                    <li key={item} className="flex gap-3 t-body">
+                    <li key={item} className="flex gap-3 type-data">
                       <span
                         className={cn(
                           "mt-1 size-2 shrink-0 rounded-full",
@@ -430,25 +430,25 @@ function ProvenancePanel({ sel, onManageAccess }: { sel: VaultDoc | undefined; o
                       />
                       <span className="min-w-0">
                         {parts[0]}
-                        <span className="block t-meta">{parts.slice(1).join(" · ")}</span>
+                        <span className="block type-meta">{parts.slice(1).join(" · ")}</span>
                       </span>
                     </li>
                   );
                 })}
               </ul>
-              <p className="mt-3 t-meta">
+              <p className="mt-3 type-meta">
                 Every widening is logged. Nothing becomes readable by accident.
               </p>
             </section>
           ) : (
-            <p className="t-meta">
+            <p className="type-meta">
               This document has not been widened since it arrived. Every widening is logged. Nothing
               becomes readable by accident.
             </p>
           )}
         </>
       ) : (
-        <p className="t-meta">Select a document to see where it came from and who can read it.</p>
+        <p className="type-meta">Select a document to see where it came from and who can read it.</p>
       )}
     </div>
   );

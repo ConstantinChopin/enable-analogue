@@ -61,7 +61,7 @@ export default function Connections() {
           </Button>
         }
       >
-        <p className="mt-2 max-w-[62ch] t-body text-muted-foreground">
+        <p className="mt-2 max-w-[62ch] type-data text-muted-foreground">
           A source needs attention when it is not connected — expired credentials and a sync
           running behind both degrade an answer.
         </p>
@@ -73,7 +73,7 @@ export default function Connections() {
       </NarrationNote>
 
       <Section flush className="mt-4" bodyClassName="p-0">
-        <div className="row-grid px-4 t-micro uppercase tracking-widest text-muted-foreground">
+        <div className="row-grid px-4 type-micro uppercase tracking-widest text-muted-foreground">
           <span className="row-primary">Source</span>
           <span className="row-meta">Last success</span>
           <span className="row-trailing">State</span>
@@ -83,9 +83,9 @@ export default function Connections() {
             <li key={c.name} className="row-grid border-t border-border px-4">
               <span className="row-primary">
                 <span className="block truncate type-data-strong">{c.name}</span>
-                <span className="block truncate t-meta">{c.posture}</span>
+                <span className="block truncate type-meta">{c.posture}</span>
               </span>
-              <span className="row-meta tnum t-meta">{c.lastSuccess}</span>
+              <span className="row-meta tnum type-meta">{c.lastSuccess}</span>
               <span className="row-trailing flex items-center gap-2">
                 <StateChip state={c.state} />
                 {/* A health surface where the broken thing has no fix is a report, not a
@@ -119,20 +119,20 @@ export default function Connections() {
           <div className="space-y-4 px-4">
             <div className="rounded-lg border border-border p-3">
               <div className="type-data-strong">While this source is down</div>
-              <p className="mt-1 t-meta">
+              <p className="mt-1 type-meta">
                 Answers exclude it and carry a gap note naming the date. Records confirmed before
                 24 Aug still answer, with their own provenance and their own date.
               </p>
             </div>
             <div className="rounded-lg border border-border p-3">
               <div className="type-data-strong">What reconnecting needs</div>
-              <p className="mt-1 t-meta">
+              <p className="mt-1 type-meta">
                 A named person re-authorises at the partner portal. Enable never stores the
                 credential — it holds a scoped token, which is what expired.
               </p>
             </div>
             {reconnectSent && (
-              <p className="rounded-lg border border-ok/40 bg-ok/10 p-3 t-meta">
+              <p className="rounded-lg border border-ok/40 bg-ok/10 p-3 type-meta">
                 Re-authorisation requested from A. Blanc · logged today. The row stays flagged until
                 a sync succeeds.
               </p>
@@ -165,8 +165,8 @@ export default function Connections() {
               <div className="flex items-start gap-3">
                 <RadioGroupItem value="mcp" id="conn-mcp" className="mt-1" />
                 <Label htmlFor="conn-mcp" className="flex flex-col items-start gap-1 font-normal">
-                  <span className="t-body font-semibold">MCP upstream</span>
-                  <span className="t-meta">
+                  <span className="type-data font-semibold">MCP upstream</span>
+                  <span className="type-meta">
                     Consume the source&rsquo;s own MCP server where one exists.
                   </span>
                 </Label>
@@ -174,12 +174,12 @@ export default function Connections() {
               <div className="flex items-start gap-3">
                 <RadioGroupItem value="self" id="conn-self" className="mt-1" />
                 <Label htmlFor="conn-self" className="flex flex-col items-start gap-1 font-normal">
-                  <span className="t-body font-semibold">Self-hosted connector</span>
-                  <span className="t-meta">Fallback where no upstream MCP exists.</span>
+                  <span className="type-data font-semibold">Self-hosted connector</span>
+                  <span className="type-meta">Fallback where no upstream MCP exists.</span>
                 </Label>
               </div>
             </RadioGroup>
-            <p className="mt-4 border-t border-border pt-4 t-meta">
+            <p className="mt-4 border-t border-border pt-4 type-meta">
               Scoped credentials, a sync cadence, and read-only where the source system is ground
               truth — the booking system stays authoritative for money.
             </p>

@@ -21,12 +21,12 @@ export default function AppError({
     <Page width="wide">
       <PageHeader title="This screen did not load" />
       <Section>
-        <p className="max-w-[62ch] t-body text-muted-foreground">
+        <p className="max-w-[62ch] type-data text-muted-foreground">
           The failure is in the interface, not in the workspace. Nothing was written, no record
           changed, and no answer was published from a partial read.
         </p>
         {error.digest && (
-          <p className="mt-3 font-mono t-micro text-muted-foreground">
+          <p className="mt-3 font-mono type-micro text-muted-foreground">
             reference {error.digest}
           </p>
         )}

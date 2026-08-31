@@ -44,7 +44,7 @@ export default function CandidateDetail() {
       <Page width="wide">
         <PageHeader title="No candidate at this address" />
         <Section>
-          <p className="t-body text-muted-foreground">
+          <p className="type-data text-muted-foreground">
             Nothing is waiting for confirmation here.
           </p>
           <Button asChild variant="outline" size="sm" className="mt-4">
@@ -98,7 +98,7 @@ export default function CandidateDetail() {
           </>
         }
       >
-        <p className="mt-2 font-mono t-micro text-muted-foreground">
+        <p className="mt-2 font-mono type-micro text-muted-foreground">
           {candidate.from} · {candidate.uri}
         </p>
       </PageHeader>
@@ -161,7 +161,7 @@ export default function CandidateDetail() {
                   <CopyPlus className="size-3.5" aria-hidden /> Create new record
                 </Button>
               </span>
-              <p className="w-full t-meta">
+              <p className="w-full type-meta">
                 Creating a new record keeps both. The match stays logged against them, so the
                 duplicate comes back for a later human pass rather than disappearing.
               </p>
@@ -177,7 +177,7 @@ export default function CandidateDetail() {
         {/* Nothing extracted — the row is all there is to show */}
         {isHeld && (
           <Section title="Nothing extracted from this row">
-            <p className="t-body text-muted-foreground">
+            <p className="type-data text-muted-foreground">
               Nothing was extracted with confidence from this row. The candidate is held — it never
               surfaces anywhere until a person opens the source, fixes it by hand, or rejects it
               with a reason.
@@ -185,11 +185,11 @@ export default function CandidateDetail() {
             {corrected.Name && (
               <>
                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <span className="w-24 shrink-0 t-meta">Name</span>
-                  <span className="t-body font-semibold">{corrected.Name}</span>
+                  <span className="w-24 shrink-0 type-meta">Name</span>
+                  <span className="type-data font-semibold">{corrected.Name}</span>
                   <Chip tone="ok">corrected · {people.lead}</Chip>
                 </div>
-                <p className="mt-2 t-meta">
+                <p className="mt-2 type-meta">
                   Keyed by hand, attributed. The source row is unchanged, and the candidate stays
                   held until the rest of it can be read.
                 </p>
@@ -213,13 +213,13 @@ export default function CandidateDetail() {
               return (
                 <li key={f.label} className="p-4">
                   <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
-                    <span className="w-24 shrink-0 t-meta">{f.label}</span>
+                    <span className="w-24 shrink-0 type-meta">{f.label}</span>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         {held ? (
                           <MoneyValue amount="" held />
                         ) : (
-                          <span className="t-body font-semibold">
+                          <span className="type-data font-semibold">
                             {corrected[f.label] ?? f.value}
                           </span>
                         )}
@@ -228,15 +228,15 @@ export default function CandidateDetail() {
                         )}
                         {template && <Chip tone="warn">template copy</Chip>}
                       </div>
-                      <div className="mt-1 font-mono t-micro text-muted-foreground">{f.snippet}</div>
+                      <div className="mt-1 font-mono type-micro text-muted-foreground">{f.snippet}</div>
                       {held && (
-                        <p className="mt-2 t-meta">
+                        <p className="mt-2 type-meta">
                           A converted figure without its source currency is never committed —
                           visible here, excluded from answers.
                         </p>
                       )}
                       {template && (
-                        <p className="mt-2 t-meta">
+                        <p className="mt-2 type-meta">
                           Excluded from corroboration; queued for enrichment.
                         </p>
                       )}
@@ -266,7 +266,7 @@ export default function CandidateDetail() {
                               value={editValue}
                               onChange={(e) => setEditValue(e.target.value)}
                               aria-label={`Corrected value for ${f.label}`}
-                              className="h-8 w-40 t-body"
+                              className="h-8 w-40 type-data"
                               autoFocus
                             />
                             <Button type="submit" variant="outline" size="sm">
@@ -333,7 +333,7 @@ export default function CandidateDetail() {
                   onChange={(e) => setEditValue(e.target.value)}
                   aria-label="Corrected value for Name"
                   placeholder="Name, keyed by hand"
-                  className="h-9 w-56 t-body"
+                  className="h-9 w-56 type-data"
                   autoFocus
                 />
                 <Button type="submit" variant="outline">
@@ -389,12 +389,12 @@ export default function CandidateDetail() {
             </SheetDescription>
           </SheetHeader>
           <div className="px-4">
-            <div className="font-mono t-micro text-muted-foreground">{raw?.where}</div>
-            <pre className="mt-2 overflow-x-auto rounded-md border border-border bg-subtle p-4 font-mono t-micro">
+            <div className="font-mono type-micro text-muted-foreground">{raw?.where}</div>
+            <pre className="mt-2 overflow-x-auto rounded-md border border-border bg-subtle p-4 font-mono type-micro">
               {raw?.text}
             </pre>
-            <p className="mt-4 t-body text-muted-foreground">{raw?.note}</p>
-            <p className="mt-4 t-meta">
+            <p className="mt-4 type-data text-muted-foreground">{raw?.note}</p>
+            <p className="mt-4 type-meta">
               The source is read-only here. Ground truth stays in the sheet: a correction is keyed
               against the candidate and attributed, and the row is left as it is.
             </p>
@@ -418,7 +418,7 @@ export default function CandidateDetail() {
             </SheetDescription>
           </SheetHeader>
           <div className="space-y-2 px-4">
-            <Label htmlFor="reject-reason" className="t-body">
+            <Label htmlFor="reject-reason" className="type-data">
               Reason (required)
             </Label>
             <Textarea
@@ -426,7 +426,7 @@ export default function CandidateDetail() {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="e.g. Not a real property — a marketing row in the source sheet."
-              className="t-body"
+              className="type-data"
             />
           </div>
           <SheetFooter>
@@ -457,8 +457,8 @@ export default function CandidateDetail() {
             <ul className="divide-y divide-border">
               {candidate.fields.map((f) => (
                 <li key={f.label} className="py-2">
-                  <div className="t-meta">{f.label}</div>
-                  <div className="mt-1 flex items-center gap-2 t-body">
+                  <div className="type-meta">{f.label}</div>
+                  <div className="mt-1 flex items-center gap-2 type-data">
                     <span className="min-w-0 flex-1 truncate">
                       {canonicalByLabel[f.label] ?? "—"}
                     </span>
@@ -467,7 +467,7 @@ export default function CandidateDetail() {
                     </span>
                     <span className="min-w-0 flex-1 truncate text-right font-medium">{f.value}</span>
                   </div>
-                  <div className="mt-1 flex justify-between font-mono t-micro text-muted-foreground">
+                  <div className="mt-1 flex justify-between font-mono type-micro text-muted-foreground">
                     <span>canonical</span>
                     <span>incoming</span>
                   </div>
@@ -475,7 +475,7 @@ export default function CandidateDetail() {
               ))}
             </ul>
             <div className="mt-4 space-y-2">
-              <Label htmlFor="merge-reason" className="t-body">
+              <Label htmlFor="merge-reason" className="type-data">
                 Merge reason (required)
               </Label>
               <Textarea
@@ -483,9 +483,9 @@ export default function CandidateDetail() {
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="e.g. Same property — the portal sync drops the accent."
-                className="t-body"
+                className="type-data"
               />
-              <p className="t-meta">
+              <p className="type-meta">
                 The choice is stored with its reason, attributed. Nothing merges automatically.
               </p>
             </div>

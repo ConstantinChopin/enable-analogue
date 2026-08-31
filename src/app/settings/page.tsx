@@ -65,19 +65,19 @@ export default function SettingsPage() {
         <Section title="Profile">
           <dl className="divide-y divide-border">
             <div className="row-grid">
-              <dt className="row-primary t-body text-muted-foreground">Name</dt>
-              <dd className="row-trailing t-body">{personName[s.role]}</dd>
+              <dt className="row-primary type-data text-muted-foreground">Name</dt>
+              <dd className="row-trailing type-data">{personName[s.role]}</dd>
             </div>
             <div className="row-grid">
-              <dt className="row-primary t-body text-muted-foreground">Role</dt>
-              <dd className="row-trailing t-body">{roleLabel[s.role]}</dd>
+              <dt className="row-primary type-data text-muted-foreground">Role</dt>
+              <dd className="row-trailing type-data">{roleLabel[s.role]}</dd>
             </div>
             <div className="row-grid">
-              <dt className="row-primary t-body text-muted-foreground">Email</dt>
-              <dd className="row-trailing t-body">{personEmail[s.role]}</dd>
+              <dt className="row-primary type-data text-muted-foreground">Email</dt>
+              <dd className="row-trailing type-data">{personEmail[s.role]}</dd>
             </div>
           </dl>
-          <p className="mt-3 t-meta">
+          <p className="mt-3 type-meta">
             Name, role and address come from the agency directory. Changing them is an
             administrator&rsquo;s act, not a personal one.
           </p>
@@ -91,7 +91,7 @@ export default function SettingsPage() {
                   <label htmlFor={`pref-${p.id}`} className="block type-data-strong">
                     {p.label}
                   </label>
-                  <p className="mt-1 t-meta">{p.detail}</p>
+                  <p className="mt-1 type-meta">{p.detail}</p>
                 </div>
                 <Switch
                   id={`pref-${p.id}`}
@@ -102,7 +102,7 @@ export default function SettingsPage() {
               </li>
             ))}
           </ul>
-          <p className="mt-3 t-meta">
+          <p className="mt-3 type-meta">
             These switches decide what raises an item. Nothing here clears an item — an item is
             actioned or deferred in triage, deliberately.
           </p>
@@ -125,7 +125,7 @@ export default function SettingsPage() {
               )
             }
           >
-            <p className="t-body text-muted-foreground">
+            <p className="type-data text-muted-foreground">
               <span className="tnum">{sources}</span> sources feed this workspace. Each
               one carries its last success, and a failed source degrades answers visibly.
             </p>

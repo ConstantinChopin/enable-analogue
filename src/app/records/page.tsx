@@ -175,14 +175,14 @@ function RecordsCatalogue() {
                 aria-selected={on}
                 onClick={() => { setCategory(c); setSelected(null); }}
                 className={cn(
-                  "flex shrink-0 cursor-pointer items-baseline gap-2 border-b-2 px-3 py-2 t-body whitespace-nowrap transition-colors",
+                  "flex shrink-0 cursor-pointer items-baseline gap-2 border-b-2 px-3 py-2 type-data whitespace-nowrap transition-colors",
                   on
                     ? "border-b-foreground font-semibold text-foreground"
                     : "border-b-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
                 {c}
-                <span className="t-micro text-muted-foreground tnum">{directoryCounts[c]}</span>
+                <span className="type-micro text-muted-foreground tnum">{directoryCounts[c]}</span>
               </button>
             );
           })}
@@ -220,19 +220,19 @@ function RecordsCatalogue() {
                     <button
                       type="button"
                       className={cn(
-                        "flex cursor-pointer items-center gap-1 rounded-md border border-border px-3 py-1 t-body transition-colors hover:bg-muted",
+                        "flex cursor-pointer items-center gap-1 rounded-md border border-border px-3 py-1 type-data transition-colors hover:bg-muted",
                         filters[f.key].length > 0 ? "font-semibold text-foreground" : "text-muted-foreground",
                       )}
                     >
                       {f.label}
                       {filters[f.key].length > 0 && (
-                        <span className="t-micro tnum">{filters[f.key].length}</span>
+                        <span className="type-micro tnum">{filters[f.key].length}</span>
                       )}
                       <ChevronDown className="size-3" aria-hidden />
                     </button>
                   </PopoverTrigger>
                   <PopoverContent align="start" className="w-56 p-2">
-                    <div className="mb-2 px-1 font-mono t-micro uppercase tracking-widest text-muted-foreground">
+                    <div className="mb-2 px-1 font-mono type-micro uppercase tracking-widest text-muted-foreground">
                       {f.label}
                     </div>
                     <div className="space-y-0.5">
@@ -242,7 +242,7 @@ function RecordsCatalogue() {
                           <label
                             key={o.value}
                             htmlFor={id}
-                            className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-2 t-body hover:bg-muted"
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-2 type-data hover:bg-muted"
                           >
                             <Checkbox
                               id={id}
@@ -259,7 +259,7 @@ function RecordsCatalogue() {
               ))}
 
             </div>
-              <span className="shrink-0 t-meta sm:pt-1">
+              <span className="shrink-0 type-meta sm:pt-1">
                 <span className="tnum">{rows.length}</span> {rows.length === 1 ? "record" : "records"}
               </span>
             </div>
@@ -284,7 +284,7 @@ function RecordsCatalogue() {
                 <button
                   type="button"
                   onClick={() => setFilters(EMPTY)}
-                  className="cursor-pointer t-body text-primary underline underline-offset-2"
+                  className="cursor-pointer type-data text-primary underline underline-offset-2"
                 >
                   Clear all
                 </button>
@@ -294,8 +294,8 @@ function RecordsCatalogue() {
             {/* ── the two views ── */}
             {rows.length === 0 ? (
               <Section className="mt-4 px-4 py-10 text-center">
-                <p className="t-title">No records match these filters.</p>
-                <p className="mt-1 t-meta">
+                <p className="type-data-strong">No records match these filters.</p>
+                <p className="mt-1 type-meta">
                   Nothing is hidden by accident — remove a filter to widen the set.
                 </p>
                 <Button variant="outline" size="sm" className="mt-3" onClick={() => setFilters(EMPTY)}>
@@ -319,9 +319,9 @@ function RecordsCatalogue() {
             ) : (
               <Section flush className="mt-4" bodyClassName="p-0">
                 <div className="overflow-x-auto">
-                  <table className="w-full t-body">
+                  <table className="w-full type-data">
                     <thead>
-                      <tr className="border-b border-border text-left t-micro text-muted-foreground">
+                      <tr className="border-b border-border text-left type-micro text-muted-foreground">
                         <th className="py-2 pl-3 pr-3 font-normal">Record</th>
                         <th className="hidden py-2 pr-3 font-normal sm:table-cell">Tier</th>
                         <th className="hidden py-2 pr-3 font-normal md:table-cell">Programme</th>
@@ -349,19 +349,19 @@ function RecordsCatalogue() {
                                 <button type="button" className="block cursor-pointer text-left font-medium">
                                   {p.name}
                                 </button>
-                                <span className="block t-meta">
+                                <span className="block type-meta">
                                   {p.city} · {p.country}
                                 </span>
                               </span>
                             </div>
                           </td>
                           <td className="hidden py-3 pr-3 sm:table-cell">
-                            <span className="t-meta">{p.luxuryTier}</span>
+                            <span className="type-meta">{p.luxuryTier}</span>
                           </td>
                           <td className="hidden py-3 pr-3 md:table-cell">
                             <span className="flex flex-wrap gap-1">
                               {p.programs.length === 0
-                                ? <span className="t-meta">—</span>
+                                ? <span className="type-meta">—</span>
                                 : p.programs.map((pr) => (
                                     <Chip key={pr} tone="neutral" className="border border-border bg-background">{pr}</Chip>
                                   ))}
@@ -382,7 +382,7 @@ function RecordsCatalogue() {
             )}
 
             {/* ── footer line ── */}
-            <p className="mt-3 t-meta">
+            <p className="mt-3 type-meta">
               <span className="tnum">{rows.length}</span> of <span className="tnum">{inCategory.length}</span>{" "}
               {category} records shown · <span className="tnum">{directoryCounts[category]}</span> in the full directory
             </p>
@@ -413,10 +413,10 @@ function RecordCard({
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-2 p-4">
         <span className="flex items-baseline justify-between gap-2">
-          <span className="min-w-0 truncate t-title">{p.name}</span>
-          {money && p.rate !== "—" && <span className="shrink-0 t-body tnum">{p.rate}</span>}
+          <span className="min-w-0 truncate type-data-strong">{p.name}</span>
+          {money && p.rate !== "—" && <span className="shrink-0 type-data tnum">{p.rate}</span>}
         </span>
-        <span className="t-meta">
+        <span className="type-meta">
           {p.city} · {p.country}
         </span>
         <span className="flex flex-wrap gap-1">
@@ -451,8 +451,8 @@ function RecordPanel({ p }: { p: Product }) {
       </div>
 
       <div>
-        <h2 className="t-title">{p.name}</h2>
-        <p className="t-meta">
+        <h2 className="type-data-strong">{p.name}</h2>
+        <p className="type-meta">
           {p.category} · {p.city}, {p.country}
         </p>
       </div>
@@ -481,7 +481,7 @@ function RecordPanel({ p }: { p: Product }) {
         <SeverityBanner severity={notice.severity}>
           <div className="font-medium">{notice.severity} notice</div>
           <div>{notice.text}</div>
-          <div className="mt-1 t-meta">
+          <div className="mt-1 type-meta">
             Opened {notice.openedAt} · {notice.scope} scope · {notice.owner}
           </div>
         </SeverityBanner>
@@ -519,12 +519,12 @@ function LayerSummary({ money, role }: { money: boolean; role: string }) {
         if (fields.length === 0) return null;
         return (
           <section key={g.layer} className="rounded-md border border-border p-4">
-            <h3 className="font-mono t-micro uppercase tracking-widest text-muted-foreground">{g.title}</h3>
+            <h3 className="font-mono type-micro uppercase tracking-widest text-muted-foreground">{g.title}</h3>
             <dl className="mt-2 space-y-2">
               {fields.map((f) => (
                 <div key={f.key}>
-                  <dt className="t-meta">{f.label}</dt>
-                  <dd className={cn("t-body", f.state === "template" && "italic text-muted-foreground")}>
+                  <dt className="type-meta">{f.label}</dt>
+                  <dd className={cn("type-data", f.state === "template" && "italic text-muted-foreground")}>
                     {f.value}
                   </dd>
                   <dd className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -539,7 +539,7 @@ function LayerSummary({ money, role }: { money: boolean; role: string }) {
           </section>
         );
       })}
-      <p className="t-meta">
+      <p className="type-meta">
         Three layers, one record. The full anatomy — every field, every source — is on the record itself.
       </p>
     </div>
@@ -558,8 +558,8 @@ function PlainSummary({ p, money }: { p: Product; money: boolean }) {
   ];
   return (
     <div className="space-y-3">
-      {p.blurb && <p className="t-body text-muted-foreground">{p.blurb}</p>}
-      <dl className="rounded-md border border-border p-4 t-body">
+      {p.blurb && <p className="type-data text-muted-foreground">{p.blurb}</p>}
+      <dl className="rounded-md border border-border p-4 type-data">
         {rows.filter(([, v]) => !!v).map(([k, v]) => (
           <div key={k} className="flex items-baseline justify-between gap-3 py-1">
             <dt className="text-muted-foreground">{k}</dt>
@@ -573,12 +573,12 @@ function PlainSummary({ p, money }: { p: Product; money: boolean }) {
         </FreshnessDate>
       </p>
       {p.repFirm && (
-        <p className="t-meta">
+        <p className="type-meta">
           Represented by {p.repFirm}. Contacts and terms live on the full record.
         </p>
       )}
       {p.id === "sereno-kyoto" && (
-        <p className="t-meta">
+        <p className="type-meta">
           A candidate record. It does not answer questions, and it is not offered to a client, until a
           reviewer confirms it field by field — {people.lead} or {people.ops} hold that queue.
         </p>

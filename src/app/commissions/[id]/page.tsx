@@ -44,8 +44,8 @@ function TimelineRow({ marker, label, children }: { marker: "done" | "flag" | "e
         {marker === "empty" && <CircleDashed className="size-4 text-muted-foreground" aria-hidden />}
       </span>
       <div className="min-w-0 flex-1">
-        <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">{label}</div>
-        <div className="mt-1 t-body">{children}</div>
+        <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">{label}</div>
+        <div className="mt-1 type-data">{children}</div>
       </div>
     </li>
   );
@@ -70,11 +70,11 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
       <Page width="wide">
         <PageHeader back="/briefing" crumb="Briefing" title="Commission record" />
         <Section>
-          <p className="t-body">
+          <p className="type-data">
             Signed in as {personName[s.role]} ({roleLabel[s.role]}), commission records are absent
             by policy. Financial scope stays with the owning advisor.
           </p>
-          <p className="mt-2 t-meta">
+          <p className="mt-2 type-meta">
             The record is not fetched and then hidden. There is nothing on this page to read past.
           </p>
         </Section>
@@ -87,7 +87,7 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
       <Page width="wide">
         <PageHeader back="/commissions" crumb="Commissions" title="Not on file" />
         <Section>
-          <p className="t-body text-muted-foreground">No commission record with this reference.</p>
+          <p className="type-data text-muted-foreground">No commission record with this reference.</p>
           <Button asChild size="sm" variant="outline" className="mt-3">
             <Link href="/commissions">Back to the ledger</Link>
           </Button>
@@ -115,7 +115,7 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
             {c.state === "paid" && <Chip tone="ok">paid {c.paidDate}</Chip>}
           </>
         }
-        actions={<span className="font-mono t-micro text-muted-foreground">booking {c.bookingRef}</span>}
+        actions={<span className="font-mono type-micro text-muted-foreground">booking {c.bookingRef}</span>}
       />
 
       {rich && (
@@ -160,7 +160,7 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
             )}
           </TimelineRow>
         </ul>
-        <div className="mt-3 flex items-center gap-2 border-t border-border pt-3 t-meta">
+        <div className="mt-3 flex items-center gap-2 border-t border-border pt-3 type-meta">
           <History className="size-3.5" aria-hidden />
           Chase log —{" "}
           {chased ? (
@@ -179,21 +179,21 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
           {s.reminder === "idle" && (
             <div className="flex flex-wrap items-center gap-3">
               <Button size="sm" onClick={() => d({ type: "reminder", state: "draft" })}>Draft a reminder</Button>
-              <span className="t-meta">
+              <span className="type-meta">
                 The product drafts. It waits. Nothing sends without review.
               </span>
             </div>
           )}
           {s.reminder === "draft" && (
             <div>
-              <Label htmlFor="reminder-draft" className="t-meta">
+              <Label htmlFor="reminder-draft" className="type-meta">
                 Drafted for your review — edit freely
               </Label>
               <Textarea
                 id="reminder-draft"
                 value={draftText}
                 onChange={(e) => setDraftText(e.target.value)}
-                className="mt-2 max-h-[40vh] min-h-[120px] font-mono t-body"
+                className="mt-2 max-h-[40vh] min-h-[120px] font-mono type-data"
               />
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <Button size="sm" onClick={() => d({ type: "reminder", state: "sent" })}>Send</Button>
@@ -204,7 +204,7 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
                 >
                   Discard
                 </Button>
-                <span className="t-meta">
+                <span className="type-meta">
                   Sends once, on this click only. There is no auto-send.
                 </span>
               </div>
@@ -223,17 +223,17 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-md border border-border p-4">
-              <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Expected</div>
-              <div className="mt-1 t-title"><MoneyValue amount={c.discrepancy.expected} /></div>
+              <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Expected</div>
+              <div className="mt-1 type-data-strong"><MoneyValue amount={c.discrepancy.expected} /></div>
               <div className="mt-1"><SourceTag kind="portal" label="projection · partner terms" /></div>
             </div>
             <div className="rounded-md border border-warn p-4">
-              <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Actual</div>
-              <div className="mt-1 t-title"><MoneyValue amount={c.discrepancy.actual} /></div>
+              <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Actual</div>
+              <div className="mt-1 type-data-strong"><MoneyValue amount={c.discrepancy.actual} /></div>
               <div className="mt-1"><SourceTag kind="tripsuite" label="booking system remittance · read-only" /></div>
             </div>
           </div>
-          <p className="mt-2 t-meta">
+          <p className="mt-2 type-meta">
             Possible causes: {c.discrepancy.causes.join(" · ")}. Flagged, never silently absorbed.
           </p>
         </Section>
@@ -256,23 +256,23 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
           className="mt-4"
           chips={<Chip tone="warn">actual under projection</Chip>}
         >
-          <p className="t-meta">
+          <p className="type-meta">
             A separate booking on this desk, shown with this one so the discrepancy is not lost —
             flagged, never silently absorbed.
           </p>
           <div className="mt-2 grid gap-3 sm:grid-cols-2">
             <div className="rounded-md border border-border p-4">
-              <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Expected</div>
-              <div className="mt-1 t-title"><MoneyValue amount={sibling.expected} /></div>
+              <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Expected</div>
+              <div className="mt-1 type-data-strong"><MoneyValue amount={sibling.expected} /></div>
               <div className="mt-1"><SourceTag kind="portal" label="projection · partner terms" /></div>
             </div>
             <div className="rounded-md border border-warn p-4">
-              <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Actual</div>
-              <div className="mt-1 t-title"><MoneyValue amount={sibling.actual} /></div>
+              <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Actual</div>
+              <div className="mt-1 type-data-strong"><MoneyValue amount={sibling.actual} /></div>
               <div className="mt-1"><SourceTag kind="tripsuite" label="booking system remittance · read-only" /></div>
             </div>
           </div>
-          <div className="mt-2 t-meta">
+          <div className="mt-2 type-meta">
             {sibling.note} · possible causes: {sibling.causes.join(" · ")}
           </div>
           {acceptedWithReason ? (
@@ -312,21 +312,21 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
       <Sheet open={acceptOpen} onOpenChange={setAcceptOpen}>
         <SheetContent>
           <SheetHeader>
-            <SheetTitle className="t-title">Accept discrepancy</SheetTitle>
-            <SheetDescription className="t-meta">
+            <SheetTitle className="type-data-strong">Accept discrepancy</SheetTitle>
+            <SheetDescription className="type-meta">
               <span className="tnum">{eur(sibling.expected - sibling.actual)}</span> under projection on{" "}
               {sibling.property}. Accepting records the delta as a known decision, with your reason on
               the timeline.
             </SheetDescription>
           </SheetHeader>
           <div className="px-4">
-            <Label htmlFor="accept-reason" className="t-micro">Reason (required)</Label>
+            <Label htmlFor="accept-reason" className="type-micro">Reason (required)</Label>
             <Input
               id="accept-reason"
               value={acceptReason}
               onChange={(e) => setAcceptReason(e.target.value)}
               placeholder="e.g. currency variance — conversion dated 14 Jul"
-              className="mt-2 t-body"
+              className="mt-2 type-data"
             />
           </div>
           <SheetFooter>
@@ -346,17 +346,17 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
       <Sheet open={disputeOpen} onOpenChange={setDisputeOpen}>
         <SheetContent>
           <SheetHeader>
-            <SheetTitle className="flex items-center gap-2 t-title">
+            <SheetTitle className="flex items-center gap-2 type-data-strong">
               Dispute draft
               <Chip tone="neutral" className="font-mono uppercase tracking-wide">schematic</Chip>
             </SheetTitle>
-            <SheetDescription className="t-meta">
+            <SheetDescription className="type-meta">
               Drafted from both values and their provenances. It waits for your review — nothing sends
               without it.
             </SheetDescription>
           </SheetHeader>
-          <div className="px-4 t-meta">
-            <div className="rounded-md border border-border bg-subtle p-4 font-mono t-meta whitespace-pre-wrap">
+          <div className="px-4 type-meta">
+            <div className="rounded-md border border-border bg-subtle p-4 font-mono type-meta whitespace-pre-wrap">
               {`Re: commission remittance — ${sibling.property}\n\nProjected ${eur(sibling.expected)} (partner terms) against ${eur(sibling.actual)} received. Possible causes on our side: ${sibling.causes.join("; ")}. Could you share the remittance breakdown?`}
             </div>
             <p className="mt-2 text-muted-foreground">

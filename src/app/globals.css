@@ -74,7 +74,12 @@
 
   --sys-focus: var(--ref-ink-90);
 
-  /* ── sys: geometry ─────────────────────────────────────────────── */
+  /* ── sys: geometry ───────────────────────────────────────────────
+     Radii carry meaning, not just softness:
+       control — anything you press or type into
+       card    — anything that contains other things
+       panel   — the application frame, once
+       pill    — status only. A pill is never an action.               */
   --radius: 10px;
   --radius-panel: 12px;
   --radius-card: 10px;
@@ -83,6 +88,48 @@
   --frame-inset: 12px;
   --frame-stroke: var(--sys-stroke-frame);
   --panel-pad: 32px;
+
+  /* ── sys: control geometry ───────────────────────────────────────
+     Previously absent, which is why controls rendered at 23 · 26 · 29 ·
+     34 · 36 · 44px — not six decisions but zero decisions, six times.
+
+     Two sizes, both derived from the 36px row module so a control
+     dropped into a row does not change the row's height. 44px belongs
+     to the dock alone, where the element is a touch target rather than
+     a control.
+
+     Rule: controls OF THE SAME CLASS on one line take the same size —
+     a filter row is uniformly sm, an action row uniformly md. Chips are
+     exempt: a chip is a status carrier that may take an affordance, and
+     forcing it to 28px would make every filter row heavier.            */
+  --control-h-sm: 28px;
+  --control-h-md: 36px;
+  --control-px-sm: 10px;
+  --control-px-md: 12px;
+
+  /* ── sys: icon sizes ─────────────────────────────────────────────
+     Bound to type roles, and tuned by eye rather than by matching px:
+     a 13px icon beside 13px text reads undersized, so `md` is 14.
+       sm 12 ↔ type-micro     inside chips and micro labels
+       md 14 ↔ type-data      inline with text, inside controls
+       lg 16 ↔ severity only  where the icon IS the information        */
+  --icon-sm: 12px;
+  --icon-md: 14px;
+  --icon-lg: 16px;
+
+  /* ── sys: spacing ────────────────────────────────────────────────
+     A 4px base. Numeric on purpose: semantic spacing names are a trap,
+     because one value serves many functions.
+
+     The rule that does the work: padding INSIDE a container is one step
+     smaller than the gap BETWEEN containers — 16 inside, 24 between.
+     That relationship is what makes grouping legible without borders.  */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
 
   /* shadcn compatibility — mapped onto the semantic tier */
   --background: var(--sys-bg-raised);
@@ -165,10 +212,15 @@
   --font-weight-bold: 680;
 }
 
+/* `body` is the data role, not the browser's 16px. Anything that omits a
+   type class now degrades to a size the system contains, instead of
+   failing silently into one it does not. */
 body {
   background: var(--sys-bg-base);
   color: var(--sys-label-primary);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 16px;
   font-feature-settings: "cv11";
 }
 
@@ -198,31 +250,42 @@ body {
    The serif never appears below 15px.
    ═══════════════════════════════════════════════════════════════════ */
 @layer components {
-  /* the machine */
-  .type-data-cell   { font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 400; }
+  /* ── the machine ────────────────────────────────────────────────
+     `type-data` is the default: `body` is set to it, and every control
+     inherits it. A rendered sans size that is not a role below is a bug. */
+  .type-data        { font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 400; }
   .type-data-strong { font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 590; }
-  .type-data-meta   { font-family: var(--font-sans); font-size: 12px; line-height: 15px; font-weight: 400; color: var(--sys-label-secondary); }
-  .type-data-micro  { font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 510; letter-spacing: 0.01em; }
-  .type-data-figure { font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 400; font-variant-numeric: tabular-nums; }
+  .type-meta        { font-family: var(--font-sans); font-size: 12px; line-height: 15px; font-weight: 400; color: var(--sys-label-secondary); }
+  .type-micro       { font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 510; letter-spacing: 0.01em; }
+  .type-code        { font-family: var(--font-mono); font-size: 11px; line-height: 14px; font-weight: 510; }
 
-  /* the person */
+  /* ── the person ─────────────────────────────────────────────────
+     `prose-quote` is a size step below `prose`, not merely an italic:
+     a quotation should sit under the sentence that introduces it. */
   .type-prose-lead  { font-family: var(--font-serif); font-size: 18px; line-height: 27px; font-weight: 400; }
-  .type-prose-body  { font-family: var(--font-serif); font-size: 16px; line-height: 25px; font-weight: 400; }
+  .type-prose       { font-family: var(--font-serif); font-size: 16px; line-height: 25px; font-weight: 400; }
   .type-prose-quote { font-family: var(--font-serif); font-size: 15px; line-height: 24px; font-weight: 400; font-style: italic; }
 
-  /* titles — the serif names the thing you are reading */
-  .type-title-page    { font-family: var(--font-serif); font-size: 24px; line-height: 28px; font-weight: 500; letter-spacing: -0.01em; }
-  .type-title-section { font-family: var(--font-sans);  font-size: 13px; line-height: 16px; font-weight: 590; }
+  /* ── the page's name, once per screen ─────────────────────────── */
+  .type-title-page  { font-family: var(--font-serif); font-size: 24px; line-height: 28px; font-weight: 500; letter-spacing: -0.01em; }
+}
 
-  /* ── migration aliases ──────────────────────────────────────────
-     The five size classes now resolve to roles, so every existing
-     surface adopts the language without being rewritten. New work
-     uses the role names directly. */
-  .t-display { font-family: var(--font-serif); font-size: 24px; line-height: 28px; font-weight: 500; letter-spacing: -0.01em; }
-  .t-title   { font-family: var(--font-sans);  font-size: 13px; line-height: 16px; font-weight: 590; }
-  .t-body    { font-family: var(--font-sans);  font-size: 13px; line-height: 16px; font-weight: 400; }
-  .t-meta    { font-family: var(--font-sans);  font-size: 12px; line-height: 15px; font-weight: 400; color: var(--sys-label-secondary); }
-  .t-micro   { font-family: var(--font-sans);  font-size: 11px; line-height: 14px; font-weight: 510; letter-spacing: 0.01em; }
+/* ── control geometry, as classes ──────────────────────────────────
+   So a control's height, padding, radius and type arrive together and
+   cannot drift apart at a call site.                                  */
+@layer components {
+  .control-sm {
+    height: var(--control-h-sm);
+    padding-inline: var(--control-px-sm);
+    border-radius: var(--radius-control);
+    font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 400;
+  }
+  .control-md {
+    height: var(--control-h-md);
+    padding-inline: var(--control-px-md);
+    border-radius: var(--radius-control);
+    font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 400;
+  }
 }
 
 /* ── row primitive: exactly one element truncates ────────────────── */

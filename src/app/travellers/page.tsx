@@ -81,7 +81,7 @@ export default function TravellersPage() {
         }
         actions={rows.length > 0 ? <ViewToggle value={view} onChange={setView} /> : undefined}
       >
-        <p className="mt-2 max-w-[62ch] t-body text-muted-foreground">
+        <p className="mt-2 max-w-[62ch] type-data text-muted-foreground">
           A profile is private to its owning advisor until it is shared. Sharing is explicit,
           attributed, and revocable.
         </p>
@@ -125,8 +125,8 @@ export default function TravellersPage() {
           )}
           <Section className="py-12 text-center">
             <Users className="mx-auto size-6 text-muted-foreground" aria-hidden />
-            <p className="mt-3 t-title">No travellers shared with you</p>
-            <p className="mx-auto mt-2 max-w-[46ch] t-meta">
+            <p className="mt-3 type-data-strong">No travellers shared with you</p>
+            <p className="mx-auto mt-2 max-w-[46ch] type-meta">
               Traveller profiles are private to their owning advisor by default. What is not shared
               is absent, not locked — there is nothing here to unlock.
             </p>
@@ -139,7 +139,7 @@ export default function TravellersPage() {
         </div>
       ) : (
             <div className="min-w-0">
-              <p className="mt-3 t-meta">
+              <p className="mt-3 type-meta">
                 <span className="tnum">{rows.length}</span>{" "}
                 {rows.length === 1 ? "traveller" : "travellers"}
                 {basic && " · name and contact only at Collaborator Basic"}
@@ -177,17 +177,17 @@ export default function TravellersPage() {
                         )}
                       >
                         <span className="row-primary flex items-center gap-3">
-                          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-soft t-micro text-primary">
+                          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-soft type-micro text-primary">
                             {initialsOf(c.name)}
                           </span>
-                          <span className="min-w-0 truncate t-body font-semibold">{c.name}</span>
+                          <span className="min-w-0 truncate type-data font-semibold">{c.name}</span>
                         </span>
-                        <span className="row-meta t-meta">
+                        <span className="row-meta type-meta">
                           {basic ? "contact on file" : (c.nextTrip ?? "no trip on file")}
                         </span>
                         <span className="row-trailing flex items-center gap-2">
                           {!basic && c.departsInDays !== null && (
-                            <span className="tnum t-meta">in {c.departsInDays}d</span>
+                            <span className="tnum type-meta">in {c.departsInDays}d</span>
                           )}
                           <Chip tone="neutral">{c.relationshipStatus}</Chip>
                         </span>
@@ -230,21 +230,21 @@ function TravellerCardTile({
       )}
     >
       <span className="flex items-center gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary-soft t-micro text-primary">
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary-soft type-micro text-primary">
           {initialsOf(c.name)}
         </span>
         <span className="min-w-0">
-          <span className="block truncate t-title">{c.name}</span>
-          <span className="block t-meta">{c.relationshipStatus}</span>
+          <span className="block truncate type-data-strong">{c.name}</span>
+          <span className="block type-meta">{c.relationshipStatus}</span>
         </span>
       </span>
 
       {basic ? (
-        <span className="t-body text-muted-foreground">
+        <span className="type-data text-muted-foreground">
           Contact on file. Preferences, journeys and spend are absent at this tier — not masked.
         </span>
       ) : (
-        <span className="t-body">
+        <span className="type-data">
           {c.nextTrip ?? "No trip on file"}
           {c.departsInDays !== null && (
             <span className="text-muted-foreground"> · departs in {c.departsInDays}d</span>
@@ -261,7 +261,7 @@ function TravellerCardTile({
         ) : (
           <>
             <ShareChip state={share} who={sharedWith} />
-            <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 t-meta">
+            <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 type-meta">
               <span>
                 <span className="tnum">{c.profiles}</span>{" "}
                 {c.profiles === 1 ? "profile" : "profiles"}
@@ -293,12 +293,12 @@ function TravellerPanel({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary-soft t-title text-primary">
+        <span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary-soft type-data-strong text-primary">
           {initialsOf(c.name)}
         </span>
         <div className="min-w-0">
-          <h2 className="truncate t-title">{c.name}</h2>
-          <p className="t-meta">{c.relationshipStatus}</p>
+          <h2 className="truncate type-data-strong">{c.name}</h2>
+          <p className="type-meta">{c.relationshipStatus}</p>
         </div>
       </div>
 
@@ -310,7 +310,7 @@ function TravellerPanel({
       </Button>
 
       {basic ? (
-        <p className="t-body text-muted-foreground">
+        <p className="type-data text-muted-foreground">
           Name and contact only at Collaborator Basic. Preferences, journeys, intelligence and spend
           fields are absent — not masked. The share is explicit, attributed, and revocable by{" "}
           {people.advisor}.
@@ -339,7 +339,7 @@ function TravellerPanel({
             <ShareChip state={share} who={sharedWith} />
           </div>
 
-          <p className="t-meta">
+          <p className="type-meta">
             {c.preferences} preferences, each attributed to a source and a date. Sharing, Acuity and
             the full journey history live on the profile itself.
           </p>

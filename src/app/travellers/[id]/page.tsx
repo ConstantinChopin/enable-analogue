@@ -65,8 +65,8 @@ function MarchettiProfile() {
           )}
           <Section className="py-12 text-center">
             <Users className="mx-auto size-6 text-muted-foreground" aria-hidden />
-            <p className="mt-3 t-title">No travellers shared with you</p>
-            <p className="mx-auto mt-2 max-w-[46ch] t-meta">
+            <p className="mt-3 type-data-strong">No travellers shared with you</p>
+            <p className="mx-auto mt-2 max-w-[46ch] type-meta">
               An unshared profile is invisible. There is nothing here to unlock.
             </p>
             {!requested && (
@@ -93,10 +93,10 @@ function MarchettiProfile() {
           }
         />
         <Section title="Contact">
-          <p className="t-body">
+          <p className="type-data">
             {traveller.name} · {traveller.relationshipStatus} · contact on file
           </p>
-          <p className="mt-3 t-meta">
+          <p className="mt-3 type-meta">
             Name and contact only at this tier. Preferences, journeys, intelligence and spend fields
             are absent — not masked. The share is explicit, attributed, and revocable by{" "}
             {people.advisor}.
@@ -149,7 +149,7 @@ function MarchettiProfile() {
           )
         }
       >
-        <p className="mt-2 t-body text-muted-foreground">
+        <p className="mt-2 type-data text-muted-foreground">
           {traveller.relationshipStatus} · {traveller.preferences.length} preferences, each
           attributed to a source and a date
         </p>
@@ -221,11 +221,11 @@ function MarchettiProfile() {
                 const confirmed = p.id === "kaiseki" && s.prefConfirmed;
                 return (
                   <div key={p.id} className="rounded-md border border-border bg-subtle p-4">
-                    <div className="t-body font-semibold">{p.text}</div>
+                    <div className="type-data font-semibold">{p.text}</div>
                     <div className="mt-2">
                       <SourceTag kind={p.source.kind} label={`${p.source.label} · ${p.source.when}`} />
                     </div>
-                    <div className="mt-2 flex items-center gap-2 t-meta">
+                    <div className="mt-2 flex items-center gap-2 type-meta">
                       {confirmed ? (
                         <>
                           <span className="size-2 rounded-full bg-ok" aria-hidden />
@@ -278,11 +278,11 @@ function MarchettiProfile() {
                 suggestion !== "discarded" &&
                 traveller.suggestions.map((sg) => (
                   <div key={sg.id} className="rounded-md border border-ok/50 bg-subtle p-4">
-                    <div className="t-body font-semibold">{sg.text}</div>
+                    <div className="type-data font-semibold">{sg.text}</div>
                     <div className="mt-2">
                       <SourceTag kind="manual" label="confirmed from suggestion · today" />
                     </div>
-                    <div className="mt-2 flex items-center gap-2 t-meta">
+                    <div className="mt-2 flex items-center gap-2 type-meta">
                       <span className="size-2 rounded-full bg-ok" aria-hidden />
                       confirmed · {people.advisor} · today
                     </div>
@@ -301,7 +301,7 @@ function MarchettiProfile() {
             chips={<Chip tone="primary">labelled — never applied silently</Chip>}
           >
             {traveller.suggestions.map((sg) => (
-              <div key={sg.id} className="flex flex-wrap items-center gap-2 t-body">
+              <div key={sg.id} className="flex flex-wrap items-center gap-2 type-data">
                 {suggestion === "discarded" ? (
                   <span className="text-muted-foreground">
                     Suggestion discarded — recorded, and the model learns nothing was true here.
@@ -313,7 +313,7 @@ function MarchettiProfile() {
                 ) : (
                   <>
                     <span className="italic">{sg.text}</span>
-                    <span className="t-meta">{sg.basis}</span>
+                    <span className="type-meta">{sg.basis}</span>
                     <span className="ml-auto" />
                     <Button variant="outline" size="sm" onClick={() => d({ type: "confirmPref" })}>
                       Confirm as preference
@@ -340,7 +340,7 @@ function MarchettiProfile() {
             }
           >
             <Progress value={(done / of) * 100} className="h-1" />
-            <ul className="mt-4 grid gap-x-4 gap-y-2 t-body sm:grid-cols-2">
+            <ul className="mt-4 grid gap-x-4 gap-y-2 type-data sm:grid-cols-2">
               {traveller.departure.checklist.items.map((item) => {
                 const pending = item.includes("pending");
                 return (
@@ -357,7 +357,7 @@ function MarchettiProfile() {
                         relying on blank space to mean "done", which is one of the three
                         things blank space was being asked to mean at once. */}
                     <span className="ml-auto shrink-0">
-                      {pending ? <Chip tone="warn">pending</Chip> : <span className="t-micro text-muted-foreground">done</span>}
+                      {pending ? <Chip tone="warn">pending</Chip> : <span className="type-micro text-muted-foreground">done</span>}
                     </span>
                   </li>
                 );
@@ -375,7 +375,7 @@ function MarchettiProfile() {
                 </Chip>
               ))}
             </div>
-            <p className="mt-3 t-meta">
+            <p className="mt-3 type-meta">
               Six blocks per profile — a preference files into the profile it belongs to.
             </p>
           </Section>
@@ -386,7 +386,7 @@ function MarchettiProfile() {
               {traveller.trips.map((t) => (
                 <li key={t.title} className="row-grid px-4">
                   <span className="row-primary type-data-strong">{t.title}</span>
-                  <span className="row-meta tnum t-meta">{t.dates}</span>
+                  <span className="row-meta tnum type-meta">{t.dates}</span>
                   <span className="row-trailing">
                     <Chip tone={t.status === "Planning" ? "primary" : "neutral"}>{t.status}</Chip>
                   </span>
@@ -433,7 +433,7 @@ function MarchettiProfile() {
                   },
                 ]}
               />
-              <p className="mt-3 t-meta">
+              <p className="mt-3 type-meta">
                 {traveller.financials.source}. Figures follow the booking system, which stays
                 authoritative for money — they carry its sync time rather than claiming to be
                 current.
@@ -448,31 +448,31 @@ function MarchettiProfile() {
             flush
             bodyClassName="p-0"
             title="Where these come from"
-            footer={<span className="t-meta">The product extracts signals. It does not decide that a signal is true.</span>}
+            footer={<span className="type-meta">The product extracts signals. It does not decide that a signal is true.</span>}
           >
             <ul className="divide-y divide-border">
               {traveller.signalsBySource.map(([label, n]) => (
                 <li key={label} className="row-grid px-4">
-                  <span className="row-primary t-body">{label}</span>
-                  <span className="row-trailing tnum t-meta">{n}</span>
+                  <span className="row-primary type-data">{label}</span>
+                  <span className="row-trailing tnum type-meta">{n}</span>
                 </li>
               ))}
               <li className="row-grid px-4">
-                <span className="row-primary t-body font-semibold">Signals held</span>
-                <span className="row-trailing tnum t-body font-semibold">9</span>
+                <span className="row-primary type-data font-semibold">Signals held</span>
+                <span className="row-trailing tnum type-data font-semibold">9</span>
               </li>
             </ul>
           </Section>
 
           <Section title="Visibility">
-            <p className="flex gap-2 t-meta">
+            <p className="flex gap-2 type-meta">
               <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
               {visibilityLine}
             </p>
           </Section>
 
           <Section title="One source is a note">
-            <p className="t-meta">
+            <p className="type-meta">
               Three of these nine signals rest on a single source. The product marks them and asks
               for a second before it treats any of them as a preference.
             </p>
@@ -480,10 +480,10 @@ function MarchettiProfile() {
 
           <Section title="Acuity" chips={<Chip tone="ok">{traveller.acuity.status}</Chip>}>
             <div className="flex items-baseline gap-2">
-              <span className="tnum t-title">{traveller.acuity.score}</span>
-              <span className="t-meta">last run {traveller.acuity.lastRun}</span>
+              <span className="tnum type-data-strong">{traveller.acuity.score}</span>
+              <span className="type-meta">last run {traveller.acuity.lastRun}</span>
             </div>
-            <p className="mt-2 t-meta">
+            <p className="mt-2 type-meta">
               Four states — Not Run, Running, Complete, Locked. Running it is gated on the
               entitlement, not on the sharing tier.
             </p>
@@ -507,15 +507,15 @@ function MarchettiProfile() {
               <div className="flex items-start gap-3">
                 <RadioGroupItem value="private" id="tier-private" className="mt-1" />
                 <Label htmlFor="tier-private" className="flex flex-col items-start gap-1 font-normal">
-                  <span className="t-body font-semibold">Private to you</span>
-                  <span className="t-meta">Nobody else at the agency can read it.</span>
+                  <span className="type-data font-semibold">Private to you</span>
+                  <span className="type-meta">Nobody else at the agency can read it.</span>
                 </Label>
               </div>
               <div className="flex items-start gap-3">
                 <RadioGroupItem value="full" id="tier-full" className="mt-1" />
                 <Label htmlFor="tier-full" className="flex flex-col items-start gap-1 font-normal">
-                  <span className="t-body font-semibold">Collaborator — Full</span>
-                  <span className="t-meta">
+                  <span className="type-data font-semibold">Collaborator — Full</span>
+                  <span className="type-meta">
                     All fields; can edit and run Acuity. Cannot re-share or delete.
                   </span>
                 </Label>
@@ -523,12 +523,12 @@ function MarchettiProfile() {
               <div className="flex items-start gap-3">
                 <RadioGroupItem value="basic" id="tier-basic" className="mt-1" />
                 <Label htmlFor="tier-basic" className="flex flex-col items-start gap-1 font-normal">
-                  <span className="t-body font-semibold">Collaborator — Basic</span>
-                  <span className="t-meta">Name and contact only, for a limited introduction.</span>
+                  <span className="type-data font-semibold">Collaborator — Basic</span>
+                  <span className="type-meta">Name and contact only, for a limited introduction.</span>
                 </Label>
               </div>
             </RadioGroup>
-            <div className="mt-4 space-y-2 border-t border-border pt-4 t-meta">
+            <div className="mt-4 space-y-2 border-t border-border pt-4 type-meta">
               <p>Private by default. Sharing is an explicit action.</p>
               <p>A non-admin share routes through the suggestion and approval workflow.</p>
               <p>Spend fields stay behind the commission entitlement at every tier.</p>
@@ -553,7 +553,7 @@ function GenericProfile({ id }: { id: string }) {
       <Page width="wide">
         <PageHeader title="Not on your list" />
         <Section>
-          <p className="t-body text-muted-foreground">
+          <p className="type-data text-muted-foreground">
             Nothing at this address for your permission path. What is not shared is absent, not
             locked.
           </p>
@@ -575,7 +575,7 @@ function GenericProfile({ id }: { id: string }) {
       <Page width="wide">
         <PageHeader title="Not shared with you" />
         <Section>
-          <p className="t-body text-muted-foreground">
+          <p className="type-data text-muted-foreground">
             This profile is private to its owning advisor. It is absent from your list, not locked
             inside it.
           </p>
@@ -613,15 +613,15 @@ function GenericProfile({ id }: { id: string }) {
           )
         }
       >
-        <p className="mt-2 t-body text-muted-foreground">{card.relationshipStatus}</p>
+        <p className="mt-2 type-data text-muted-foreground">{card.relationshipStatus}</p>
       </PageHeader>
 
       {basic ? (
         <Section title="Contact">
-          <p className="t-body">
+          <p className="type-data">
             {card.name} · {card.relationshipStatus} · contact on file
           </p>
-          <p className="mt-3 t-meta">
+          <p className="mt-3 type-meta">
             Name and contact only at Collaborator Basic. Preferences, journeys, intelligence and
             spend fields are absent — not masked.
           </p>
@@ -633,10 +633,10 @@ function GenericProfile({ id }: { id: string }) {
               {trip ? (
                 <>
                   <div className="flex flex-wrap items-baseline gap-3">
-                    <span className="t-title">{trip.title}</span>
+                    <span className="type-data-strong">{trip.title}</span>
                     <Chip tone={trip.status === "Booked" ? "ok" : "neutral"}>{trip.status}</Chip>
                   </div>
-                  <p className="mt-2 t-body text-muted-foreground">
+                  <p className="mt-2 type-data text-muted-foreground">
                     {trip.destinations.join(" · ")} · <span className="tnum">{trip.dates}</span> ·{" "}
                     <span className="tnum">{trip.nights}</span> nights
                   </p>
@@ -646,7 +646,7 @@ function GenericProfile({ id }: { id: string }) {
                         value={(trip.checklist.done / trip.checklist.of) * 100}
                         className="h-1.5"
                       />
-                      <p className="mt-2 t-meta">
+                      <p className="mt-2 type-meta">
                         Departure checklist{" "}
                         <span className="tnum">
                           {trip.checklist.done}/{trip.checklist.of}
@@ -661,7 +661,7 @@ function GenericProfile({ id }: { id: string }) {
                   </Button>
                 </>
               ) : (
-                <p className="t-body text-muted-foreground">No trip on file.</p>
+                <p className="type-data text-muted-foreground">No trip on file.</p>
               )}
             </Section>
 
@@ -670,20 +670,20 @@ function GenericProfile({ id }: { id: string }) {
                 {past.map((t) => (
                   <li key={t.id} className="row-grid px-4">
                     <span className="row-primary type-data-strong">{t.title}</span>
-                    <span className="row-meta tnum t-meta">{t.dates}</span>
+                    <span className="row-meta tnum type-meta">{t.dates}</span>
                     <span className="row-trailing">
                       <Chip tone={t.status === "Traveled" ? "neutral" : "primary"}>{t.status}</Chip>
                     </span>
                   </li>
                 ))}
                 {past.length === 0 && (
-                  <li className="p-4 t-body text-muted-foreground">Nothing recorded yet.</li>
+                  <li className="p-4 type-data text-muted-foreground">Nothing recorded yet.</li>
                 )}
               </ul>
             </Section>
 
             <Section title="Intelligence" chips={<SchematicBadge />}>
-              <p className="t-body text-muted-foreground">
+              <p className="type-data text-muted-foreground">
                 <span className="tnum">{card.preferences}</span> preferences sit on this profile,
                 each one attributed to a source and a date, across{" "}
                 <span className="tnum">{card.profiles}</span> travel{" "}
@@ -703,20 +703,20 @@ function GenericProfile({ id }: { id: string }) {
             <Section flush title="At a glance" bodyClassName="p-0">
               <ul className="divide-y divide-border">
                 <li className="row-grid px-4">
-                  <span className="row-primary t-body">Relationship</span>
-                  <span className="row-trailing t-meta">{card.relationshipStatus}</span>
+                  <span className="row-primary type-data">Relationship</span>
+                  <span className="row-trailing type-meta">{card.relationshipStatus}</span>
                 </li>
                 <li className="row-grid px-4">
-                  <span className="row-primary t-body">Travel profiles</span>
-                  <span className="row-trailing tnum t-meta">{card.profiles}</span>
+                  <span className="row-primary type-data">Travel profiles</span>
+                  <span className="row-trailing tnum type-meta">{card.profiles}</span>
                 </li>
                 <li className="row-grid px-4">
-                  <span className="row-primary t-body">Preferences</span>
-                  <span className="row-trailing tnum t-meta">{card.preferences}</span>
+                  <span className="row-primary type-data">Preferences</span>
+                  <span className="row-trailing tnum type-meta">{card.preferences}</span>
                 </li>
                 <li className="row-grid px-4">
-                  <span className="row-primary t-body">Departs in</span>
-                  <span className="row-trailing tnum t-meta">
+                  <span className="row-primary type-data">Departs in</span>
+                  <span className="row-trailing tnum type-meta">
                     {card.departsInDays === null ? "—" : `${card.departsInDays} days`}
                   </span>
                 </li>
@@ -734,20 +734,20 @@ function GenericProfile({ id }: { id: string }) {
               }
             >
               {card.acuityScore === null ? (
-                <p className="t-meta">
+                <p className="type-meta">
                   Acuity has not been run for this profile. The score is absent rather than
                   estimated.
                 </p>
               ) : (
                 <div className="flex items-baseline gap-2">
-                  <span className="tnum t-title">{card.acuityScore}</span>
-                  <span className="t-meta">last complete run</span>
+                  <span className="tnum type-data-strong">{card.acuityScore}</span>
+                  <span className="type-meta">last complete run</span>
                 </div>
               )}
             </Section>
 
             <Section title="Visibility">
-              <p className="flex gap-2 t-meta">
+              <p className="flex gap-2 type-meta">
                 <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
                 {card.shared
                   ? `Shared with ${card.shared} — Collaborator Full. Explicit, attributed, and revocable.`

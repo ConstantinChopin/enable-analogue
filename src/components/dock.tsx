@@ -115,7 +115,7 @@ function Tile({ tile, active, badge, index }: {
             <Icon className="size-[18px] shrink-0" aria-hidden />
             {badge ? (
               <span
-                className="absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-crit px-1 t-micro text-white tnum"
+                className="absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-crit px-1 type-micro text-white tnum"
                 aria-hidden
               >
                 {badge > 99 ? "99+" : badge}
@@ -257,7 +257,7 @@ export function Dock() {
                     <button
                       type="button"
                       aria-label="Account"
-                      className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-full bg-primary-soft t-micro text-primary transition-colors hover:bg-primary/15"
+                      className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-full bg-primary-soft type-micro text-primary transition-colors hover:bg-primary/15"
                     >
                       {personInitials[s.role]}
                     </button>
@@ -268,7 +268,7 @@ export function Dock() {
               <DropdownMenuContent align="end" side="top" sideOffset={10} className="w-56">
                 <DropdownMenuLabel className="pb-2">
                   <div className="type-data-strong">{personName[s.role]}</div>
-                  <div className="t-meta text-muted-foreground">{roleLabel[s.role]}</div>
+                  <div className="type-meta text-muted-foreground">{roleLabel[s.role]}</div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => router.push("/settings")}>Settings</DropdownMenuItem>

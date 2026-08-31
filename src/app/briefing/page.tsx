@@ -59,7 +59,7 @@ function WidgetCard({
 }
 
 function Rows({ children }: { children: React.ReactNode }) {
-  return <ul className="divide-y divide-border t-body">{children}</ul>;
+  return <ul className="divide-y divide-border type-data">{children}</ul>;
 }
 /** The row primitive (visual-system §6): one grid, exactly one element truncates. */
 function Row({ children }: { children: React.ReactNode }) {
@@ -70,12 +70,12 @@ function StackRow({ children, detail }: { children: React.ReactNode; detail: Rea
   return (
     <li>
       <div className="row-grid">{children}</div>
-      <div className="t-meta pb-2">{detail}</div>
+      <div className="type-meta pb-2">{detail}</div>
     </li>
   );
 }
 function Quiet({ children }: { children: React.ReactNode }) {
-  return <p className="py-1 t-body text-muted-foreground">{children}</p>;
+  return <p className="py-1 type-data text-muted-foreground">{children}</p>;
 }
 
 const eur = (n: number) => `EUR ${n.toLocaleString("en-GB")}`;
@@ -118,12 +118,12 @@ export default function Briefing() {
         return (
           <>
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="t-title tnum">{eur(outstanding)}</span>
-              <span className="t-meta">
+              <span className="type-data-strong tnum">{eur(outstanding)}</span>
+              <span className="type-meta">
                 outstanding across {openCommissions.length} commissions
               </span>
             </div>
-            <p className="mt-1 t-meta tnum">
+            <p className="mt-1 type-meta tnum">
               {eur(briefing.headline.collectedThisWeek)} collected this week
             </p>
             <div className="mt-3">
@@ -163,7 +163,7 @@ export default function Briefing() {
                   <span className="font-medium">{t.traveller}</span>
                   <span className="text-muted-foreground"> · {t.title}</span>
                 </span>
-                <span className="row-meta t-meta tnum">in {t.startsInDays}d</span>
+                <span className="row-meta type-meta tnum">in {t.startsInDays}d</span>
                 <span className="row-trailing flex items-center gap-2">
                   {t.checklist && <Chip tone="primary">checklist {t.checklist.done}/{t.checklist.of}</Chip>}
                   {t.alert && <Chip tone="warn">{t.alert}</Chip>}
@@ -233,8 +233,8 @@ export default function Briefing() {
         return (
           <>
             <div className="flex items-baseline gap-3">
-              <span className="t-title tnum">{briefing.recordsVerified.done}</span>
-              <span className="t-meta tnum">
+              <span className="type-data-strong tnum">{briefing.recordsVerified.done}</span>
+              <span className="type-meta tnum">
                 of {briefing.recordsVerified.of} in Paris
               </span>
             </div>
@@ -242,7 +242,7 @@ export default function Briefing() {
               value={(briefing.recordsVerified.done / briefing.recordsVerified.of) * 100}
               className="mt-2 h-1.5"
             />
-            <p className="mt-2 t-meta">
+            <p className="mt-2 type-meta">
               Carried forward, unchecked: <span className="tnum">{briefing.recordsVerified.carriedForward}</span>.
               An unchecked field still answers — with its date and a freshness warning.
             </p>
@@ -309,12 +309,12 @@ export default function Briefing() {
                 </Row>
               ))}
             </Rows>
-            <p className="mt-2 t-meta tnum">
+            <p className="mt-2 type-meta tnum">
               {adminPolicy.governed.advisors} advisors · {adminPolicy.governed.admins} admins ·{" "}
               {adminPolicy.governed.desks} desks · {adminPolicy.governed.records} records
             </p>
             {adminPolicy.breakGlass.length > 0 && (
-              <p className="mt-1 t-meta">
+              <p className="mt-1 type-meta">
                 {adminPolicy.breakGlass.length} break-glass openings logged, owners notified.
               </p>
             )}
@@ -326,10 +326,10 @@ export default function Briefing() {
         return (
           <>
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="t-title tnum">
+              <span className="type-data-strong tnum">
                 {eur(orphanedPayments.reduce((n, p) => n + p.amount, 0))}
               </span>
-              <span className="t-meta">
+              <span className="type-meta">
                 across {orphanedPayments.length} payments
               </span>
             </div>
@@ -355,14 +355,14 @@ export default function Briefing() {
           <>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Collected</div>
-                <div className="mt-1 t-title tnum">{eur(collected)}</div>
-                <div className="t-meta tnum">{paid.length} settled</div>
+                <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Collected</div>
+                <div className="mt-1 type-data-strong tnum">{eur(collected)}</div>
+                <div className="type-meta tnum">{paid.length} settled</div>
               </div>
               <div>
-                <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Outstanding</div>
-                <div className="mt-1 t-title tnum">{eur(outstanding)}</div>
-                <div className="t-meta tnum">
+                <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Outstanding</div>
+                <div className="mt-1 type-data-strong tnum">{eur(outstanding)}</div>
+                <div className="type-meta tnum">
                   {openCommissions.length} open · {overdueCount} overdue
                 </div>
               </div>
@@ -371,7 +371,7 @@ export default function Briefing() {
               value={(collected / (collected + outstanding)) * 100}
               className="mt-3 h-1.5"
             />
-            <p className="mt-2 t-meta">
+            <p className="mt-2 type-meta">
               Actuals arrive read-only from the booking system. Ground truth stays in the source.
             </p>
           </>
@@ -428,7 +428,7 @@ export default function Briefing() {
   return (
     <Page width="wide">
       <PageHeader title={<>Good morning, {personName[s.role]}</>}>
-        <p className="mt-2 t-body text-muted-foreground">
+        <p className="mt-2 type-data text-muted-foreground">
           {TODAY} ·{" "}
           <FreshnessDate>
             synced {briefing.syncedAt} · booking-system figures up to 48 hours behind

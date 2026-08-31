@@ -58,7 +58,7 @@ export default function ResolutionQueue() {
           </>
         }
       >
-        <p className="mt-2 max-w-[62ch] t-body text-muted-foreground">
+        <p className="mt-2 max-w-[62ch] type-data text-muted-foreground">
           Money that cannot be matched to a booking lands here, and stays until a person closes
           it with a reason.
         </p>
@@ -80,7 +80,7 @@ export default function ResolutionQueue() {
                   <span className="row-primary flex items-center gap-3">
                     <CircleDollarSign className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                     <span className="min-w-0">
-                      <span className="block truncate t-body font-semibold">
+                      <span className="block truncate type-data font-semibold">
                         {money ? (
                           <>
                             <MoneyValue amount={p.amount} currency={p.currency} /> · {p.raw}
@@ -89,7 +89,7 @@ export default function ResolutionQueue() {
                           p.raw
                         )}
                       </span>
-                      <span className="block truncate t-meta">{p.note}</span>
+                      <span className="block truncate type-meta">{p.note}</span>
                     </span>
                   </span>
                   <span className="row-trailing flex items-center gap-2">
@@ -114,7 +114,7 @@ export default function ResolutionQueue() {
                   </span>
                 </div>
                 {matched && (
-                  <p className="px-4 pb-3 t-meta">
+                  <p className="px-4 pb-3 type-meta">
                     → {matched.ref} · reason: &ldquo;{matched.reason}&rdquo; · attributed{" "}
                     {people.ops}
                   </p>
@@ -152,10 +152,10 @@ export default function ResolutionQueue() {
                       {p.currency} {p.amount.toLocaleString("en-GB")}
                     </span>
                   )}
-                  <span className="t-body">{p.ref}</span>
-                  <span className="ml-auto t-meta">{p.by} · {p.when}</span>
+                  <span className="type-data">{p.ref}</span>
+                  <span className="ml-auto type-meta">{p.by} · {p.when}</span>
                 </div>
-                <p className="mt-1 t-meta">{p.reason}</p>
+                <p className="mt-1 type-meta">{p.reason}</p>
               </div>
             </li>
           ))}
@@ -164,7 +164,7 @@ export default function ResolutionQueue() {
 
       {!money && (
         <Section className="mt-4" title="Amounts are absent here">
-          <p className="t-body text-muted-foreground">
+          <p className="type-data text-muted-foreground">
             Viewing as {people.colleague}: payment amounts are absent by policy, not masked. The
             identity work is still visible, because reviewing it does not require the figure.
           </p>
@@ -189,7 +189,7 @@ export default function ResolutionQueue() {
               </SheetHeader>
               <div className="space-y-4 px-4">
                 <div>
-                  <div className="mb-2 t-micro uppercase tracking-widest text-muted-foreground">
+                  <div className="mb-2 type-micro uppercase tracking-widest text-muted-foreground">
                     Candidates, strongest first
                   </div>
                   <RadioGroup value={candidate} onValueChange={setCandidate} className="gap-2">
@@ -200,7 +200,7 @@ export default function ResolutionQueue() {
                       >
                         <RadioGroupItem value={c.ref} className="mt-1" />
                         <span className="min-w-0">
-                          <span className="block font-mono t-body">{c.ref}</span>
+                          <span className="block font-mono type-data">{c.ref}</span>
                           <span className="mt-1 block">
                             <Chip tone={c.strength === "strong" ? "ok" : "neutral"}>
                               {c.strength} candidate
@@ -210,13 +210,13 @@ export default function ResolutionQueue() {
                       </label>
                     ))}
                   </RadioGroup>
-                  <p className="mt-2 t-meta">
+                  <p className="mt-2 type-meta">
                     Ranking suggests which booking this payment belongs to. It never edits
                     anything on the booking itself.
                   </p>
                 </div>
                 <div>
-                  <Label htmlFor="match-reason" className="t-body">
+                  <Label htmlFor="match-reason" className="type-data">
                     Reason (required)
                   </Label>
                   <Input
@@ -224,7 +224,7 @@ export default function ResolutionQueue() {
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     placeholder="e.g. traveller name on the remittance; booker confirmed by ref"
-                    className="mt-2 t-body"
+                    className="mt-2 type-data"
                   />
                 </div>
               </div>

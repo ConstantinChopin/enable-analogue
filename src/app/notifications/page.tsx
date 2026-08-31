@@ -60,7 +60,7 @@ function StateMark({ state }: { state: NoticeState }) {
   if (state === "actioned") return <Chip tone="ok">actioned</Chip>;
   if (state === "deferred") return <Chip tone="neutral">deferred</Chip>;
   if (state === "new") return <Chip tone="primary">new</Chip>;
-  return <span className="t-micro text-muted-foreground">seen</span>;
+  return <span className="type-micro text-muted-foreground">seen</span>;
 }
 
 /* ── page ───────────────────────────────────────────────────────────────────── */
@@ -122,14 +122,14 @@ function Triage() {
           <>
             Notifications
             {openCount > 0 && (
-              <span className="rounded-full bg-primary-soft px-2 py-0.5 t-micro text-primary tnum">
+              <span className="rounded-full bg-primary-soft px-2 py-0.5 type-micro text-primary tnum">
                 {openCount} open
               </span>
             )}
           </>
         }
       >
-        <p className="mt-2 max-w-[62ch] t-body text-muted-foreground">
+        <p className="mt-2 max-w-[62ch] type-data text-muted-foreground">
           What changed, and what the system noticed. Each item carries its subject and its decision.
         </p>
       </PageHeader>
@@ -223,7 +223,7 @@ function Triage() {
                         <span className="row-grid">
                           <span
                             className={cn(
-                              "row-primary t-body",
+                              "row-primary type-data",
                               n.severity === "Critical"
                                 ? "font-semibold text-foreground"
                                 : isNew
@@ -236,12 +236,12 @@ function Triage() {
                             </span>
                             {n.headline}
                           </span>
-                          {n.subject && <span className="row-meta t-meta">{n.subject.label}</span>}
+                          {n.subject && <span className="row-meta type-meta">{n.subject.label}</span>}
                           <span className="row-trailing"><StateMark state={st} /></span>
                         </span>
                         <span className="flex flex-wrap items-center gap-2">
                           <Chip tone="neutral" className="border border-border bg-background">{n.tag}</Chip>
-                          <span className="t-meta">{n.when}</span>
+                          <span className="type-meta">{n.when}</span>
                         </span>
                       </button>
                     </li>
@@ -252,7 +252,7 @@ function Triage() {
             )}
 
             {rows.length > 0 && (
-              <p className="mt-3 t-meta">
+              <p className="mt-3 type-meta">
                 <span className="tnum">{rows.length}</span> shown · <span className="tnum">{openCount}</span> open
                 across every tag
               </p>
@@ -266,8 +266,8 @@ function Triage() {
 function EmptyState({ title, body, onClear }: { title: string; body: string; onClear?: () => void }) {
   return (
     <Section className="mt-3 py-12 text-center">
-      <p className="t-title">{title}</p>
-      <p className="mx-auto mt-1 max-w-[46ch] t-meta">{body}</p>
+      <p className="type-data-strong">{title}</p>
+      <p className="mx-auto mt-1 max-w-[46ch] type-meta">{body}</p>
       {onClear && (
         <Button variant="outline" size="sm" className="mt-3" onClick={onClear}>
           Show everything open
@@ -292,8 +292,8 @@ function ItemPanel({ n, state }: { n: Notification; state: NoticeState }) {
       </div>
 
       <div>
-        <h2 className="t-title">{n.headline}</h2>
-        <p className="mt-2 t-body text-muted-foreground">{n.detail}</p>
+        <h2 className="type-data-strong">{n.headline}</h2>
+        <p className="mt-2 type-data text-muted-foreground">{n.detail}</p>
       </div>
 
       <DataList
@@ -353,7 +353,7 @@ function ItemPanel({ n, state }: { n: Notification; state: NoticeState }) {
           <button
             type="button"
             onClick={() => set("seen")}
-            className="w-full cursor-pointer text-center t-body text-primary underline underline-offset-2"
+            className="w-full cursor-pointer text-center type-data text-primary underline underline-offset-2"
           >
             Put it back in the open list
           </button>

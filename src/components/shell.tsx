@@ -72,7 +72,7 @@ function FrameBar() {
     <div className="flex h-7 shrink-0 items-center gap-1 px-1">
       <button onClick={() => router.back()} className={btn} aria-label="Back"><ArrowLeft className="size-3.5" /></button>
       <button onClick={() => router.forward()} className={btn} aria-label="Forward"><ArrowRight className="size-3.5" /></button>
-      <nav aria-label="Breadcrumb" className="ml-1 flex min-w-0 items-center gap-1.5 t-meta">
+      <nav aria-label="Breadcrumb" className="ml-1 flex min-w-0 items-center gap-1.5 type-meta">
         {crumbs.map((c, i) => (
           <span key={`${c}-${i}`} className="flex min-w-0 items-center gap-1.5">
             {i > 0 && <span className="text-border">/</span>}
@@ -87,7 +87,7 @@ function FrameBar() {
           is true everywhere at once, and no screen has to caption its own failure. */}
       {s.world === "v1" && (
         <span
-          className="ml-auto mr-1 flex shrink-0 items-center gap-1.5 rounded-full border border-crit/40 bg-crit/10 px-2 py-0.5 t-micro text-crit"
+          className="ml-auto mr-1 flex shrink-0 items-center gap-1.5 rounded-full border border-crit/40 bg-crit/10 px-2 py-0.5 type-micro text-crit"
           role="status"
         >
           <History className="size-3" aria-hidden />
@@ -248,7 +248,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div
           /* Above the dock, not beside it. At 375px the dock fills the width and the
              badge sat on top of the first tile. */
-          className="pointer-events-none fixed bottom-[84px] left-4 z-50 rounded-full border border-border bg-card/90 px-2.5 py-1 font-mono t-micro uppercase tracking-widest text-muted-foreground sm:bottom-6"
+          className="pointer-events-none fixed bottom-[84px] left-4 z-50 rounded-full border border-border bg-card/90 px-2.5 py-1 font-mono type-micro uppercase tracking-widest text-muted-foreground sm:bottom-6"
           role="status"
         >
           narration

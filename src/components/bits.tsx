@@ -24,7 +24,7 @@ export function Absent({ reason, className }: { reason: "not run" | "none on fil
   return (
     <span className={cn("inline-flex items-baseline gap-1.5 text-muted-foreground", className)}>
       <span aria-hidden>—</span>
-      <span className="t-micro">{reason}</span>
+      <span className="type-micro">{reason}</span>
     </span>
   );
 }
@@ -47,7 +47,7 @@ export function DataList({
   className?: string;
 }) {
   return (
-    <dl className={cn("rounded-md border border-border px-4 t-body", className)}>
+    <dl className={cn("rounded-md border border-border px-4 type-data", className)}>
       {rows.map((r, i) => (
         <div
           key={r.label}
@@ -75,7 +75,7 @@ export function Chip({ tone = "neutral", className, title, children }: { tone?: 
     crit: "bg-crit-soft text-crit",
     primary: "bg-primary-soft text-primary",
   } as const;
-  return <span title={title} className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 t-micro whitespace-nowrap", tones[tone], className)}>{children}</span>;
+  return <span title={title} className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 type-micro whitespace-nowrap", tones[tone], className)}>{children}</span>;
 }
 
 /* ── EvidenceDot: state in words + dot, never color alone ── */
@@ -83,7 +83,7 @@ export function EvidenceDot({ kind, label }: { kind: "verified" | "stale" | "dis
   /* `unconfirmed` is the absence of a trust state rather than one of them — hollow, not filled. */
   const color = { verified: "bg-ok", stale: "bg-warn", disagree: "bg-crit", incentive: "bg-primary", unconfirmed: "border border-muted-foreground/60" }[kind];
   return (
-    <span className="inline-flex items-center gap-1.5 t-meta text-foreground">
+    <span className="inline-flex items-center gap-1.5 type-meta text-foreground">
       <span className={cn("size-2 rounded-full", color)} aria-hidden />
       {label}
     </span>
@@ -94,7 +94,7 @@ export function EvidenceDot({ kind, label }: { kind: "verified" | "stale" | "dis
 export function LayerBadge({ layer }: { layer: "canonical" | "agency" | "personal" }) {
   const color = { canonical: "bg-ok", agency: "bg-primary", personal: "bg-muted-foreground" }[layer];
   return (
-    <span className="inline-flex items-center gap-1.5 t-micro text-muted-foreground">
+    <span className="inline-flex items-center gap-1.5 type-micro text-muted-foreground">
       <span className={cn("size-1.5 rounded-full", color)} aria-hidden />
       {layer}
     </span>
@@ -103,7 +103,7 @@ export function LayerBadge({ layer }: { layer: "canonical" | "agency" | "persona
 
 /* ── FreshnessDate: a date, never an icon alone ── */
 export function FreshnessDate({ children, stale }: { children: React.ReactNode; stale?: boolean }) {
-  return <span className={cn("t-micro", stale ? "text-warn" : "text-muted-foreground")}>{children}</span>;
+  return <span className={cn("type-micro", stale ? "text-warn" : "text-muted-foreground")}>{children}</span>;
 }
 
 /* ── SourceTag ── */
@@ -111,7 +111,7 @@ const sourceIcons = { intranet: FileText, gdrive: HardDrive, email: Mail, axus: 
 export function SourceTag({ kind, label }: { kind: keyof typeof sourceIcons; label: string }) {
   const Icon = sourceIcons[kind];
   return (
-    <span className="inline-flex items-center gap-1 t-micro text-muted-foreground font-mono">
+    <span className="inline-flex items-center gap-1 type-micro text-muted-foreground font-mono">
       <Icon className="size-3" aria-hidden />
       {label}
     </span>
@@ -135,7 +135,7 @@ export function ConfidenceMeter({ agree, total, label, className }: { agree: num
         <span className="block h-full rounded-full bg-primary" style={{ width: `${(agree / total) * 100}%` }} />
       </span>
       {label !== null && (
-        <span className="t-micro text-muted-foreground">
+        <span className="type-micro text-muted-foreground">
           {label ?? `${agree} of ${total} sources agree`}
         </span>
       )}
@@ -149,7 +149,7 @@ export function MoneyValue({ amount, currency = "EUR", converted, held }: { amou
   return (
     <span className="tnum">
       {currency} {typeof amount === "number" ? amount.toLocaleString("en-GB") : amount}
-      {converted && <span className="text-muted-foreground t-micro"> · {converted.currency} {converted.amount} (conversion dated {converted.date})</span>}
+      {converted && <span className="text-muted-foreground type-micro"> · {converted.currency} {converted.amount} (conversion dated {converted.date})</span>}
     </span>
   );
 }
@@ -157,13 +157,13 @@ export function MoneyValue({ amount, currency = "EUR", converted, held }: { amou
 /* ── ConfirmBanner: transient success (distinct from NoticeBanner) ── */
 export function ConfirmBanner({ show, children }: { show: boolean; children: React.ReactNode }) {
   if (!show) return null;
-  return <div className="rounded-md border-l-3 border-ok bg-ok-soft px-3 py-2 t-body" role="status">{children}</div>;
+  return <div className="rounded-md border-l-3 border-ok bg-ok-soft px-3 py-2 type-data" role="status">{children}</div>;
 }
 
 /* ── NoticeBanner tones ── */
 export function SeverityBanner({ severity, className, children }: { severity: "Info" | "Important" | "Critical" | "ok"; className?: string; children: React.ReactNode }) {
   const tones = { Info: "border-border bg-subtle", Important: "border-warn bg-warn-soft", Critical: "border-crit bg-crit-soft", ok: "border-ok bg-ok-soft" } as const;
-  return <div className={cn("rounded-md border-l-3 px-3 py-2.5 t-body", tones[severity], className)}>{children}</div>;
+  return <div className={cn("rounded-md border-l-3 px-3 py-2.5 type-data", tones[severity], className)}>{children}</div>;
 }
 
 /* ── SchematicBadge ──────────────────────────────────────────────────────────
@@ -178,7 +178,7 @@ export function SchematicBadge() {
   return (
     <Chip
       tone="neutral"
-      className="font-mono uppercase tracking-wide t-micro"
+      className="font-mono uppercase tracking-wide type-micro"
       title="Drawn, not wired — these controls do not change anything in this build."
     >
       schematic
@@ -191,7 +191,7 @@ export function NarrationNote({ children }: { children: React.ReactNode }) {
   const { s } = useDemo();
   if (!s.narration) return null;
   return (
-    <aside className="rounded-md border border-dashed border-primary/50 bg-primary-soft/50 px-3 py-2.5 t-body text-foreground/90 flex gap-2">
+    <aside className="rounded-md border border-dashed border-primary/50 bg-primary-soft/50 px-3 py-2.5 type-data text-foreground/90 flex gap-2">
       <Presentation className="size-4 shrink-0 text-primary mt-0.5" aria-hidden />
       <span>{children}</span>
     </aside>
@@ -205,8 +205,8 @@ export function ProvenancePopover({ source, children }: { source: { what: string
       <PopoverTrigger asChild>
         <button className="text-left rounded-sm hover:bg-muted/70 px-1 -mx-1 cursor-pointer">{children}</button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-80 t-body space-y-2">
-        <div className="font-medium t-meta uppercase tracking-wide text-muted-foreground">Field provenance</div>
+      <PopoverContent align="start" className="w-80 type-data space-y-2">
+        <div className="font-medium type-meta uppercase tracking-wide text-muted-foreground">Field provenance</div>
         <div><span className="text-muted-foreground">What · </span>{source.what}</div>
         <div><span className="text-muted-foreground">Where · </span>{source.where}</div>
         <div><span className="text-muted-foreground">When · </span>{source.when}</div>
@@ -242,7 +242,7 @@ export function Section({
             flush ? "border-b border-border px-4 py-3" : "mb-3",
           )}
         >
-          <h3 className="flex min-w-0 flex-wrap items-center gap-2 t-title">{title}</h3>
+          <h3 className="flex min-w-0 flex-wrap items-center gap-2 type-data-strong">{title}</h3>
           {chips}
           {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
         </header>
@@ -277,13 +277,13 @@ export function Segmented<T extends string>({
             aria-selected={on}
             onClick={() => onChange(o.value)}
             className={cn(
-              "flex cursor-pointer items-center gap-1.5 rounded-[4px] px-2.5 py-1 t-meta transition-colors",
+              "flex cursor-pointer items-center gap-1.5 rounded-[4px] px-2.5 py-1 type-meta transition-colors",
               on ? "bg-muted font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
             {Icon && <Icon className="size-3.5" aria-hidden />}
             {o.label}
-            {o.count !== undefined && <span className="t-micro tnum opacity-70">{o.count}</span>}
+            {o.count !== undefined && <span className="type-micro tnum opacity-70">{o.count}</span>}
           </button>
         );
       })}
@@ -300,7 +300,7 @@ export function QuietLoading({ note }: { note?: string }) {
   return (
     <div className="p-[var(--panel-pad)]" role="status" aria-live="polite">
       <Skeleton className="h-7 w-64" />
-      <p className="mt-3 t-meta">
+      <p className="mt-3 type-meta">
         {note ?? "Reading the workspace. Nothing is drawn until the data behind it is here."}
       </p>
       <div className="mt-6 space-y-3">

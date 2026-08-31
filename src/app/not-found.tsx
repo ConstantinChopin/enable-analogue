@@ -14,7 +14,7 @@ export default function NotFound() {
     <Page width="wide">
       <PageHeader title="No screen at this address" />
       <Section>
-        <p className="max-w-[62ch] t-body text-muted-foreground">
+        <p className="max-w-[62ch] type-data text-muted-foreground">
           Nothing in this workspace answers to it. The address may be older than the build, or the
           surface may have moved behind the account menu — settings and connections are not
           workspace tiles.

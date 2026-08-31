@@ -31,7 +31,7 @@ export default function AdminPublish() {
           </>
         }
       >
-        <p className="mt-2 max-w-[62ch] t-body text-muted-foreground">
+        <p className="mt-2 max-w-[62ch] type-data text-muted-foreground">
           Every kind of record arrives closed. Opening one is an act somebody performs, and the log
           records it.
         </p>
@@ -56,7 +56,7 @@ export default function AdminPublish() {
               </Chip>
             }
             footer={
-              <span className="t-meta">
+              <span className="type-meta">
                 An advisor&rsquo;s notice reaches the agency layer only through this review.
                 Publication keeps the original owner on the record.
               </span>
@@ -65,7 +65,7 @@ export default function AdminPublish() {
             <ul className="divide-y divide-border">
               {publishQueue.map((q) => (
                 <li key={q.id} className="row-grid px-4">
-                  <span className="row-primary t-body">{q.text}</span>
+                  <span className="row-primary type-data">{q.text}</span>
                   <span className="row-trailing">
                     {published[q.id] ? (
                       <Chip tone="ok">published · owner preserved</Chip>
@@ -114,9 +114,9 @@ export default function AdminPublish() {
                 <li key={row.kind} className="row-grid px-4">
                   <span className="row-primary">
                     <span className="block truncate type-data-strong">{row.kind}</span>
-                    <span className="block truncate t-meta">{row.detail}</span>
+                    <span className="block truncate type-meta">{row.detail}</span>
                   </span>
-                  <span className="row-trailing rounded-md border border-border bg-muted px-3 py-1 t-body">
+                  <span className="row-trailing rounded-md border border-border bg-muted px-3 py-1 type-data">
                     {row.value}
                   </span>
                 </li>
@@ -135,7 +135,7 @@ export default function AdminPublish() {
             }
             chips={<Chip tone="neutral">per agency policy</Chip>}
           >
-            <p className="border-b border-border px-4 py-3 t-meta">
+            <p className="border-b border-border px-4 py-3 type-meta">
               Every admin access is logged with a reason and a time limit, and the owner can be
               notified.
             </p>
@@ -148,7 +148,7 @@ export default function AdminPublish() {
                       <span className="block truncate type-data-strong">
                         {row.actor} {row.action}
                       </span>
-                      <span className="block truncate t-meta">
+                      <span className="block truncate type-meta">
                         reason: {row.reason}
                         {"expiry" in row && row.expiry
                           ? ` · ${row.expiry}`
@@ -158,7 +158,7 @@ export default function AdminPublish() {
                       </span>
                     </span>
                   </span>
-                  <span className="row-trailing tnum t-meta">{row.when}</span>
+                  <span className="row-trailing tnum type-meta">{row.when}</span>
                 </li>
               ))}
             </ul>
@@ -170,20 +170,20 @@ export default function AdminPublish() {
           <Section flush bodyClassName="p-0" title="Who this applies to">
             <ul className="divide-y divide-border">
               <li className="row-grid px-4">
-                <span className="row-primary t-body">Advisors</span>
-                <span className="row-trailing tnum t-meta">{adminPolicy.governed.advisors}</span>
+                <span className="row-primary type-data">Advisors</span>
+                <span className="row-trailing tnum type-meta">{adminPolicy.governed.advisors}</span>
               </li>
               <li className="row-grid px-4">
-                <span className="row-primary t-body">Admins</span>
-                <span className="row-trailing tnum t-meta">{adminPolicy.governed.admins}</span>
+                <span className="row-primary type-data">Admins</span>
+                <span className="row-trailing tnum type-meta">{adminPolicy.governed.admins}</span>
               </li>
               <li className="row-grid px-4">
-                <span className="row-primary t-body">Desks</span>
-                <span className="row-trailing tnum t-meta">{adminPolicy.governed.desks}</span>
+                <span className="row-primary type-data">Desks</span>
+                <span className="row-trailing tnum type-meta">{adminPolicy.governed.desks}</span>
               </li>
               <li className="row-grid px-4">
-                <span className="row-primary t-body font-semibold">Records governed</span>
-                <span className="row-trailing tnum t-body font-semibold">
+                <span className="row-primary type-data font-semibold">Records governed</span>
+                <span className="row-trailing tnum type-data font-semibold">
                   {adminPolicy.governed.records.toLocaleString("en-GB")}
                 </span>
               </li>
@@ -196,10 +196,10 @@ export default function AdminPublish() {
           </NarrationNote>
 
           <Section title="Last change">
-            <p className="flex items-center gap-2 t-body">
+            <p className="flex items-center gap-2 type-data">
               <span className="size-2 rounded-full bg-ok" aria-hidden /> Policy saved
             </p>
-            <p className="mt-1 t-meta">{people.leadShort} · 09:12 today</p>
+            <p className="mt-1 type-meta">{people.leadShort} · 09:12 today</p>
           </Section>
         </div>
       </div>
@@ -219,26 +219,26 @@ export default function AdminPublish() {
             <div className="px-4">
               <dl className="divide-y divide-border">
                 <div className="row-grid">
-                  <dt className="row-primary t-body text-muted-foreground">From</dt>
-                  <dd className="row-trailing font-mono t-micro">{source.from}</dd>
+                  <dt className="row-primary type-data text-muted-foreground">From</dt>
+                  <dd className="row-trailing font-mono type-micro">{source.from}</dd>
                 </div>
                 <div className="row-grid">
-                  <dt className="row-primary t-body text-muted-foreground">Received</dt>
-                  <dd className="row-trailing tnum t-meta">{source.received}</dd>
+                  <dt className="row-primary type-data text-muted-foreground">Received</dt>
+                  <dd className="row-trailing tnum type-meta">{source.received}</dd>
                 </div>
                 <div className="row-grid">
-                  <dt className="row-primary t-body text-muted-foreground">Forwarded by</dt>
-                  <dd className="row-trailing t-body">{source.forwardedBy}</dd>
+                  <dt className="row-primary type-data text-muted-foreground">Forwarded by</dt>
+                  <dd className="row-trailing type-data">{source.forwardedBy}</dd>
                 </div>
                 <div className="row-grid">
-                  <dt className="row-primary t-body text-muted-foreground">Arrived at</dt>
-                  <dd className="row-trailing font-mono t-micro">{source.via}</dd>
+                  <dt className="row-primary type-data text-muted-foreground">Arrived at</dt>
+                  <dd className="row-trailing font-mono type-micro">{source.via}</dd>
                 </div>
               </dl>
-              <blockquote className="mt-4 rounded-md border border-border bg-subtle p-4 t-body">
+              <blockquote className="mt-4 rounded-md border border-border bg-subtle p-4 type-data">
                 {source.body}
               </blockquote>
-              <p className="mt-4 t-meta">
+              <p className="mt-4 type-meta">
                 The mail is in the vault as &ldquo;{source.doc}&rdquo;, at{" "}
                 {source.access} scope. Publishing a notice from it stays a separate act,
                 and it keeps the original owner.

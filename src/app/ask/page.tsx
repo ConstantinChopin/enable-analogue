@@ -159,8 +159,8 @@ function Ask() {
       <Sheet open={listOpen} onOpenChange={setListOpen}>
         <SheetContent side="left" className="w-[320px] max-w-[86vw] gap-0 p-0">
           <SheetHeader className="border-b border-border px-4 py-3">
-            <SheetTitle className="t-title">Conversations</SheetTitle>
-            <SheetDescription className="t-meta">Recent questions on this desk.</SheetDescription>
+            <SheetTitle className="type-data-strong">Conversations</SheetTitle>
+            <SheetDescription className="type-meta">Recent questions on this desk.</SheetDescription>
           </SheetHeader>
           <div className="flex min-h-0 flex-1 flex-col">
             <ConversationList active={active} onPick={choose} />
@@ -180,7 +180,7 @@ function StateMark({ state }: { state?: Conversation["state"] }) {
   const tone = state === "conflict" ? "bg-crit" : state === "refusal" ? "bg-warn" : "bg-ok";
   const word = state === "conflict" ? "sources disagree" : state === "refusal" ? "refused" : "answered";
   return (
-    <span className="inline-flex shrink-0 items-center gap-1.5 t-micro text-muted-foreground">
+    <span className="inline-flex shrink-0 items-center gap-1.5 type-micro text-muted-foreground">
       <span className={cn("size-1.5 rounded-full", tone)} aria-hidden />
       {word}
     </span>
@@ -205,7 +205,7 @@ function ConversationList({
         </Button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="px-3 pt-3 t-micro font-mono uppercase tracking-widest text-muted-foreground">
+        <div className="px-3 pt-3 type-micro font-mono uppercase tracking-widest text-muted-foreground">
           Recent
         </div>
         <ul className="p-2">
@@ -224,19 +224,19 @@ function ConversationList({
               >
                 <div className="row-grid">
                   <span className="row-primary type-data-strong">{c.title}</span>
-                  <span className="row-trailing t-micro text-muted-foreground">{c.when}</span>
+                  <span className="row-trailing type-micro text-muted-foreground">{c.when}</span>
                 </div>
                 {/* The question names the restricted figure. Withheld with the outcome
                     and the count, rather than shown to a reader who cannot have the answer. */}
                 {(!c.needsCommission || canViewCommissions(role)) && (
-                  <p className="line-clamp-2 t-meta">{c.preview}</p>
+                  <p className="line-clamp-2 type-meta">{c.preview}</p>
                 )}
                 {/* The outcome and the transcript length describe material this reader
                     may not be able to open. Absent for them, not greyed. */}
                 {(!c.needsCommission || canViewCommissions(role)) && (
                   <div className="mt-1 flex items-center gap-2">
                     <StateMark state={c.state} />
-                    <span className="ml-auto t-micro text-muted-foreground tnum">{c.messages} messages</span>
+                    <span className="ml-auto type-micro text-muted-foreground tnum">{c.messages} messages</span>
                   </div>
                 )}
               </button>
@@ -261,7 +261,7 @@ function Composer({ large = false }: { large?: boolean }) {
      cold. It belongs on the composer: it narrows the question about to be asked, and
      it has to be removable, because a scope you cannot drop is a trap. */
   const scopeChip = s.askScope ? (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted py-0.5 pl-2.5 pr-1 t-micro">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted py-0.5 pl-2.5 pr-1 type-micro">
       Scoped to {s.askScope}
       <button
         type="button"
@@ -291,7 +291,7 @@ function Composer({ large = false }: { large?: boolean }) {
           aria-label="Ask a question"
           placeholder={COMPOSER_PLACEHOLDER}
           className={cn(
-            "max-h-[38vh] resize-none overflow-y-auto border-0 bg-transparent px-4 py-2 t-body shadow-none transition-[min-height] duration-150 focus-visible:ring-0",
+            "max-h-[38vh] resize-none overflow-y-auto border-0 bg-transparent px-4 py-2 type-data shadow-none transition-[min-height] duration-150 focus-visible:ring-0",
             grown ? (large ? "min-h-[120px]" : "min-h-[76px]") : "min-h-[42px]",
           )}
         />
@@ -315,8 +315,8 @@ function Composer({ large = false }: { large?: boolean }) {
 function Landing({ onPick }: { onPick: (id: ThreadId) => void }) {
   return (
     <div className="pt-6">
-      <h2 className="t-title">What do you need to know?</h2>
-      <p className="mt-1 t-body text-muted-foreground">
+      <h2 className="type-data-strong">What do you need to know?</h2>
+      <p className="mt-1 type-data text-muted-foreground">
         Ask about a rate, a property, a traveller. Answers are built from this desk&apos;s own
         knowledge and carry their sources.
       </p>
@@ -326,7 +326,7 @@ function Landing({ onPick }: { onPick: (id: ThreadId) => void }) {
       </div>
 
       <div className="mt-6 lg:hidden">
-        <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">
+        <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">
           Recent conversations
         </div>
         <Section flush className="mt-2" bodyClassName="p-0">
@@ -340,9 +340,9 @@ function Landing({ onPick }: { onPick: (id: ThreadId) => void }) {
               >
                 <div className="row-grid">
                   <span className="row-primary type-data-strong">{c.title}</span>
-                  <span className="row-trailing t-micro text-muted-foreground">{c.when}</span>
+                  <span className="row-trailing type-micro text-muted-foreground">{c.when}</span>
                 </div>
-                <p className="truncate t-meta">{c.preview}</p>
+                <p className="truncate type-meta">{c.preview}</p>
               </button>
             </li>
           ))}
@@ -350,7 +350,7 @@ function Landing({ onPick }: { onPick: (id: ThreadId) => void }) {
         </Section>
       </div>
 
-      <p className="mt-6 hidden t-meta lg:block">
+      <p className="mt-6 hidden type-meta lg:block">
         Or pick up one of the recent conversations on the left.
       </p>
     </div>
@@ -373,21 +373,21 @@ function Landing({ onPick }: { onPick: (id: ThreadId) => void }) {
    like.                                                                              */
 function Q({ children }: { children: React.ReactNode }) {
   return (
-    <div className="ml-auto w-fit max-w-[85%] rounded-lg bg-primary px-4 py-3 t-body text-primary-foreground">
+    <div className="ml-auto w-fit max-w-[85%] rounded-lg bg-primary px-4 py-3 type-data text-primary-foreground">
       {children}
     </div>
   );
 }
 function A({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <Section className={cn("px-4 py-3", className)} bodyClassName="type-prose-body">
+    <Section className={cn("px-4 py-3", className)} bodyClassName="type-prose">
       {children}
     </Section>
   );
 }
 function Cite({ n }: { n: number }) {
   return (
-    <span className="ml-1 inline-grid size-[17px] translate-y-[-1px] place-items-center rounded-full border border-primary/50 align-middle t-micro text-primary tnum">
+    <span className="ml-1 inline-grid size-[17px] translate-y-[-1px] place-items-center rounded-full border border-primary/50 align-middle type-micro text-primary tnum">
       {n}
     </span>
   );
@@ -439,7 +439,7 @@ function CommissionThread({
             Commission terms sit with the owning advisor. This desk cannot answer the rate part of
             the question, and there is no partial figure to show.
           </p>
-          <p className="mt-2 t-meta">
+          <p className="mt-2 type-meta">
             The breakfast and credit part of the question is answerable from the record.
           </p>
           <Button asChild variant="ghost" size="sm" className="mt-2 px-0 text-primary">
@@ -461,14 +461,14 @@ function CommissionThread({
           <div className="flex items-center gap-2 font-semibold">
             <Scale className="size-4 text-warn" aria-hidden /> Sources disagree — nothing assumed.
           </div>
-          <p className="mt-1 t-body text-muted-foreground">{commissionConflict.headline}</p>
+          <p className="mt-1 type-data text-muted-foreground">{commissionConflict.headline}</p>
           <div className="mt-3 divide-y divide-border rounded-md border border-border">
             {commissionConflict.sources.map((src) => (
               <div key={src.id} className="row-grid px-3">
                 <span className="row-primary type-data-strong">{src.label}</span>
-                <span className="row-meta t-meta">{src.detail} · {src.when}</span>
+                <span className="row-meta type-meta">{src.detail} · {src.when}</span>
                 <span className="row-trailing flex items-center gap-2">
-                  <span className="t-title tnum">{src.value}</span>
+                  <span className="type-data-strong tnum">{src.value}</span>
                   <Chip tone={src.id === "portal" ? "ok" : src.id === "manual" ? "crit" : "warn"}>{src.status}</Chip>
                 </span>
               </div>
@@ -508,7 +508,7 @@ function CommissionThread({
               <p key={l.cite}>{l.text.replace("12%", keptSource(s.conflictChoice).value)}<Cite n={l.cite} /></p>
             ))}
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3 t-meta">
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3 type-meta">
             <span className="inline-flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-ok" aria-hidden />
               {askThreads.commission.resolved.meta.sources} sources
@@ -517,7 +517,7 @@ function CommissionThread({
             <span>corroborated by {askThreads.commission.resolved.meta.corroborated}</span>
             <Chip tone="ok" className="ml-auto">answer contract met</Chip>
           </div>
-          <p className="mt-2 t-meta">
+          <p className="mt-2 type-meta">
             Cites the resolution stored today at the agency layer — both other sources stay reachable.
           </p>
         </A>
@@ -616,11 +616,11 @@ function RefusalThread() {
             <CircleDashed className="size-4 shrink-0 text-muted-foreground" aria-hidden />
             <span className="type-prose-lead">{r.headline}</span>
           </div>
-          <p className="mt-1 type-prose-body">{r.body}</p>
+          <p className="mt-1 type-prose">{r.body}</p>
         </div>
         <ul className="mt-3 space-y-2">
           {r.contract.map((cl) => (
-            <li key={cl.clause} className="flex items-start gap-2 t-body">
+            <li key={cl.clause} className="flex items-start gap-2 type-data">
               {cl.ok
                 ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-ok" aria-hidden />
                 : <XCircle className="mt-0.5 size-4 shrink-0 text-crit" aria-hidden />}
@@ -628,7 +628,7 @@ function RefusalThread() {
             </li>
           ))}
         </ul>
-        <p className="mt-3 border-t border-border pt-3 t-meta">{r.policy}</p>
+        <p className="mt-3 border-t border-border pt-3 type-meta">{r.policy}</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" className="border-primary text-primary" onClick={() => setRecovery("forward")}>
             {r.ctas[0]}
@@ -687,7 +687,7 @@ function LoadingThread() {
     <>
       <Q>{askThreads.commission.q}</Q>
       <A className="border-warn/60">
-        <div className="flex items-center gap-2 t-title">
+        <div className="flex items-center gap-2 type-data-strong">
           <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
           Building the answer
         </div>
@@ -722,7 +722,7 @@ function UnbuiltThread({ id }: { id: ThreadId }) {
           <span className="font-medium">{c?.title}</span>
           <SchematicBadge />
         </div>
-        <p className="mt-2 t-body text-muted-foreground">
+        <p className="mt-2 type-data text-muted-foreground">
           This thread is on file with {c?.messages ?? 0} messages. Its transcript is not reconstructed
           in this build — the conversations it demonstrates are the rate, the refusal and the notice.
         </p>
@@ -752,13 +752,13 @@ function TraceList({ threadId, pendingStage }: { threadId?: string | null; pendi
       {stages.map((t, i) => {
         const pending = pendingFrom !== undefined && i >= pendingFrom;
         return (
-          <li key={t.stage} className="flex items-start gap-2 t-body">
+          <li key={t.stage} className="flex items-start gap-2 type-data">
             {pending
               ? <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-muted-foreground" aria-hidden />
               : <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-ok" aria-hidden />}
             <span>
               <span className={cn(pending && "text-muted-foreground")}>{t.stage}</span>
-              <span className="block t-meta">{pending ? "pending" : t.detail}</span>
+              <span className="block type-meta">{pending ? "pending" : t.detail}</span>
             </span>
           </li>
         );
@@ -799,7 +799,7 @@ function Rail({ active, money }: { active: ThreadId | null; money: boolean }) {
   if (!BUILT.includes(active) && active !== "loading") {
     return (
       <Section title="Sources" chips={<SchematicBadge />}>
-        <p className="t-meta">
+        <p className="type-meta">
           The trace and sources for this thread are not reconstructed in this build.
         </p>
       </Section>
@@ -810,7 +810,7 @@ function Rail({ active, money }: { active: ThreadId | null; money: boolean }) {
     return (
       <Section title="How this answer was built">
         <TraceList threadId={active} pendingStage={2} />
-        <p className="mt-3 border-t border-border pt-2 t-meta">
+        <p className="mt-3 border-t border-border pt-2 type-meta">
           Partial trace shown — no partial answer is rendered.
         </p>
       </Section>
@@ -834,12 +834,12 @@ function Rail({ active, money }: { active: ThreadId | null; money: boolean }) {
                 className={cn("rounded-md border p-3", src.n === 1 ? "border-primary/50" : "border-border")}
               >
                 <div className="flex items-center gap-2 type-data-strong">
-                  <span className="inline-grid size-[17px] shrink-0 place-items-center rounded-full border border-border t-micro tnum">
+                  <span className="inline-grid size-[17px] shrink-0 place-items-center rounded-full border border-border type-micro tnum">
                     {src.n}
                   </span>
                   {src.label}
                 </div>
-                <div className="mt-1 t-meta">{src.detail}</div>
+                <div className="mt-1 type-meta">{src.detail}</div>
                 {/* Someone else's words, quoted verbatim from a contract — prose, and
                     the one place the italic quote role belongs. */}
                 {src.n === 1 && src.quote && (
@@ -851,11 +851,11 @@ function Rail({ active, money }: { active: ThreadId | null; money: boolean }) {
             ))}
           </div>
           {active === "leandre-rate" && s.conflictResolved && (
-            <p className="mt-3 flex items-center gap-2 border-t border-border pt-2 t-meta">
+            <p className="mt-3 flex items-center gap-2 border-t border-border pt-2 type-meta">
               <LayerBadge layer="agency" /> {keptSource(s.conflictChoice).value} kept from {keptSource(s.conflictChoice).label} · stored today · both other sources reachable
             </p>
           )}
-          <p className="mt-2 t-meta">
+          <p className="mt-2 type-meta">
             A source you are not permitted to read never appears in this panel.
           </p>
         </Section>
@@ -865,7 +865,7 @@ function Rail({ active, money }: { active: ThreadId | null; money: boolean }) {
         <div className="flex flex-wrap gap-2">
           <CopyExportMenu />
         </div>
-        <p className="mt-2 t-meta">
+        <p className="mt-2 type-meta">
           A client-facing export drops the trace, the layer marks and the internal notes. The advisor
           copy keeps them.
         </p>
@@ -879,7 +879,7 @@ function HeldBackRail() {
   return (
     <>
       <Section title="Held back">
-        <p className="t-meta">
+        <p className="type-meta">
           Both sources fail the freshness rule. They are visible here and excluded from the answer.
         </p>
       </Section>
@@ -888,17 +888,17 @@ function HeldBackRail() {
           {r.held.map((h, i) => (
             <div key={h.label} className="rounded-md border border-dashed border-border p-3">
               <div className="flex items-center gap-2 type-data-strong">
-                <span className="inline-grid size-[17px] shrink-0 place-items-center rounded-full border border-border t-micro tnum">
+                <span className="inline-grid size-[17px] shrink-0 place-items-center rounded-full border border-border type-micro tnum">
                   {i + 1}
                 </span>
                 {h.label}
               </div>
-              <div className="mt-1 t-meta">{h.detail}</div>
+              <div className="mt-1 type-meta">{h.detail}</div>
               <Chip tone="crit" className="mt-2">{h.age}</Chip>
             </div>
           ))}
         </div>
-        <p className="mt-2 t-meta">
+        <p className="mt-2 type-meta">
           A source you are not permitted to read never appears in this panel.
         </p>
       </Section>
@@ -932,7 +932,20 @@ function CopyExportMenu() {
 
 function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { d } = useDemo();
-  const keep = () => { d({ type: "resolveConflict" }); onOpenChange(false); };
+  /* The same anatomy as the record's, and now the same behaviour. This door had all
+     three values on screen and only one of them selectable, which is the ranking rule
+     wearing the interface that exists to refuse it. */
+  const [picked, setPicked] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
+  const chosen = commissionConflict.sources.find((c) => c.id === picked);
+
+  const commit = () => {
+    if (!picked || !reason.trim()) return;
+    d({ type: "resolveConflict", choice: picked, reason: reason.trim() });
+    onOpenChange(false);
+    setPicked(null);
+    setReason("");
+  };
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[540px]">
@@ -946,44 +959,68 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
           {commissionConflict.sources.map((src) => (
             <div
               key={src.id}
-              className={cn("rounded-lg border p-4", src.id === "portal" ? "border-primary/50" : "border-border")}
+              className={cn("rounded-lg border p-4", src.id === picked ? "border-primary/50 bg-primary-soft/40" : "border-border")}
             >
               <div className="flex flex-wrap items-start gap-3">
                 <div className="min-w-0">
                   <div className="type-data-strong">{src.label}</div>
-                  <div className="t-meta">{src.detail} · {src.when}</div>
+                  <div className="type-meta">{src.detail} · {src.when}</div>
                 </div>
-                <span className="ml-auto t-title tnum">{src.value}</span>
+                <span className="ml-auto type-data-strong tnum">{src.value}</span>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-3">
-                <span className="t-body font-semibold">{src.status}</span>
+                <span className="type-data font-semibold">{src.status}</span>
                 <ConfidenceMeter agree={src.agree} total={src.total} />
-                <Button size="sm" variant="outline" className="ml-auto" onClick={keep} disabled={src.id !== "portal"}>
-                  Keep this value
+                <Button
+                  size="sm"
+                  variant={picked === src.id ? "default" : "outline"}
+                  className="ml-auto"
+                  onClick={() => setPicked(src.id)}
+                >
+                  {picked === src.id ? "Selected" : "Keep this value"}
                 </Button>
               </div>
             </div>
           ))}
 
           <div className="rounded-md border border-border bg-subtle p-4">
-            <div className="font-mono t-micro uppercase tracking-widest text-muted-foreground">
+            <div className="font-mono type-micro uppercase tracking-widest text-muted-foreground">
               Where this value goes
             </div>
-            <p className="mt-2 t-meta">
+            <p className="mt-2 type-meta">
               The value you keep is what the directory shows, what a quote uses, and what the chat
               answers with. One decision, three places.
             </p>
-            <dl className="mt-2 space-y-1 t-body">
+            <dl className="mt-2 space-y-1 type-data">
               {commissionConflict.impact.map((row) => (
                 <div key={row.surface} className="flex items-baseline justify-between gap-3">
                   <dt className="text-muted-foreground">{row.surface}</dt>
-                  <dd className="font-medium tnum">{row.value}</dd>
+                  <dd className="font-medium tnum">{chosen ? chosen.value : row.value}</dd>
                 </div>
               ))}
             </dl>
           </div>
 
-          <p className="t-meta">
+          {/* The reason, required, and shown only once a value is chosen — so the sheet
+              asks for a justification of a decision, not of an empty form. */}
+          {picked && (
+            <div className="rounded-md border border-border p-4">
+              <span className="type-data font-semibold">Why this value</span>
+              <p className="mt-1 type-meta">Stored with the decision, so the next person sees what was kept and why.</p>
+              <Textarea
+                className="mt-2"
+                rows={2}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Signed terms supersede the rate feed; confirmed with the rep firm."
+              />
+              <Button size="sm" className="mt-3" disabled={!reason.trim()} onClick={commit}>
+                Store {chosen?.value} at the agency layer
+              </Button>
+            </div>
+          )}
+
+          <p className="type-meta">
             The kept value is stored at the agency layer, attributed to {people.advisor} and dated
             today. Both other sources stay reachable.
           </p>

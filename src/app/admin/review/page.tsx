@@ -26,7 +26,7 @@ export default function ReviewQueue() {
           </>
         }
       >
-        <p className="mt-2 max-w-[62ch] t-body text-muted-foreground">
+        <p className="mt-2 max-w-[62ch] type-data text-muted-foreground">
           A candidate never surfaces in answers, cards, or search until a named person confirms it.
         </p>
       </PageHeader>
@@ -41,7 +41,7 @@ export default function ReviewQueue() {
         className="mt-4"
         bodyClassName="p-0"
       >
-        <div className="row-grid px-4 t-micro uppercase tracking-widest text-muted-foreground">
+        <div className="row-grid px-4 type-micro uppercase tracking-widest text-muted-foreground">
           <span className="row-primary">Candidate</span>
           <span className="row-meta">Source</span>
           <span className="row-trailing">State</span>
@@ -57,11 +57,11 @@ export default function ReviewQueue() {
                 >
                   <span className="row-primary">
                     <span className="block truncate type-data-strong">{c.name}</span>
-                    <span className="block truncate font-mono t-micro text-muted-foreground">
+                    <span className="block truncate font-mono type-micro text-muted-foreground">
                       {c.uri}
                     </span>
                   </span>
-                  <span className="row-meta t-meta">{c.from}</span>
+                  <span className="row-meta type-meta">{c.from}</span>
                   <span className="row-trailing">
                     {confirmed ? (
                       <Chip tone="ok">confirmed today</Chip>
@@ -83,11 +83,11 @@ export default function ReviewQueue() {
             <li className="row-grid border-t border-border px-4">
               <span className="row-primary">
                 <span className="block truncate type-data-strong">Requested from directory</span>
-                <span className="block truncate font-mono t-micro text-muted-foreground">
+                <span className="block truncate font-mono type-micro text-muted-foreground">
                   advisor request · gap logged
                 </span>
               </span>
-              <span className="row-meta t-meta">advisor request</span>
+              <span className="row-meta type-meta">advisor request</span>
               <span className="row-trailing">
                 <Chip tone="neutral">
                   <CircleDashed className="size-3" aria-hidden /> awaiting extraction
@@ -119,10 +119,10 @@ export default function ReviewQueue() {
               <div className="px-4 py-3">
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                   <span className="type-data-strong">{c.name}</span>
-                  <span className="font-mono t-micro text-muted-foreground">{c.uri}</span>
-                  <span className="ml-auto t-meta">{c.by} · {c.when}</span>
+                  <span className="font-mono type-micro text-muted-foreground">{c.uri}</span>
+                  <span className="ml-auto type-meta">{c.by} · {c.when}</span>
                 </div>
-                <p className="mt-1 t-meta">{c.note}</p>
+                <p className="mt-1 type-meta">{c.note}</p>
               </div>
             </li>
           ))}

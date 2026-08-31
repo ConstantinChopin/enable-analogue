@@ -90,12 +90,12 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
               <div className="flex flex-wrap items-start gap-3">
                 <div className="min-w-0">
                   <div className="type-data-strong">{src.label}</div>
-                  <div className="t-meta">{src.detail} · {src.when}</div>
+                  <div className="type-meta">{src.detail} · {src.when}</div>
                 </div>
-                <span className="ml-auto t-title tnum">{src.value}</span>
+                <span className="ml-auto type-data-strong tnum">{src.value}</span>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-3">
-                <span className="t-body font-semibold">{src.status}</span>
+                <span className="type-data font-semibold">{src.status}</span>
                 <ConfidenceMeter agree={src.agree} total={src.total} />
                 <Button
                   size="sm"
@@ -113,10 +113,10 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
               asks one question at a time. */}
           {chosen && (
             <div className="rounded-lg border border-primary/50 bg-card p-4">
-              <Label htmlFor="resolve-reason" className="t-body font-semibold">
+              <Label htmlFor="resolve-reason" className="type-data font-semibold">
                 Why {chosen.value}? <span className="text-muted-foreground">(required)</span>
               </Label>
-              <p className="mt-1 t-meta">
+              <p className="mt-1 type-meta">
                 Stored with the value at the agency layer, attributed to you and dated. The next
                 person to open this field reads it instead of asking again.
               </p>
@@ -126,7 +126,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="e.g. confirmed by Corvin & Wells on the 21 June rate note"
-                className="mt-3 t-body"
+                className="mt-3 type-data"
               />
               <Button size="sm" className="mt-3" disabled={!reason.trim()} onClick={commit}>
                 Store {chosen.value} at the agency layer
@@ -136,11 +136,11 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
 
           {/* ImpactPanel */}
           <div className="rounded-md border border-border bg-subtle p-4">
-            <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Where this value goes</div>
-            <p className="mt-2 t-meta">
+            <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Where this value goes</div>
+            <p className="mt-2 type-meta">
               The value you keep is what the directory shows, what a quote uses, and what the chat answers with. One decision, three places.
             </p>
-            <dl className="mt-2 space-y-1 t-body">
+            <dl className="mt-2 space-y-1 type-data">
               {commissionConflict.impact.map((row) => (
                 <div key={row.surface} className="flex items-baseline justify-between gap-3">
                   <dt className="text-muted-foreground">{row.surface}</dt>
@@ -151,8 +151,8 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
           </div>
 
           <div className="rounded-md border border-border p-4">
-            <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">The other fields</div>
-            <dl className="mt-2 space-y-1 t-body">
+            <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">The other fields</div>
+            <dl className="mt-2 space-y-1 type-data">
               {commissionConflict.otherFields.map((f) => (
                 <div key={f.label} className="flex items-baseline justify-between gap-3">
                   <dt>{f.label}</dt>
@@ -160,7 +160,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
                 </div>
               ))}
             </dl>
-            <p className="mt-2 border-t border-border pt-2 t-meta">Only commission is in dispute.</p>
+            <p className="mt-2 border-t border-border pt-2 type-meta">Only commission is in dispute.</p>
           </div>
         </div>
       </SheetContent>
@@ -257,7 +257,7 @@ function LeandreRecord() {
                     provenance={<SourceTag kind="manual" label={`${people.advisor} · today`} />}
                   >
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="t-body">{noteText.trim() ? `“${noteText.trim()}”` : "Note on file"}</span>
+                      <span className="type-data">{noteText.trim() ? `“${noteText.trim()}”` : "Note on file"}</span>
                       <Chip tone="ok">Saved just now · {savedScope}</Chip>
                     </div>
                   </FieldGrid>
@@ -270,26 +270,26 @@ function LeandreRecord() {
         {/* ── context rail ── */}
         <aside className="min-w-0 space-y-3">
           <Section title="Amenities">
-            <div className="space-y-3 t-body">
+            <div className="space-y-3 type-data">
               <div>
-                <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Facility · freeform</div>
+                <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Facility · freeform</div>
                 <p className="mt-1 text-muted-foreground italic">“View Hotel — experience refined luxury…”</p>
                 <Chip tone="warn" className="mt-1">template copy — needs editorial</Chip>
               </div>
               <div className="border-t border-border pt-3">
-                <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Client amenities · programme</div>
+                <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Client amenities · programme</div>
                 <ul className="divide-y divide-border">
                   {leandreContext.clientAmenities.map((a) => (
                     <li key={a.slug} className="row-grid">
                       <span className="row-primary">{a.benefit}</span>
-                      <span className="row-trailing font-mono t-micro text-muted-foreground">{a.slug}</span>
+                      <span className="row-trailing font-mono type-micro text-muted-foreground">{a.slug}</span>
                     </li>
                   ))}
                 </ul>
               </div>
               {money && (
                 <div className="border-t border-border pt-3">
-                  <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Agent terms</div>
+                  <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Agent terms</div>
                   {leandreContext.agentAmenities.map((a) => (
                     <p key={a.category} className="mt-1"><Chip tone="primary">{a.category}</Chip> <span className="tnum">{a.text}</span></p>
                   ))}
@@ -299,7 +299,7 @@ function LeandreRecord() {
           </Section>
 
           <Section title="Contacts">
-            <ul className="divide-y divide-border t-body">
+            <ul className="divide-y divide-border type-data">
               {leandreContext.contacts.map((c) => (
                 <li key={c.name}>
                   <div className="row-grid">
@@ -308,20 +308,20 @@ function LeandreRecord() {
                       <span className="text-muted-foreground"> · {c.role}</span>
                     </span>
                   </div>
-                  {c.note && <div className="t-meta pb-2">{c.note}</div>}
+                  {c.note && <div className="type-meta pb-2">{c.note}</div>}
                 </li>
               ))}
             </ul>
-            <p className="mt-2 border-t border-border pt-2 t-body">
+            <p className="mt-2 border-t border-border pt-2 type-data">
               <span className="text-muted-foreground">Rep firm · </span>Corvin &amp; Wells — Paris account
             </p>
-            <p className="mt-2 t-meta">Booked last by {leandreContext.whoBookedLast}</p>
+            <p className="mt-2 type-meta">Booked last by {leandreContext.whoBookedLast}</p>
           </Section>
 
           {money && promo && (
             <Section title="Active promotion">
               <div className="type-data-strong">{promo.productName} — {promo.rate}</div>
-              <p className="mt-1 t-meta">
+              <p className="mt-1 type-meta">
                 {promo.stacksWithBase ? "bonus — adds to base" : "override — replaces base"} · book by {promo.bookingWindowEnd} · travel by {promo.travelWindowEnd}
               </p>
               <Chip tone="warn" className="mt-2 tnum">{promo.daysLeft} days left</Chip>
@@ -330,7 +330,7 @@ function LeandreRecord() {
 
           {/* client intelligence: gated — absent, not masked; lead sees the admin-note line only */}
           {s.role === "lead" && (
-            <p className="flex items-center gap-2 px-1 t-meta">
+            <p className="flex items-center gap-2 px-1 type-meta">
               <EyeOff className="size-3.5 shrink-0" aria-hidden />
               Client intelligence · {leandreContext.clientIntelligence.note}
             </p>
@@ -354,8 +354,8 @@ function LeandreRecord() {
                 <div key={v} className="flex items-start gap-3">
                   <RadioGroupItem value={v} id={`scope-${v}`} className="mt-0.5" />
                   <Label htmlFor={`scope-${v}`} className="flex flex-col items-start gap-0.5">
-                    <span className="t-body">{l}</span>
-                    <span className="t-meta font-normal">{hint}</span>
+                    <span className="type-data">{l}</span>
+                    <span className="type-meta font-normal">{hint}</span>
                   </Label>
                 </div>
               ))}
@@ -375,13 +375,13 @@ function LeandreRecord() {
           <div className="space-y-4 px-4 pb-5">
             <Textarea placeholder="What changed at the property?" aria-label="Notice text" />
             <div>
-              <div className="mb-2 t-micro">Severity</div>
+              <div className="mb-2 type-micro">Severity</div>
               <div className="flex gap-2">
                 <Chip tone="neutral">Info</Chip><Chip tone="warn">Important</Chip><Chip tone="crit">Critical</Chip>
               </div>
             </div>
             <div>
-              <div className="mb-2 t-micro">Scope</div>
+              <div className="mb-2 type-micro">Scope</div>
               <div className="flex gap-2">
                 <Chip tone="neutral">Personal</Chip><Chip tone="neutral">Team</Chip><Chip tone="primary">Agency</Chip>
               </div>
@@ -406,16 +406,16 @@ function FieldRow({ f, resolved, onResolve }: { f: Field; resolved: boolean; onR
       <FieldGrid label={f.label}>
         {resolved ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <ProvenancePopover source={f.source}><span className="t-body font-medium tnum">{kept.value}</span></ProvenancePopover>
+            <ProvenancePopover source={f.source}><span className="type-data font-medium tnum">{kept.value}</span></ProvenancePopover>
             <Chip tone="ok">resolved</Chip>
-            <span className="t-meta">agency layer · {kept.label} · by {people.advisor} today · both other sources reachable</span>
-            {reason && <span className="basis-full t-meta">Reason: “{reason}”</span>}
+            <span className="type-meta">agency layer · {kept.label} · by {people.advisor} today · both other sources reachable</span>
+            {reason && <span className="basis-full type-meta">Reason: “{reason}”</span>}
           </div>
         ) : (
           <>
             <div className="flex flex-wrap items-center gap-2">
               {commissionConflict.sources.map((src) => (
-                <span key={src.id} className="rounded-md border border-border px-2 py-1 t-body">
+                <span key={src.id} className="rounded-md border border-border px-2 py-1 type-data">
                   <b className="tnum">{src.value}</b> <span className="text-muted-foreground">{src.label} · {src.when}</span>
                 </span>
               ))}
@@ -444,7 +444,7 @@ function FieldRow({ f, resolved, onResolve }: { f: Field; resolved: boolean; onR
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <ProvenancePopover source={f.source}>
-          <span className={cn("t-body", f.key === "rooms" && "tnum", f.state === "template" && "italic text-muted-foreground")}>{f.value}</span>
+          <span className={cn("type-data", f.key === "rooms" && "tnum", f.state === "template" && "italic text-muted-foreground")}>{f.value}</span>
         </ProvenancePopover>
         {f.state === "edited-overlay" && <Chip tone="primary">agency overlay</Chip>}
         {f.state === "stale" && verified && <Chip tone="ok">verified today · {people.advisor}</Chip>}
@@ -462,10 +462,10 @@ function FieldRow({ f, resolved, onResolve }: { f: Field; resolved: boolean; onR
       )}
 
       {f.state === "template" && (
-        <p className="mt-1 t-meta">Excluded from answer corroboration.</p>
+        <p className="mt-1 type-meta">Excluded from answer corroboration.</p>
       )}
       {f.state === "edited-overlay" && f.beneath && (
-        <p className="mt-1 t-meta">
+        <p className="mt-1 type-meta">
           canonical beneath ·{" "}
           <ProvenancePopover source={f.beneath.source}><span>{f.beneath.value}</span></ProvenancePopover>
         </p>
@@ -490,7 +490,7 @@ function FieldGrid({
 }: { label: string; provenance?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="grid gap-x-4 gap-y-1 py-3 sm:grid-cols-[140px_minmax(0,1fr)_auto]">
-      <div className="t-body text-muted-foreground">{label}</div>
+      <div className="type-data text-muted-foreground">{label}</div>
       <div className="min-w-0">{children}</div>
       {provenance && (
         <div className="flex flex-col items-start gap-0.5 sm:items-end sm:text-right">
@@ -545,14 +545,14 @@ function VerlaineRecord() {
             ? <Chip tone="ok">acknowledged — {people.advisor}, today</Chip>
             : <Chip tone="crit">acknowledgment required</Chip>}
         </div>
-        <div className="mt-1 t-meta">Opened {crit.openedAt} · {crit.scope} scope · {crit.owner}</div>
+        <div className="mt-1 type-meta">Opened {crit.openedAt} · {crit.scope} scope · {crit.owner}</div>
       </SeverityBanner>
 
       <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-4">
           <Section title="The record">
-            <p className="mb-3 t-body text-muted-foreground">{p.blurb}</p>
-            <dl className="space-y-2 t-body">
+            <p className="mb-3 type-data text-muted-foreground">{p.blurb}</p>
+            <dl className="space-y-2 type-data">
               <div className="flex items-baseline justify-between gap-3"><dt className="text-muted-foreground">City</dt><dd>{p.city}, {p.country}</dd></div>
               <div className="flex items-baseline justify-between gap-3"><dt className="text-muted-foreground">Tier</dt><dd>{p.luxuryTier}</dd></div>
               <div className="flex items-baseline justify-between gap-3"><dt className="text-muted-foreground">Rooms</dt><dd className="tnum">{p.rooms}</dd></div>
@@ -568,7 +568,7 @@ function VerlaineRecord() {
           </Section>
 
           <Section title="Use in itineraries">
-            <p className="t-body text-muted-foreground">
+            <p className="type-data text-muted-foreground">
               A Critical notice blocks shortlist and proposal use until it is acknowledged. Dismissing the notice is not an acknowledgment.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -581,13 +581,13 @@ function VerlaineRecord() {
         <aside className="min-w-0 space-y-3">
           <Section title="Open notices">
             {notices.filter((n) => n.productId === p.id).map((n) => (
-              <div key={n.id} className="t-body">
+              <div key={n.id} className="type-data">
                 <Chip tone={n.severity === "Critical" ? "crit" : n.severity === "Important" ? "warn" : "neutral"}>{n.severity}</Chip>
                 <p className="mt-2">{n.text}</p>
-                <p className="mt-1 t-meta">Opened {n.openedAt} · {n.scope} scope · {n.owner} · <span className="tnum">{n.ageDays}d</span> open</p>
+                <p className="mt-1 type-meta">Opened {n.openedAt} · {n.scope} scope · {n.owner} · <span className="tnum">{n.ageDays}d</span> open</p>
               </div>
             ))}
-            <p className="mt-2 border-t border-border pt-2 t-meta">
+            <p className="mt-2 border-t border-border pt-2 type-meta">
               A notice stays open until someone closes it. Nothing expires on a timer.
             </p>
           </Section>
@@ -603,7 +603,7 @@ function VerlaineRecord() {
           <SeverityBanner severity="Critical">
             Opened {crit.openedAt} · {crit.scope} scope · {crit.owner}
           </SeverityBanner>
-          <p className="t-meta">
+          <p className="type-meta">
             Closing this dialog does not unblock the property. The acknowledgment is recorded with a name and a date.
           </p>
           <DialogFooter>
@@ -628,7 +628,7 @@ function GenericRecord({ id }: { id: string }) {
       <Page width="wide">
         <PageHeader back="/records" crumb="Records" title="Not in the directory" />
         <Section>
-          <p className="t-body text-muted-foreground">
+          <p className="type-data text-muted-foreground">
             No record carries this id. A missing property can be requested from the directory — the extraction pipeline creates a candidate for review.
           </p>
           <Button asChild variant="outline" size="sm" className="mt-3">
@@ -645,7 +645,7 @@ function GenericRecord({ id }: { id: string }) {
       <Page width="wide">
         <PageHeader back="/records" crumb="Records" title="Awaiting confirmation" />
         <Section>
-          <p className="t-body text-muted-foreground">
+          <p className="type-data text-muted-foreground">
             This candidate arrived from a DMC spreadsheet and has not been confirmed. It does not answer
             questions and it is not offered to a client until a reviewer has been through it field by field.
           </p>
@@ -680,8 +680,8 @@ function GenericRecord({ id }: { id: string }) {
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-4">
           <Section title="The record">
-            {p.blurb && <p className="mb-3 t-body text-muted-foreground">{p.blurb}</p>}
-            <dl className="space-y-2 t-body">
+            {p.blurb && <p className="mb-3 type-data text-muted-foreground">{p.blurb}</p>}
+            <dl className="space-y-2 type-data">
               <Row k="Location">{p.city}{p.country !== "—" ? `, ${p.country}` : ""} · {p.region}</Row>
               <Row k="Tier">{p.luxuryTier}</Row>
               {p.brand && <Row k="Brand">{p.brand}</Row>}
@@ -699,13 +699,13 @@ function GenericRecord({ id }: { id: string }) {
               {p.programs.map((pr) => <Chip key={pr} tone="primary">{pr}</Chip>)}
               {p.consortia.map((c) => <Chip key={c} tone="neutral" className="border border-border bg-background">{c}</Chip>)}
               {p.programs.length === 0 && p.consortia.length === 0 && (
-                <p className="t-body text-muted-foreground">
+                <p className="type-data text-muted-foreground">
                   No programme or consortium membership on file. Nothing is inferred from the category.
                 </p>
               )}
             </div>
             {p.tags && p.tags.length > 0 && (
-              <p className="mt-3 border-t border-border pt-2 t-body">
+              <p className="mt-3 border-t border-border pt-2 type-data">
                 <span className="text-muted-foreground">Style · </span>{p.tags.join(" · ")}
               </p>
             )}
@@ -717,7 +717,7 @@ function GenericRecord({ id }: { id: string }) {
                 {productNotices.map((n) => (
                   <SeverityBanner key={n.id} severity={n.severity}>
                     <div>{n.text}</div>
-                    <div className="mt-1 t-meta">
+                    <div className="mt-1 type-meta">
                       Opened {n.openedAt} · {n.scope} scope · {n.owner} · <span className="tnum">{n.ageDays}d</span> open
                     </div>
                   </SeverityBanner>
@@ -729,7 +729,7 @@ function GenericRecord({ id }: { id: string }) {
 
         <aside className="min-w-0 space-y-3">
           <Section title="Evidence">
-            <div className="space-y-2 t-body">
+            <div className="space-y-2 type-data">
               {p.evidence.kind === "unconfirmed"
                 ? <Chip tone="warn">{p.evidence.label}</Chip>
                 : <EvidenceDot kind={p.evidence.kind} label={p.evidence.label} />}
@@ -739,7 +739,7 @@ function GenericRecord({ id }: { id: string }) {
                 </FreshnessDate>
               </div>
               {p.staleDays !== undefined && (
-                <p className="t-meta">
+                <p className="type-meta">
                   It still answers — with its date and a freshness warning attached.
                 </p>
               )}
@@ -749,14 +749,14 @@ function GenericRecord({ id }: { id: string }) {
           {p.repFirm && (
             <Section title="Representation">
               <p className="type-data-strong">{p.repFirm}</p>
-              <p className="mt-1 t-meta">Rep firm of record.</p>
+              <p className="mt-1 type-meta">Rep firm of record.</p>
             </Section>
           )}
 
           {money && productPromo && (
             <Section title="Active promotion">
               <div className="type-data-strong">{productPromo.rate}</div>
-              <p className="mt-1 t-meta">
+              <p className="mt-1 type-meta">
                 {productPromo.stacksWithBase ? "bonus — adds to base" : "override — replaces base"} · book by {productPromo.bookingWindowEnd} · travel by {productPromo.travelWindowEnd}
               </p>
               <Chip tone="warn" className="mt-2 tnum">{productPromo.daysLeft} days left</Chip>

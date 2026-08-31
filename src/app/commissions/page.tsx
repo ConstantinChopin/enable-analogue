@@ -100,11 +100,11 @@ function Ledger() {
       <Page width="wide">
         <PageHeader back="/briefing" crumb="Briefing" title="Commissions" />
         <Section>
-          <p className="t-body">
+          <p className="type-data">
             Commission records stay with the owning advisor. Signed in as {personName[s.role]} (
             {roleLabel[s.role]}), this ledger is absent by policy.
           </p>
-          <p className="mt-2 t-meta">
+          <p className="mt-2 type-meta">
             Nothing is masked or blurred here: the rows are not fetched, so there is no figure to
             read past. Sharing a traveller does not share their money.
           </p>
@@ -120,7 +120,7 @@ function Ledger() {
         crumb="Briefing"
         title="Commissions"
         actions={
-          <span className="t-micro font-mono text-muted-foreground tnum">
+          <span className="type-micro font-mono text-muted-foreground tnum">
             {rows.length} of {commissions.length} records
           </span>
         }
@@ -145,25 +145,25 @@ function Ledger() {
         {/* ── summary strip ── */}
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           <Section>
-            <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">
+            <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">
               Total outstanding
             </div>
-            <div className="mt-1 t-title tnum">{eur(outstanding)}</div>
-            <div className="t-meta tnum">{open.length} open commissions</div>
+            <div className="mt-1 type-data-strong tnum">{eur(outstanding)}</div>
+            <div className="type-meta tnum">{open.length} open commissions</div>
           </Section>
           <Section>
-            <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Overdue</div>
-            <div className="mt-1 t-title tnum">{overdueCount}</div>
-            <div className="t-meta tnum">
+            <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Overdue</div>
+            <div className="mt-1 type-data-strong tnum">{overdueCount}</div>
+            <div className="type-meta tnum">
               {eur(commissions.filter((c) => c.state === "overdue").reduce((n, c) => n + c.amount, 0))} unrecovered
             </div>
           </Section>
           <Section>
-            <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">
+            <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">
               Collected this week
             </div>
-            <div className="mt-1 t-title tnum">{eur(briefing.headline.collectedThisWeek)}</div>
-            <div className="t-meta">actuals read-only from the booking system</div>
+            <div className="mt-1 type-data-strong tnum">{eur(briefing.headline.collectedThisWeek)}</div>
+            <div className="type-meta">actuals read-only from the booking system</div>
           </Section>
         </div>
 
@@ -183,7 +183,7 @@ function Ledger() {
               onChange={(e) => setQ(e.target.value)}
               placeholder="Property, booking reference, traveller…"
               aria-label="Filter commissions"
-              className="pl-8 t-body"
+              className="pl-8 type-data"
             />
           </div>
         </div>
@@ -193,19 +193,19 @@ function Ledger() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="t-micro font-mono uppercase tracking-wide">Property</TableHead>
-                <TableHead className="hidden t-micro font-mono uppercase tracking-wide sm:table-cell">
+                <TableHead className="type-micro font-mono uppercase tracking-wide">Property</TableHead>
+                <TableHead className="hidden type-micro font-mono uppercase tracking-wide sm:table-cell">
                   Booking
                 </TableHead>
-                <TableHead className="hidden t-micro font-mono uppercase tracking-wide lg:table-cell">
+                <TableHead className="hidden type-micro font-mono uppercase tracking-wide lg:table-cell">
                   Traveller
                 </TableHead>
-                <TableHead className="text-right t-micro font-mono uppercase tracking-wide">Amount</TableHead>
-                <TableHead className="t-micro font-mono uppercase tracking-wide">State</TableHead>
-                <TableHead className="hidden t-micro font-mono uppercase tracking-wide md:table-cell">
+                <TableHead className="text-right type-micro font-mono uppercase tracking-wide">Amount</TableHead>
+                <TableHead className="type-micro font-mono uppercase tracking-wide">State</TableHead>
+                <TableHead className="hidden type-micro font-mono uppercase tracking-wide md:table-cell">
                   Due
                 </TableHead>
-                <TableHead className="hidden t-micro font-mono uppercase tracking-wide md:table-cell">
+                <TableHead className="hidden type-micro font-mono uppercase tracking-wide md:table-cell">
                   Ageing
                 </TableHead>
               </TableRow>
@@ -217,7 +217,7 @@ function Ledger() {
                   onClick={() => setSelected(c.id === selected ? null : c.id)}
                   aria-selected={c.id === selected}
                   className={cn(
-                    "cursor-pointer t-body",
+                    "cursor-pointer type-data",
                     c.id === selected && "bg-muted",
                   )}
                 >
@@ -226,7 +226,7 @@ function Ledger() {
                     {c.discrepancy && <Chip tone="warn" className="ml-2">under projection</Chip>}
                     {c.creditNotRefund && <Chip tone="crit" className="ml-2">credit</Chip>}
                   </TableCell>
-                  <TableCell className="hidden font-mono t-meta sm:table-cell">
+                  <TableCell className="hidden font-mono type-meta sm:table-cell">
                     {c.bookingRef}
                   </TableCell>
                   <TableCell className="hidden text-muted-foreground lg:table-cell">{c.traveller ?? "—"}</TableCell>
@@ -238,7 +238,7 @@ function Ledger() {
               ))}
               {rows.length === 0 && (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={7} className="py-8 text-center t-body text-muted-foreground">
+                  <TableCell colSpan={7} className="py-8 text-center type-data text-muted-foreground">
                     No commissions match this view.
                   </TableCell>
                 </TableRow>
@@ -256,13 +256,13 @@ function Ledger() {
    discrepancy handling, chase log — lives on its own route.                    */
 function DetailPanel({ c }: { c: Commission }) {
   return (
-    <div className="space-y-4 t-body">
+    <div className="space-y-4 type-data">
       <div>
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="t-title">{c.property}</h3>
+          <h3 className="type-data-strong">{c.property}</h3>
           {stateChip(c)}
         </div>
-        <p className="mt-1 font-mono t-meta">
+        <p className="mt-1 font-mono type-meta">
           {c.bookingRef}
           {c.traveller && ` · ${c.traveller}`}
         </p>
@@ -289,7 +289,7 @@ function DetailPanel({ c }: { c: Commission }) {
       </dl>
 
       <div className="rounded-md border border-border bg-subtle p-4">
-        <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Rate provenance</div>
+        <div className="type-micro font-mono uppercase tracking-widest text-muted-foreground">Rate provenance</div>
         <div className="mt-2"><SourceTag kind="portal" label={c.projected.source} /></div>
         {c.projected.incentive && <Chip tone="primary" className="mt-2">{c.projected.incentive}</Chip>}
       </div>

@@ -38,7 +38,7 @@ export function PageHeader({
   return (
     <header className={cn("mb-6", className)}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-        <h1 className="t-display flex min-w-0 flex-wrap items-center gap-3">{title}</h1>
+        <h1 className="type-title-page flex min-w-0 flex-wrap items-center gap-3">{title}</h1>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
       {children}
@@ -107,7 +107,7 @@ export function SplitPage({
           className="flex h-full w-[400px] shrink-0 flex-col border-l border-border bg-card"
         >
           <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-3">
-            <span className="truncate t-title">{panelTitle}</span>
+            <span className="truncate type-data-strong">{panelTitle}</span>
             <button
               type="button"
               onClick={onClosePanel}
@@ -126,7 +126,7 @@ export function SplitPage({
           <SheetContent side="bottom" showCloseButton={false} className="max-h-[85dvh] gap-0 rounded-t-2xl p-0">
             <SheetTitle asChild><span className="sr-only">{panelTitle}</span></SheetTitle>
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-              <span className="truncate t-title">{panelTitle}</span>
+              <span className="truncate type-data-strong">{panelTitle}</span>
               <button
                 type="button"
                 onClick={onClosePanel}

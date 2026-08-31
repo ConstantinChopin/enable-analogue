@@ -8,7 +8,11 @@ const buttonVariants = cva(
   /* `font-sans` is explicit, not inherited. A control is the machine's voice in every
      context, including inside a serif answer — a button that picks up the prose face
      from its container stops reading as something you can press. */
-  "font-sans inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  /* Type comes from the system, not from shadcn's `text-sm`. Every button rendered at
+     14px/20 while the largest sans role is 13px — a parallel scale underneath the
+     declared one. Default icon size is `--icon-md` (14px), which pairs with 13px type
+     optically; 16px is reserved for severity marks, where the icon is the information. */
+  "font-sans inline-flex shrink-0 items-center justify-center gap-2 rounded-md type-data font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[var(--icon-md)]",
   {
     variants: {
       variant: {
@@ -23,15 +27,15 @@ const buttonVariants = cva(
           "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         link: "text-primary underline-offset-4 hover:underline",
       },
+      /* Two heights, from the control geometry system. `sm` and `default` were 32 and
+         36 — two sizes that differed by 4px and meant nothing different. They now map
+         onto the declared pair: 28 for dense filter rows, 36 for actions. `lg` is gone;
+         nothing used a third size for a reason anyone could state. */
       size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        xs: "h-6 gap-1 rounded-md px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-8 gap-1.5 rounded-md px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9",
-        "icon-xs": "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm": "size-8",
-        "icon-lg": "size-10",
+        default: "h-[var(--control-h-md)] px-[var(--control-px-md)] has-[>svg]:pl-[10px]",
+        sm: "h-[var(--control-h-sm)] gap-1.5 px-[var(--control-px-sm)] has-[>svg]:pl-2",
+        icon: "size-[var(--control-h-md)]",
+        "icon-sm": "size-[var(--control-h-sm)]",
       },
     },
     defaultVariants: {
