@@ -44,5 +44,10 @@ next-env.d.ts
 /.next-build/
 
 
-# image-fetch scratch
+# image-generation scratch. These live under public/, so anything committed here is
+# served at the production URL — run logs and the review contact sheet are working
+# files, not part of the app.
 public/records/_log.txt
+public/records/_gen.txt
+public/records/_gen-variants.txt
+public/_contact-sheet.html

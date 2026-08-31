@@ -1,0 +1,226 @@
+{
+  "maison-leandre": {
+    "subject": "elegant limestone hotel facade in the Marais Paris, wrought iron balconies, mansard roof",
+    "seed": 62058,
+    "views": {
+      "2": "Parisian hotel suite interior, herringbone parquet, tall shuttered windows, restrained antiques",
+      "3": "hotel breakfast room in a Paris townhouse, marble table, morning light"
+    }
+  },
+  "hotel-verlaine": {
+    "subject": "grand Parisian hotel entrance with awning and stone facade, Haussmann street",
+    "seed": 80908,
+    "views": {
+      "2": "grand Parisian hotel room with brass bed and heavy curtains, Haussmann proportions",
+      "3": "hotel lobby staircase in Paris, wrought iron banister, checkerboard marble floor"
+    }
+  },
+  "palacio-amoreiras": {
+    "subject": "Lisbon palace facade clad in blue and white azulejo tiles",
+    "seed": 40898,
+    "views": {
+      "2": "Lisbon palace bedroom with tiled walls and a wooden shuttered window",
+      "3": "detail of blue and white azulejo tilework on a Lisbon staircase"
+    }
+  },
+  "riad-anouar": {
+    "subject": "Moroccan riad courtyard with plunge pool, orange trees and carved plasterwork",
+    "seed": 59852,
+    "views": {
+      "2": "Moroccan riad bedroom with carved cedar doors and a low brass lantern",
+      "3": "detail of zellige tilework and a brass tap at a riad fountain, Marrakech"
+    }
+  },
+  "villa-ortensia": {
+    "subject": "terraced villa garden above the Amalfi coast, lemon trees, sea below",
+    "seed": 83385,
+    "views": {
+      "2": "Amalfi coast villa bedroom with arched window opening to the sea",
+      "3": "terrace lunch table under a lemon pergola, Amalfi coast, ceramic tiles"
+    }
+  },
+  "cap-destel": {
+    "subject": "Mediterranean clifftop hotel terrace on the French Riviera, pines and sea",
+    "seed": 45595,
+    "views": {
+      "2": "Riviera hotel room with shutters open to pines and Mediterranean sea",
+      "3": "swimming pool cut into a clifftop terrace, French Riviera, parasol pines"
+    }
+  },
+  "ryokan-suikawa": {
+    "subject": "Japanese ryokan tatami room with shoji screens opening onto a moss garden",
+    "seed": 6991,
+    "views": {
+      "2": "Japanese ryokan suite with low table, futon and garden view",
+      "3": "cypress wood onsen bath, steam, stone surround, Japanese inn"
+    }
+  },
+  "sereno-kyoto": {
+    "subject": "Kyoto machiya townhouse interior, wooden lattice corridor, paper lanterns",
+    "seed": 71226,
+    "views": {
+      "2": "Kyoto machiya bedroom, tatami, low bed, timber ceiling beams",
+      "3": "small Kyoto courtyard garden seen through a sliding wooden screen, moss and stone"
+    }
+  },
+  "kirkfield-house": {
+    "subject": "Cotswold honey-stone country house with walled garden, England",
+    "seed": 41291,
+    "views": {
+      "2": "English country house bedroom with four poster bed and garden window",
+      "3": "honey-stone walled kitchen garden with box hedging, Cotswolds"
+    }
+  },
+  "borgo-selvane": {
+    "subject": "Tuscan stone farmhouse with cypress avenue, Val d'Orcia hills",
+    "seed": 63115,
+    "views": {
+      "2": "Tuscan farmhouse bedroom with beamed ceiling and shuttered window over hills",
+      "3": "stone terrace with long table under a pergola, Val d'Orcia, cypress trees"
+    }
+  },
+  "the-brackenmoor": {
+    "subject": "Scottish highland country lodge in a glen, heather and stone",
+    "seed": 34314,
+    "views": {
+      "2": "Scottish lodge sitting room with stone fireplace, tartan and antlers",
+      "3": "misty heather moorland and a stone bothy, Scottish highlands"
+    }
+  },
+  "aurora-fjelland": {
+    "subject": "Norwegian coastal lodge, Lofoten peaks and fjord water",
+    "seed": 13476,
+    "views": {
+      "2": "Norwegian lodge room in timber with panoramic fjord window",
+      "3": "wooden dock on a Lofoten fjord, dark water, sharp peaks"
+    }
+  },
+  "dunes-al-marah": {
+    "subject": "desert camp among red sandstone cliffs, Wadi Rum Jordan",
+    "seed": 61714,
+    "views": {
+      "2": "luxury desert tent interior with rugs and lanterns, Wadi Rum",
+      "3": "red sandstone cliff face and rippled sand at low sun, Wadi Rum Jordan"
+    }
+  },
+  "casa-marena": {
+    "subject": "colonial courtyard house with bougainvillea and balconies, Cartagena Colombia",
+    "seed": 93830,
+    "views": {
+      "2": "colonial bedroom with shuttered doors onto a balcony, Cartagena Colombia",
+      "3": "courtyard with bougainvillea, stone arches and a small fountain, Cartagena"
+    }
+  },
+  "tsavora-lodge": {
+    "subject": "safari tented camp on the Serengeti savannah, acacia trees, golden hour",
+    "seed": 38399,
+    "views": {
+      "2": "safari tent interior with canvas walls, campaign furniture and savannah view",
+      "3": "acacia tree and grassland at golden hour, Serengeti Tanzania"
+    }
+  },
+  "playa-tulira": {
+    "subject": "Pacific beach resort with palapa roofs, Riviera Nayarit Mexico",
+    "seed": 41668,
+    "views": {
+      "2": "beach resort room opening onto sand, palapa roof, Pacific Mexico",
+      "3": "palm shaded pool beside the Pacific, Riviera Nayarit Mexico"
+    }
+  },
+  "hanami-tarn": {
+    "subject": "Japanese onsen hotel overlooking a still lake, Hakone, autumn maples",
+    "seed": 62643,
+    "views": {
+      "2": "Japanese hotel room with tatami and a wall of glass onto a lake",
+      "3": "outdoor onsen pool by a still lake, autumn maples, Hakone Japan"
+    }
+  },
+  "villa-anzeleta": {
+    "subject": "whitewashed Cycladic villa with blue shutters and bougainvillea, Paros Greece",
+    "seed": 69380,
+    "views": {
+      "2": "whitewashed Cycladic bedroom with blue shutters and vaulted ceiling",
+      "3": "narrow whitewashed alley with bougainvillea and blue doors, Paros Greece"
+    }
+  },
+  "aurelia-voyages": {
+    "subject": "small luxury expedition ship at sea, calm ocean, clean white hull",
+    "seed": 89831,
+    "views": {
+      "2": "expedition ship cabin with a large window onto open ocean",
+      "3": "ship observation deck with railings and open sea, clean white paintwork"
+    }
+  },
+  "oberon-nile": {
+    "subject": "traditional dahabiya sailing boat on the Nile, palms on the bank",
+    "seed": 75495,
+    "views": {
+      "2": "dahabiya boat cabin interior with wooden shutters onto the Nile",
+      "3": "deck of a Nile sailing boat, canvas shade, palms on the far bank"
+    }
+  },
+  "australis-patagonia": {
+    "subject": "expedition ship in a Patagonian fjord, glacier and dark water",
+    "seed": 44404,
+    "views": {
+      "2": "expedition ship cabin with view onto a Patagonian glacier",
+      "3": "zodiac boat beside a glacier wall, dark fjord water, Patagonia"
+    }
+  },
+  "clarion-rhine": {
+    "subject": "river cruise boat on the Rhine, terraced vineyards and a hilltop castle",
+    "seed": 57844,
+    "views": {
+      "2": "river cruise cabin with a French balcony over the Rhine",
+      "3": "terraced Rhine vineyards and a river bend seen from the water"
+    }
+  },
+  "meridiana-dmc": {
+    "subject": "Athens rooftop view toward the Acropolis at dusk",
+    "seed": 94108,
+    "views": {
+      "2": "Athens office interior with tall windows and marble floor",
+      "3": "narrow Plaka street with neoclassical facades, Athens"
+    }
+  },
+  "arno-and-co": {
+    "subject": "Florence rooftops and the Arno river, terracotta and stone",
+    "seed": 40738,
+    "views": {
+      "2": "Florence office interior in a renaissance palazzo, tall shuttered windows",
+      "3": "Florence stone alley with iron lanterns and terracotta rooftops"
+    }
+  },
+  "sahara-routes": {
+    "subject": "Sahara dunes at sunrise, Morocco, long shadows",
+    "seed": 47692,
+    "views": {
+      "2": "desert camp tent interior with rugs and low seating, Morocco",
+      "3": "camel caravan tracks across Sahara dunes at sunrise, Morocco"
+    }
+  },
+  "corvin-wells": {
+    "subject": "Parisian Haussmann office building facade, tall windows",
+    "seed": 48284,
+    "views": {
+      "2": "Parisian office interior, parquet, tall windows, restrained modern furniture",
+      "3": "Paris rooftops and zinc chimneys seen from a high window"
+    }
+  },
+  "lambert-hale": {
+    "subject": "Georgian townhouse terrace with railings, London",
+    "seed": 20173,
+    "views": {
+      "2": "London Georgian office interior with sash windows and panelled walls",
+      "3": "London garden square with railings and plane trees"
+    }
+  },
+  "verity-marsh": {
+    "subject": "New York brownstone facade on a tree-lined street",
+    "seed": 26552,
+    "views": {
+      "2": "New York office interior in a brownstone, tall windows, brick and wood",
+      "3": "tree-lined brownstone street in Brooklyn, stoops and iron railings"
+    }
+  }
+}
