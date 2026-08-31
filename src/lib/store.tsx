@@ -9,9 +9,30 @@
  *             or set on the sign-in screen, which sits outside the product.
  */
 import React, { createContext, useContext, useReducer } from "react";
+import { personName } from "@/data/seed";
 import type { Persona, World } from "@/data/seed";
 
 export type NoticeState = "new" | "seen" | "actioned" | "deferred";
+
+/* ── editing a record ───────────────────────────────────────────────────────────
+   Every edit answers "who is this for" before it answers "what does it say".
+
+   Scope is VISIBILITY; layer is where the value displays. The seed already draws the
+   line this way — `note-team` is `layer: "personal"` described as "team scope" — so
+   team is not a fourth layer, it is a wider audience for a value that still is not the
+   agency's position. personal and team land in the personal layer; agency lands in the
+   agency overlay. Canonical is never a choice: Enable publishes it, an agency writes
+   above it, and the value underneath stays readable.                                */
+export type EditScope = "personal" | "team" | "agency";
+
+export interface FieldEdit {
+  value: string;
+  scope: EditScope;
+  reason: string;
+  by: Persona;
+  /** Agency-wide, written by someone who cannot approve it, waits for review. */
+  pending: boolean;
+}
 
 export interface DemoState {
   /* session */
@@ -39,6 +60,8 @@ export interface DemoState {
   prefConfirmed: boolean;
   askScope: string | null;
   notices: Record<string, NoticeState>;
+  /** Field key → the edit written over it, if any. */
+  fieldEdits: Record<string, FieldEdit>;
 }
 
 const initial: DemoState = {
@@ -60,6 +83,7 @@ const initial: DemoState = {
   prefConfirmed: false,
   askScope: null,
   notices: {},
+  fieldEdits: {},
 };
 
 export type Action =
@@ -80,6 +104,8 @@ export type Action =
   | { type: "confirmPref" }
   | { type: "askScope"; scope: string | null }
   | { type: "notice"; id: string; state: NoticeState }
+  | { type: "editField"; key: string; edit: FieldEdit }
+  | { type: "revertField"; key: string }
   | { type: "reset" };
 
 function reducer(s: DemoState, a: Action): DemoState {
@@ -101,6 +127,12 @@ function reducer(s: DemoState, a: Action): DemoState {
     case "confirmPref": return { ...s, prefConfirmed: true };
     case "askScope": return { ...s, askScope: a.scope };
     case "notice": return { ...s, notices: { ...s.notices, [a.id]: a.state } };
+    case "editField": return { ...s, fieldEdits: { ...s.fieldEdits, [a.key]: a.edit } };
+    case "revertField": {
+      const next = { ...s.fieldEdits };
+      delete next[a.key];
+      return { ...s, fieldEdits: next };
+    }
     case "reset": return { ...initial, signedIn: s.signedIn, role: s.role, world: s.world, narration: s.narration };
   }
 }
@@ -135,4 +167,36 @@ export function useDemo() {
 /** Commission figures are absent — never masked — for roles without the entitlement. */
 export function canViewCommissions(role: Persona) {
   return role !== "colleague";
+}
+
+/* ── who may write what ─────────────────────────────────────────────────────────
+   One rule, and it is about blast radius rather than seniority: you may write
+   directly to any audience you are already accountable to, and the agency's shared
+   position takes a second pair of eyes.
+
+     personal   anyone, directly      — it is your own record of the place
+     team       anyone, directly      — your desk, and your desk can see who wrote it
+     agency     lead and ops directly; everyone else proposes
+
+   An advisor is not blocked from agency-wide change, which would push the work into
+   email and lose the attribution entirely. They write it, it queues, a lead approves.
+   The distinction that matters is not "may I" but "does it go live unreviewed", and
+   the sheet says which of the two is about to happen before the button is pressed. */
+export function scopeWrite(role: Persona, scope: EditScope): "direct" | "review" {
+  if (scope === "agency" && role !== "lead" && role !== "ops") return "review";
+  return "direct";
+}
+
+/** Who ends up seeing a value written at this scope. Shown before it is written. */
+export function scopeAudience(scope: EditScope, role: Persona): string {
+  if (scope === "personal") return `Only ${personName[role]}`;
+  if (scope === "team") return "Paris desk · 6 advisors";
+  return "Every advisor in the agency";
+}
+
+/* Scope is visibility; layer is where the value comes to rest. Team is a wider
+   audience for a value that is still not the agency's position, so it shares the
+   personal layer — the convention the seed already uses for the team note. */
+export function layerForScope(scope: EditScope): "agency" | "personal" {
+  return scope === "agency" ? "agency" : "personal";
 }

@@ -11,15 +11,17 @@ import { Suspense, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useDemo, canViewCommissions } from "@/lib/store";
+import {
+  useDemo, canViewCommissions, scopeWrite, scopeAudience, type EditScope,
+} from "@/lib/store";
 import {
   products, productById, leandreFields, leandreContext, commissionConflict,
-  notices, promotions, people,
+  notices, promotions, people, personName,
   type Field, type Layer, type Product, keptSource,
 } from "@/data/seed";
 import { Page, PageHeader, PropertyGallery } from "@/components/layouts";
 import {
-  Chip, Section, Absent, SeverityBanner, NarrationNote, FreshnessDate, EvidenceDot,
+  Chip, Section, SeverityBanner, NarrationNote, FreshnessDate, EvidenceDot,
   ConfirmBanner, SchematicBadge, LayerBadge, ProvenancePopover, SourceTag, ConfidenceMeter,
 } from "@/components/bits";
 import { Button } from "@/components/ui/button";
@@ -28,7 +30,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, EyeOff, MessageSquareText, Scale } from "lucide-react";
+import { ArrowRight, EyeOff, Scale } from "lucide-react";
 
 export default function RecordPage() {
   const params = useParams<{ id: string }>();
@@ -47,51 +49,170 @@ function RecordPlate({ p }: { p: Product }) {
   );
 }
 
-/* ── the action column ───────────────────────────────────────────────────────
-   What an advisor came to this record to do, held in one card that follows the
-   scroll: the figure they are checking, whatever is blocking them, and the way to
-   ask about it. Everything else on the page is evidence for these three.
+/* ═══════════════ Edit a field ═══════════════
+   The scope question comes FIRST, because it is the one an advisor gets wrong.
 
-   The margin used to hold amenities, contacts and representation — reference, which
-   nobody scrolls back up for. Those moved into the body with the record's other
-   groups, and the column carries the decision instead.
+   Typing a new value is the easy half. The half that matters is who the new value is
+   for: yourself, your desk, or every advisor in the agency — and whether it goes live
+   when you press the button or waits for a lead. Both are stated before the button,
+   not discovered after it.
 
-   It holds no FIELD-level action. Moving "Resolve 3 sources" up here put the same
-   filled button in two places at once, because the conflict belongs to one row rather
-   than to the page. The column states the value and its condition; the row that owns
-   the field owns the act.                                                          */
-function ActionCard({
-  figure, figureLabel, figureNote, notice, actions, footer,
-}: {
-  figure?: ReactNode;
-  figureLabel?: string;
-  figureNote?: ReactNode;
-  notice?: ReactNode;
-  actions: ReactNode;
-  footer?: ReactNode;
-}) {
+   Canonical is never a target. Enable publishes that layer; the agency writes above
+   it, and the sheet shows the value that will remain underneath so an edit is visibly
+   an overlay rather than a replacement.                                              */
+function EditFieldSheet({
+  field, open, onOpenChange,
+}: { field: Field | null; open: boolean; onOpenChange: (v: boolean) => void }) {
+  const { s, d } = useDemo();
+  const [value, setValue] = useState("");
+  const [scope, setScope] = useState<EditScope>("personal");
+  const [reason, setReason] = useState("");
+
+  // Re-seed the form each time a different field opens the sheet.
+  const key = field?.key ?? "";
+  const [seeded, setSeeded] = useState("");
+  if (open && key && seeded !== key) {
+    setSeeded(key);
+    setValue(s.fieldEdits[key]?.value ?? field?.value ?? "");
+    /* Default to the scope the field already lives at, and to the NARROWEST scope when
+       it has none — canonical is nobody's to widen by accident. Defaulting a canonical
+       edit to agency-wide made "submit for review" the resting state of the button,
+       which both buries a lead in proposals and teaches the advisor to click past the
+       one question this sheet exists to ask. Editing an agency value keeps it at the
+       agency, because silently narrowing that is the opposite footgun. */
+    setScope(s.fieldEdits[key]?.scope ?? (field?.layer === "agency" ? "agency" : "personal"));
+    setReason("");
+  }
+
+  if (!field) return null;
+  const mode = scopeWrite(s.role, scope);
+  const dirty = value.trim() !== "" && value.trim() !== field.value;
+
+  const commit = () => {
+    if (!dirty || !reason.trim()) return;
+    d({
+      type: "editField",
+      key: field.key,
+      edit: { value: value.trim(), scope, reason: reason.trim(), by: s.role, pending: mode === "review" },
+    });
+    onOpenChange(false);
+  };
+
+  const SCOPES: { v: EditScope; label: string }[] = [
+    { v: "personal", label: "Just me" },
+    { v: "team", label: "My team" },
+    { v: "agency", label: "The whole agency" },
+  ];
+
   return (
-    /* Titled, like every other group. Untitled it was the one card on the page whose
-       first line was a field label rather than a heading, which read as a fragment
-       that had lost its header rather than as a group in its own right. */
-    <Section title="Summary" className="gap-0">
-      {figure !== undefined && (
-        <div className="mb-[var(--space-4)]">
-          <div className="type-micro text-muted-foreground">{figureLabel}</div>
-          <div className="mt-1 type-figure">{figure}</div>
-          {figureNote && <div className="mt-1 type-meta">{figureNote}</div>}
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[480px]">
+        <SheetHeader>
+          <SheetTitle>Edit {field.label.toLowerCase()}</SheetTitle>
+          <SheetDescription>
+            {field.layer === "canonical"
+              ? "This value is published by Enable. Your change is stored above it — the canonical value stays, and stays visible."
+              : "Your change is stored at the layer the scope implies, attributed to you and dated."}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="space-y-[var(--space-4)] px-4 pb-5">
+          <div className="rounded-[var(--radius-card)] border border-border bg-subtle p-[var(--space-3)]">
+            <div className="type-micro text-muted-foreground">
+              {field.layer === "canonical" ? "Canonical — stays beneath your change" : "Current value"}
+            </div>
+            <div className="mt-1 type-data">{field.value}</div>
+            <div className="mt-1 type-meta">{field.source.where} · {field.source.when}</div>
+          </div>
+
+          <div>
+            <Label htmlFor="edit-value" className="type-data-strong">New value</Label>
+            <Textarea
+              id="edit-value"
+              rows={2}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              className="mt-2 type-data"
+            />
+          </div>
+
+          {/* The scope question, with its consequence spelled out per option rather
+              than in a footnote nobody reads. */}
+          <div>
+            <div className="type-data-strong">Who is this change for?</div>
+            <RadioGroup
+              value={scope}
+              onValueChange={(v) => setScope(v as EditScope)}
+              className="mt-2 gap-[var(--space-3)]"
+            >
+              {SCOPES.map(({ v, label }) => {
+                const needsReview = scopeWrite(s.role, v) === "review";
+                return (
+                  <div key={v} className="flex items-start gap-3">
+                    <RadioGroupItem value={v} id={`edit-scope-${v}`} className="mt-0.5" />
+                    <Label htmlFor={`edit-scope-${v}`} className="flex flex-col items-start gap-0.5">
+                      <span className="type-data">{label}</span>
+                      <span className="type-meta font-normal">
+                        {scopeAudience(v, s.role)}
+                        {needsReview && " · goes to a lead for review"}
+                      </span>
+                    </Label>
+                  </div>
+                );
+              })}
+            </RadioGroup>
+          </div>
+
+          <div>
+            <Label htmlFor="edit-reason" className="type-data-strong">
+              Why? <span className="text-muted-foreground">(required)</span>
+            </Label>
+            <p className="mt-1 type-meta">
+              Stored with the value. The next person to open this field reads it instead of asking you.
+            </p>
+            <Textarea
+              id="edit-reason"
+              rows={2}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="e.g. confirmed by the property on today’s call"
+              className="mt-2 type-data"
+            />
+          </div>
+
+          {/* What is about to happen, in one line, immediately above the button that
+              does it. The review path is not a failure state and does not read as one. */}
+          <div className="rounded-[var(--radius-card)] border border-border p-[var(--space-3)]">
+            <div className="type-micro text-muted-foreground">On save</div>
+            <p className="mt-1 type-meta">
+              {/* The audience string is not lowercased into the sentence: it can carry
+                  a name, and "Live for only m. keller" is what that produced. It sits
+                  as its own clause instead. */}
+              {mode === "review" ? (
+                <>Queued for {people.lead} to approve. Until then the record answers with the value it has now.</>
+              ) : (
+                <>Live immediately · {scopeAudience(scope, s.role)} · as {personName[s.role]}, today.</>
+              )}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-[var(--space-2)]">
+            <Button size="sm" disabled={!dirty || !reason.trim()} onClick={commit}>
+              {mode === "review" ? "Submit for review" : "Save change"}
+            </Button>
+            {s.fieldEdits[field.key] && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { d({ type: "revertField", key: field.key }); onOpenChange(false); }}
+              >
+                Remove my change
+              </Button>
+            )}
+          </div>
         </div>
-      )}
-      {notice && <div className="mb-[var(--space-4)]">{notice}</div>}
-      {/* Wrapping row, not a stretched column. A column flex stretches its children,
-          which is what you want in a 320px rail and absurd at full width — the button
-          became a 1045px bar whose label sat alone in the middle of it. A control is
-          sized by its label; only a rail made that look otherwise. */}
-      <div className="flex flex-wrap items-center gap-[var(--space-2)]">{actions}</div>
-      {footer && (
-        <div className="mt-[var(--space-4)] border-t border-border pt-[var(--space-3)]">{footer}</div>
-      )}
-    </Section>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -236,6 +357,8 @@ function LeandreRecord() {
   const [resolveOpen, setResolveOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [noticeOpen, setNoticeOpen] = useState(() => search?.get("compose") === "notice");
+  const [editing, setEditing] = useState(false);
+  const [editField, setEditField] = useState<Field | null>(null);
   const [noteScope, setNoteScope] = useState<"private" | "team" | "agency">("private");
   const [noteText, setNoteText] = useState("");
   const [savedScope, setSavedScope] = useState<"private" | "team" | "agency">("private");
@@ -264,9 +387,17 @@ function LeandreRecord() {
         back="/records"
         crumb="Records / Hotel"
         title={<>Maison Léandre <Chip tone="neutral">Hotel · Paris 4e</Chip></>}
-        /* The actions moved into the action column, beside the figure they act on.
-           In the header they sat three abreast above a picture, equally weighted and
-           attached to nothing. */
+        /* Record-level actions belong to the record, so they sit with its name. Only
+           Edit is filled: it is the one that changes what other people see. */
+        actions={
+          <>
+            <Button size="sm" onClick={() => setEditing((v) => !v)}>
+              {editing ? "Done editing" : "Edit…"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setNoteOpen(true)}>Add note…</Button>
+            <Button variant="outline" size="sm" onClick={() => setNoticeOpen(true)}>Add notice…</Button>
+          </>
+        }
       >
         <RecordPlate p={p} />
       </PageHeader>
@@ -292,56 +423,29 @@ function LeandreRecord() {
         <ConfirmBanner show={s.noteSaved}>Note saved — {scopeLabel} · attributed and dated.</ConfirmBanner>
       </div>
 
+      {/* Edit mode says what editing MEANS here before the first field is touched —
+          that canonical is Enable's and is overlaid rather than overwritten, and that
+          every change picks an audience. Both are the surprising parts.
+
+          Not a NarrationNote: that is the presenter's overlay and renders nothing
+          unless narration is switched on, so this copy would have been invisible to
+          the person it is written for. */}
+      {editing && (
+        <div className="mt-3 rounded-[var(--radius-card)] border border-border bg-subtle px-[var(--space-4)] py-[var(--space-3)]">
+          <div className="type-data-strong">Editing as {personName[s.role]}</div>
+          <p className="mt-1 type-data text-muted-foreground">
+            Canonical values belong to Enable. A change is stored above one, and the published value
+            stays readable underneath. Every change picks who it is for: just you, your team, or the
+            whole agency.{" "}
+            {scopeWrite(s.role, "agency") === "review"
+              ? `Agency-wide changes go to ${people.lead} for review before anyone else sees them.`
+              : "You can publish agency-wide changes directly."}
+          </p>
+        </div>
+      )}
+
       {/* ── the record's groups, all peers ── */}
       <div className="mt-4 bento">
-          {/* The summary and its actions lead, then the layers in their own order —
-              canonical, agency, personal — then the reference. It is the first cell of
-              the grid rather than a column of its own, because it is one of the
-              record's groups and not a commentary on them. */}
-          <ActionCard
-            figureLabel={money ? "Commission" : undefined}
-            /* Unresolved, the card shows the product's own absence mark rather than a
-               bare dash — a lone "—" at figure size reads as a failed render, where
-               "— pending" is the same statement the rest of the product makes about a
-               value it declines to guess. */
-            figure={money ? (s.conflictResolved ? keptSource(s.conflictChoice).value : <Absent reason="pending" />) : undefined}
-            figureNote={
-              money
-                ? s.conflictResolved
-                  ? <>agency layer · kept by {people.advisor} today</>
-                  : <Chip tone="crit">3 sources disagree</Chip>
-                : undefined
-            }
-            notice={
-              s.world === "v2" && spaNotice && !s.spaNoticeClosed
-                ? <Chip tone="warn">{spaNotice.severity} notice open · {spaNotice.ageDays}d</Chip>
-                : undefined
-            }
-            actions={
-              <>
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/ask" onClick={() => d({ type: "askScope", scope: "Maison Léandre" })}>
-                    <MessageSquareText className="size-3.5" aria-hidden /> Ask about this
-                  </Link>
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setNoteOpen(true)}>Add note…</Button>
-                <Button variant="outline" size="sm" onClick={() => setNoticeOpen(true)}>Add notice…</Button>
-              </>
-            }
-            footer={
-              money && promo ? (
-                <>
-                  <div className="type-micro text-muted-foreground">Active promotion</div>
-                  <div className="mt-1 type-data-strong">{promo.rate}</div>
-                  <p className="mt-1 type-meta">
-                    {promo.stacksWithBase ? "bonus — adds to base" : "override — replaces base"} · book by {promo.bookingWindowEnd} · travel by {promo.travelWindowEnd}
-                  </p>
-                  <Chip tone="warn" className="mt-2 tnum">{promo.daysLeft} days left</Chip>
-                </>
-              ) : undefined
-            }
-          />
-
           {/* A layer IS a container — canonical, agency and personal are three
               different answers to "who owns this value", and a box is the honest way
               to say so. What was missing was never the box; it was a heading that
@@ -355,7 +459,14 @@ function LeandreRecord() {
               <p className="-mt-[var(--space-1)] mb-[var(--space-2)] type-meta">{layerLede[g.layer]}</p>
               <div className="divide-y divide-border">
                 {fieldsFor(g.layer).map((f) => (
-                  <FieldRow key={f.key} f={f} resolved={s.conflictResolved} onResolve={() => setResolveOpen(true)} />
+                  <FieldRow
+                    key={f.key}
+                    f={f}
+                    resolved={s.conflictResolved}
+                    onResolve={() => setResolveOpen(true)}
+                    editing={editing}
+                    onEdit={() => setEditField(f)}
+                  />
                 ))}
                 {g.layer === "personal" && s.noteSaved && s.role === "advisor" && (
                   <FieldGrid
@@ -420,6 +531,16 @@ function LeandreRecord() {
             </ul>
           </Section>
 
+          {money && promo && (
+            <Section title="Active promotion">
+              <div className="type-data-strong">{promo.productName} — {promo.rate}</div>
+              <p className="mt-1 type-meta">
+                {promo.stacksWithBase ? "bonus — adds to base" : "override — replaces base"} · book by {promo.bookingWindowEnd} · travel by {promo.travelWindowEnd}
+              </p>
+              <Chip tone="warn" className="mt-2 tnum">{promo.daysLeft} days left</Chip>
+            </Section>
+          )}
+
           {/* client intelligence: gated — absent, not masked; lead sees the admin-note line only */}
           {s.role === "lead" && (
             <Section title="Client intelligence">
@@ -432,6 +553,7 @@ function LeandreRecord() {
       </div>
 
       <ResolveSheet open={resolveOpen} onOpenChange={setResolveOpen} />
+      <EditFieldSheet field={editField} open={!!editField} onOpenChange={(v) => !v && setEditField(null)} />
 
       {/* ── note composer ── */}
       <Sheet open={noteOpen} onOpenChange={setNoteOpen}>
@@ -488,12 +610,18 @@ function LeandreRecord() {
 }
 
 /* ── one field row, all states ── */
-function FieldRow({ f, resolved, onResolve }: { f: Field; resolved: boolean; onResolve: () => void }) {
+function FieldRow({
+  f, resolved, onResolve, editing, onEdit,
+}: {
+  f: Field; resolved: boolean; onResolve: () => void;
+  editing?: boolean; onEdit?: () => void;
+}) {
   // Stale-field one-tap verify (E6) — local to this row.
   const [verified, setVerified] = useState(false);
   const { s } = useDemo();
   const kept = keptSource(s.conflictChoice);
   const reason = s.conflictReason;
+  const edit = s.fieldEdits[f.key];
   if (f.state === "conflict") {
     return (
       <FieldGrid label={f.label}>
@@ -542,13 +670,44 @@ function FieldRow({ f, resolved, onResolve }: { f: Field; resolved: boolean; onR
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <ProvenancePopover source={f.source}>
-          <span className={cn("type-data", f.key === "rooms" && "tnum", f.state === "template" && "italic text-muted-foreground")}>{f.value}</span>
+          <span
+            className={cn(
+              "type-data", f.key === "rooms" && "tnum",
+              f.state === "template" && "italic text-muted-foreground",
+              /* A pending edit has not happened yet, so the row keeps ANSWERING with
+                 the value it has. Showing the proposal as though it were live would
+                 make the review step decorative. */
+              edit && !edit.pending && "line-through text-muted-foreground",
+            )}
+          >
+            {f.value}
+          </span>
         </ProvenancePopover>
-        {f.state === "edited-overlay" && <Chip tone="primary">agency overlay</Chip>}
+        {edit && !edit.pending && <span className="type-data-strong">{edit.value}</span>}
+        {edit && <Chip tone={edit.pending ? "warn" : "primary"}>
+          {edit.pending ? "proposed · agency-wide · awaiting review" : `${edit.scope} · edited by ${personName[edit.by]} today`}
+        </Chip>}
+        {f.state === "edited-overlay" && !edit && <Chip tone="primary">agency overlay</Chip>}
         {f.state === "stale" && verified && <Chip tone="ok">verified today · {people.advisor}</Chip>}
         {f.state === "stale" && !verified && <Chip tone="warn" className="tnum">{f.staleDays}d unverified</Chip>}
         {f.state === "template" && <Chip tone="warn">template copy — needs editorial</Chip>}
       </div>
+
+      {edit && (
+        <p className="mt-1 type-meta">
+          {edit.pending ? <>Proposed value “{edit.value}” · </> : null}
+          Reason: “{edit.reason}”
+        </p>
+      )}
+
+      {/* Only in edit mode. A pencil on every row at rest turns a record you are
+          reading into a form you are filling in, and the whole argument of this screen
+          is that it is the former. */}
+      {editing && onEdit && (
+        <Button variant="outline" size="sm" className="mt-2" onClick={onEdit}>
+          {edit ? "Change again…" : "Edit…"}
+        </Button>
+      )}
 
       {/* The action sits under the value, not beside it. Inline, it competed with the
           value for the eye and it was the thing forcing the wrap that broke the
@@ -640,23 +799,6 @@ function VerlaineRecord() {
       </SeverityBanner>
 
       <div className="mt-4 bento">
-          <Section title="Summary">
-            {money && (
-              <>
-                <div className="type-micro text-muted-foreground">Commission</div>
-                <div className="mt-1 type-figure">{p.rate}</div>
-                <p className="mt-1 type-meta">{p.repFirm} · rep firm of record</p>
-              </>
-            )}
-            <div className="mt-[var(--space-4)] flex flex-wrap items-center gap-[var(--space-2)]">
-              <Button asChild variant="outline" size="sm">
-                <Link href="/ask" onClick={() => d({ type: "askScope", scope: p.name })}>
-                  <MessageSquareText className="size-3.5" aria-hidden /> Ask about this
-                </Link>
-              </Button>
-            </div>
-          </Section>
-
           <Section title="The record">
             {p.blurb && <p className="-mt-[var(--space-1)] mb-[var(--space-2)] type-meta">{p.blurb}</p>}
             <dl className="divide-y divide-border type-data">
@@ -730,7 +872,7 @@ function VerlaineRecord() {
 
 /* ═══════════════ Every other record — real, from its own fields ═══════════════ */
 function GenericRecord({ id }: { id: string }) {
-  const { s, d } = useDemo();
+  const { s } = useDemo();
   const money = canViewCommissions(s.role);
   const p = productById(id);
   const reviewer = s.role === "lead" || s.role === "ops";
@@ -783,38 +925,6 @@ function GenericRecord({ id }: { id: string }) {
       </PageHeader>
 
       <div className="bento">
-          <ActionCard
-            figureLabel={money && p.rate !== "—" ? "Commission" : undefined}
-            figure={money && p.rate !== "—" ? p.rate : undefined}
-            figureNote={p.repFirm ? <>{p.repFirm} · rep firm of record</> : undefined}
-            notice={
-              productNotices.length > 0 ? (
-                <Chip tone={productNotices[0].severity === "Critical" ? "crit" : "warn"}>
-                  {productNotices.length === 1 ? "1 notice open" : `${productNotices.length} notices open`}
-                </Chip>
-              ) : undefined
-            }
-            actions={
-              <Button asChild variant="outline" size="sm">
-                <Link href="/ask" onClick={() => d({ type: "askScope", scope: p.name })}>
-                  <MessageSquareText className="size-3.5" aria-hidden /> Ask about this
-                </Link>
-              </Button>
-            }
-            footer={
-              money && productPromo ? (
-                <>
-                  <div className="type-micro text-muted-foreground">Active promotion</div>
-                  <div className="mt-1 type-data-strong">{productPromo.rate}</div>
-                  <p className="mt-1 type-meta">
-                    {productPromo.stacksWithBase ? "bonus — adds to base" : "override — replaces base"} · book by {productPromo.bookingWindowEnd} · travel by {productPromo.travelWindowEnd}
-                  </p>
-                  <Chip tone="warn" className="mt-2 tnum">{productPromo.daysLeft} days left</Chip>
-                </>
-              ) : undefined
-            }
-          />
-
           <Section title="The record">
             {p.blurb && <p className="-mt-[var(--space-1)] mb-[var(--space-2)] type-meta">{p.blurb}</p>}
             <dl className="divide-y divide-border type-data">
@@ -826,6 +936,7 @@ function GenericRecord({ id }: { id: string }) {
               <Row k="Status">
                 {p.status === "Active" ? "Active" : <Chip tone="warn">{p.status}</Chip>}
               </Row>
+              {p.repFirm && <Row k="Rep firm">{p.repFirm}</Row>}
               {money && p.rate !== "—" && <Row k="Commission" tnum>{p.rate}</Row>}
             </dl>
           </Section>
@@ -879,6 +990,16 @@ function GenericRecord({ id }: { id: string }) {
               </div>
             </div>
           </Section>
+
+          {money && productPromo && (
+            <Section title="Active promotion">
+              <div className="type-data-strong">{productPromo.rate}</div>
+              <p className="mt-1 type-meta">
+                {productPromo.stacksWithBase ? "bonus — adds to base" : "override — replaces base"} · book by {productPromo.bookingWindowEnd} · travel by {productPromo.travelWindowEnd}
+              </p>
+              <Chip tone="warn" className="mt-2 tnum">{productPromo.daysLeft} days left</Chip>
+            </Section>
+          )}
       </div>
     </Page>
   );
