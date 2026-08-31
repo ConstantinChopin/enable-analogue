@@ -245,8 +245,21 @@ function LeandreRecord() {
       <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* ── main: three layer groups ── */}
         <div className="min-w-0 space-y-4">
+          {/* The layer is a property of the whole card, so it belongs to the card's
+              frame rather than to an item in its header. A left rule is read once and
+              governs everything inside it; the badge was read as one more chip among
+              chips — and it restated the title's operative word, three times on one
+              screen ("Enable canonical ● canonical").
+
+              The rule is neutral, not per-layer colour: colour in this product means
+              state, and three coloured left edges would read as a severity ramp for a
+              taxonomy that is not one. The title names the layer; the rule groups it. */}
           {groups.map((g) => (
-            <Section key={g.layer} title={g.title} chips={<LayerBadge layer={g.layer} />}>
+            <Section
+              key={g.layer}
+              title={g.title}
+              className="border-l-2 border-l-muted-foreground/40"
+            >
               <div className="divide-y divide-border">
                 {fieldsFor(g.layer).map((f) => (
                   <FieldRow key={f.key} f={f} resolved={s.conflictResolved} onResolve={() => setResolveOpen(true)} />

@@ -14,7 +14,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useDemo, canViewCommissions } from "@/lib/store";
-import { commissions, briefing, personName, roleLabel, type Commission } from "@/data/seed";
+import { commissions, personName, roleLabel, type Commission } from "@/data/seed";
 import { Page, PageHeader, SplitPage } from "@/components/layouts";
 import { Chip, Section, Segmented, MoneyValue, SourceTag, SeverityBanner, NarrationNote } from "@/components/bits";
 import { Button } from "@/components/ui/button";
@@ -142,30 +142,12 @@ function Ledger() {
       panel={active ? <DetailPanel c={active} /> : null}
     >
       <div className="min-w-0">
-        {/* ── summary strip ── */}
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <Section>
-            <div className="type-code uppercase tracking-widest text-muted-foreground">
-              Total outstanding
-            </div>
-            <div className="mt-1 type-data-strong tnum">{eur(outstanding)}</div>
-            <div className="type-meta tnum">{open.length} open commissions</div>
-          </Section>
-          <Section>
-            <div className="type-code uppercase tracking-widest text-muted-foreground">Overdue</div>
-            <div className="mt-1 type-data-strong tnum">{overdueCount}</div>
-            <div className="type-meta tnum">
-              {eur(commissions.filter((c) => c.state === "overdue").reduce((n, c) => n + c.amount, 0))} unrecovered
-            </div>
-          </Section>
-          <Section>
-            <div className="type-code uppercase tracking-widest text-muted-foreground">
-              Collected this week
-            </div>
-            <div className="mt-1 type-data-strong tnum">{eur(briefing.headline.collectedThisWeek)}</div>
-            <div className="type-meta">actuals read-only from the booking system</div>
-          </Section>
-        </div>
+        {/* The three-card summary strip is gone.
+            It occupied the top third of the surface restating figures the reader had
+            just read on the briefing widget that sent them here — and it was the only
+            3-up strip in the product, so it also read as a device belonging to no
+            archetype. What it carried that the widget does not is the unrecovered
+            total, which now sits as one line under the filters. The table is the page. */}
 
         {/* ── filter bar ── */}
         <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -190,6 +172,12 @@ function Ledger() {
             />
           </div>
         </div>
+
+        {/* The one figure the briefing widget does not carry: what is unrecovered. */}
+        <p className="mt-2 type-meta tnum">
+          {eur(outstanding)} outstanding across {open.length} · {overdueCount} overdue ·{" "}
+          {eur(commissions.filter((c) => c.state === "overdue").reduce((n, c) => n + c.amount, 0))} unrecovered
+        </p>
 
         {/* ── the table ── */}
         <Section variant="list" className="mt-4">

@@ -629,12 +629,29 @@ function RefusalThread() {
           ))}
         </ul>
         <p className="mt-3 border-t border-border pt-3 type-meta">{r.policy}</p>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" className="border-primary text-primary" onClick={() => setRecovery("forward")}>
+        {/* Ranked, not three equal outlines.
+            A refusal's whole value is the route forward, and only one of these three
+            actually reopens the answer — forwarding a document the vault can verify.
+            Weighting all three the same offered a choice where the product has an
+            opinion, so none of them read as the recommended one. */}
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Button size="sm" onClick={() => setRecovery("forward")}>
             {r.ctas[0]}
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setRecovery("rep")}>{r.ctas[1]}</Button>
-          <Button variant="ghost" size="sm" onClick={() => setRecovery("flag")}>{r.ctas[2]}</Button>
+          <button
+            type="button"
+            onClick={() => setRecovery("rep")}
+            className="cursor-pointer type-meta underline underline-offset-2 hover:text-foreground"
+          >
+            {r.ctas[1]}
+          </button>
+          <button
+            type="button"
+            onClick={() => setRecovery("flag")}
+            className="cursor-pointer type-meta underline underline-offset-2 hover:text-foreground"
+          >
+            {r.ctas[2]}
+          </button>
         </div>
         {recovery && (
           <div className="mt-3">

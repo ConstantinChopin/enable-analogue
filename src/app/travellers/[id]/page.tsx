@@ -236,7 +236,9 @@ function MarchettiProfile() {
                           <span className="size-2 rounded-full bg-warn" aria-hidden />
                           <button
                             type="button"
-                            className="cursor-pointer font-medium text-warn hover:underline"
+                            /* An inline action inside meta text takes the meta role and
+                               an underline for its affordance — not a bespoke weight. */
+                            className="cursor-pointer text-warn underline underline-offset-2 hover:no-underline"
                             onClick={() => d({ type: "confirmPref" })}
                           >
                             confirm this
