@@ -187,10 +187,19 @@ export function ViewToggle({
 }
 
 /* ── PropertyImage ──────────────────────────────────────────────────────────────
-   Deterministic generated artwork (review 01 §8). Real photographs would contradict
-   fictional properties and a remote image is a live-demo failure risk, so each record
-   gets an abstract architectural plate derived from a hash of its id. No network,
-   no randomness: the same id always draws the same picture.                        */
+   A photograph where the record has one, the generated plate where it does not.
+
+   Photographs live in `public/records/<id>.jpg` and ship with the build — no runtime
+   network, so a demo cannot fail on a dead image host. They are freely-licensed
+   Wikimedia Commons images chosen for GENERIC subject matter — a courtyard, a
+   coastline, an interior — never a photograph of a specific named hotel, because the
+   product attaches invented commission rates and a fabricated "do not confirm
+   bookings" advisory to these fictional names. Credits are in
+   `public/records/credits.json` and surface on the record as provenance.
+
+   The generated plate stays as the fallback: an abstract architectural drawing derived
+   from a hash of the id, so a record without a photograph still has a picture and the
+   same id always draws the same one.                                               */
 
 /** FNV-1a, 32-bit. Stable across runs and machines. */
 function hashId(id: string) {
@@ -220,13 +229,24 @@ export function PropertyImage({
   name?: string;
   category?: string;
   className?: string;
-  /** A real photograph, if one is ever dropped in, wins over the generated plate. */
+  /** Overrides the conventional `/records/<id>.jpg` path. */
   src?: string;
 }) {
-  if (src) {
+  /* A record with no photograph 404s once and falls back to its plate, so the two can
+     coexist while the set is being filled in — no manifest to keep in sync. */
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const photo = src ?? `/records/${id}.jpg`;
+
+  if (!photoFailed) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt={name ?? ""} className={cn("size-full object-cover", className)} />
+      <img
+        src={photo}
+        alt={name ? `${name} — property photograph` : ""}
+        loading="lazy"
+        onError={() => setPhotoFailed(true)}
+        className={cn("size-full object-cover", className)}
+      />
     );
   }
 
