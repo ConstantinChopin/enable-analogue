@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { useDemo } from "@/lib/store";
 import { travellerCards, traveller, people, type TravellerCard } from "@/data/seed";
 import { PageHeader, SplitPage, ViewToggle } from "@/components/layouts";
-import { Absent, Chip, DataList, Section, NarrationNote, ConfirmBanner } from "@/components/bits";
+import { Absent, Chip, DataList, EmptyState, Section, NarrationNote, ConfirmBanner } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Lock, Share2, Users } from "lucide-react";
 
@@ -123,19 +123,18 @@ export default function TravellersPage() {
               nothing here grants it.
             </ConfirmBanner>
           )}
-          <Section className="py-12 text-center">
-            <Users className="mx-auto size-6 text-muted-foreground" aria-hidden />
-            <p className="mt-3 type-data-strong">No travellers shared with you</p>
-            <p className="mx-auto mt-2 max-w-[46ch] type-meta">
-              Traveller profiles are private to their owning advisor by default. What is not shared
-              is absent, not locked — there is nothing here to unlock.
-            </p>
-            {!requested && (
-              <Button variant="outline" size="sm" className="mt-4" onClick={() => setRequested(true)}>
-                Request access from the owner
-              </Button>
-            )}
-          </Section>
+          <EmptyState
+            icon={Users}
+            title="No travellers shared with you"
+            body="Traveller profiles are private to their owning advisor by default. What is not shared is absent, not locked — there is nothing here to unlock."
+            action={
+              !requested && (
+                <Button variant="outline" size="sm" onClick={() => setRequested(true)}>
+                  Request access from the owner
+                </Button>
+              )
+            }
+          />
         </div>
       ) : (
             <div className="min-w-0">

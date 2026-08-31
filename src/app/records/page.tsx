@@ -16,7 +16,7 @@ import {
   type Product, type ProductCategory, type EvidenceKind, type Layer,
 } from "@/data/seed";
 import { PageHeader, SplitPage, ViewToggle, PropertyImage } from "@/components/layouts";
-import { Chip, Section, EvidenceDot, FreshnessDate, SeverityBanner, NarrationNote, SourceTag } from "@/components/bits";
+import { Chip, EmptyState, Section, EvidenceDot, FreshnessDate, SeverityBanner, NarrationNote, SourceTag } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -293,15 +293,16 @@ function RecordsCatalogue() {
 
             {/* ── the two views ── */}
             {rows.length === 0 ? (
-              <Section className="mt-4 px-4 py-10 text-center">
-                <p className="type-data-strong">No records match these filters.</p>
-                <p className="mt-1 type-meta">
-                  Nothing is hidden by accident — remove a filter to widen the set.
-                </p>
-                <Button variant="outline" size="sm" className="mt-3" onClick={() => setFilters(EMPTY)}>
-                  Clear all filters
-                </Button>
-              </Section>
+              <EmptyState
+                className="mt-4"
+                title="No records match these filters."
+                body="Nothing is hidden by accident — remove a filter to widen the set."
+                action={
+                  <Button variant="outline" size="sm" onClick={() => setFilters(EMPTY)}>
+                    Clear all filters
+                  </Button>
+                }
+              />
             ) : view === "grid" ? (
               <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {rows.map((p) => (

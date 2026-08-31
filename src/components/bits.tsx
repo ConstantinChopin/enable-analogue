@@ -66,6 +66,33 @@ export function DataList({
   );
 }
 
+/* ── EmptyState ───────────────────────────────────────────────────────────────
+   One shape for "there is nothing here". This existed already — unexported, inside
+   `notifications/page.tsx`, used once — while three other surfaces hand-rolled their
+   own (a centred Section, a table cell spanning seven columns, a bare paragraph).
+   The component was not missing; it was in the wrong file.
+
+   `icon` is optional and `action` is the way back out, because an empty state that
+   offers no route is a dead end rather than an answer.                            */
+export function EmptyState({
+  title, body, icon: Icon, action, className,
+}: {
+  title: string;
+  body: string;
+  icon?: React.ElementType;
+  action?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <Section className={cn("py-12 text-center", className)}>
+      {Icon && <Icon className="mx-auto size-[var(--icon-lg)] text-muted-foreground" aria-hidden />}
+      <p className={cn("type-data-strong", Icon && "mt-3")}>{title}</p>
+      <p className="mx-auto mt-1 max-w-[46ch] type-meta">{body}</p>
+      {action && <div className="mt-3">{action}</div>}
+    </Section>
+  );
+}
+
 /* ── Rows ─────────────────────────────────────────────────────────────────────
    The list row, shared. Previously each surface declared its own `Row`/`Rows` pair
    locally, which is why the two-line shape existed on exactly one screen.
@@ -94,14 +121,25 @@ export function RowStack({
   );
 }
 
-/* ── Chip ── */
+/* ── Chip ─────────────────────────────────────────────────────────────────────
+   Fill is reserved for severity.
+
+   The system's own principle is "emphasis is weight before size or colour" — but a
+   chip is a filled shape, and fill outranks weight perceptually whatever the type
+   size. So the stated hierarchy and the rendered one disagreed, and the chip won:
+   the eye read "chased · 54d" before "Aurelia", on every list in the product.
+
+   `warn` and `crit` keep their fill, because severity is the one thing that should
+   outrank a subject. Everything else — trust, lifecycle, counts — is outlined: the
+   tone still carries the meaning, and the subject returns to the top of the row.  */
 export function Chip({ tone = "neutral", className, title, children }: { tone?: "neutral" | "ok" | "warn" | "crit" | "primary"; className?: string; title?: string; children: React.ReactNode }) {
   const tones = {
-    neutral: "bg-muted text-muted-foreground",
-    ok: "bg-ok-soft text-ok",
+    neutral: "border border-border text-muted-foreground",
+    ok: "border border-ok/35 text-ok",
+    primary: "border border-primary/30 text-primary",
+    /* severity — filled */
     warn: "bg-warn-soft text-warn",
     crit: "bg-crit-soft text-crit",
-    primary: "bg-primary-soft text-primary",
   } as const;
   return <span title={title} className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 type-micro whitespace-nowrap", tones[tone], className)}>{children}</span>;
 }

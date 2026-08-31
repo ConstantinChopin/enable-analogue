@@ -19,13 +19,15 @@ import {
   type Widget,
 } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
-import { Chip, Section, NarrationNote, FreshnessDate, Rows, Row, RowStack } from "@/components/bits";
+import { Chip, Section, NarrationNote, Rows, Row, RowStack } from "@/components/bits";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 
 /** The seeded morning. Notices opened "26 Aug" read as two days old from here. */
 const TODAY = "Friday 28 August";
+
+/** Critical first. The same ranking `/notifications` uses, so the two agree. */
+const SEVERITY_RANK: Record<string, number> = { Critical: 0, Important: 1, Info: 2 };
 
 /* ── the widget frame ─────────────────────────────────────────────────────── */
 
@@ -39,17 +41,28 @@ function WidgetCard({
   children: React.ReactNode;
 }) {
   return (
+    /* The footer is demoted, not deleted.
+       It was the most emphatic thing in the card — semibold, full width, its own ruled
+       band, a 16px arrow beside 13px type — so navigation outweighed the content it
+       navigates from. But its *label* is doing real work: "Open the ledger", "All
+       departures", "Records needing verification" each name the saved view you land in,
+       which is how the saved-view claim is legible at all. Deleting it would have
+       thrown that away to fix a weight problem.
+       So: same words, quieter voice. `meta` weight, an `icon-md` arrow, left-aligned,
+       no band. Chrome falls by about half instead of by all. */
     <Section
       variant="list"
       title={title}
       chips={chip}
       footer={
         expandsTo && expandLabel ? (
-          <Button asChild variant="ghost" size="sm" className="h-auto w-full justify-between px-0 py-0 text-primary">
-            <Link href={expandsTo}>
-              {expandLabel} <ArrowRight className="size-3.5" aria-hidden />
-            </Link>
-          </Button>
+          <Link
+            href={expandsTo}
+            className="inline-flex items-center gap-1.5 type-meta transition-colors hover:text-foreground"
+          >
+            {expandLabel}
+            <ArrowRight className="size-[var(--icon-md)]" aria-hidden />
+          </Link>
         ) : undefined
       }
     >
@@ -81,12 +94,17 @@ export default function Briefing() {
   const overdueCount = commissions.filter((c) => c.state === "overdue").length;
 
   /* Under v1 an advisory expired on 1 Aug and is simply gone. */
-  const activeNotices = notices.filter((n) => {
-    if (n.scope === "personal") return false;
-    if (s.world === "v1" && n.v1ExpiredOngoing) return false;
-    if (s.spaNoticeClosed && n.id === "spa") return false;
-    return true;
-  });
+  const activeNotices = notices
+    .filter((n) => {
+      if (n.scope === "personal") return false;
+      if (s.world === "v1" && n.v1ExpiredOngoing) return false;
+      if (s.spaNoticeClosed && n.id === "spa") return false;
+      return true;
+    })
+    /* Severity orders the list. It was rendered in seed order, so the one Critical
+       advisory on the screen — a property you must not confirm bookings against —
+       sat third, below two lesser items. No layout change fixes unranked data. */
+    .sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
 
   /* For the colleague, travellers who are not shared are absent — never masked. */
   const sharedWithColleague = (name: string) => {
@@ -435,11 +453,17 @@ export default function Briefing() {
   return (
     <Page width="wide">
       <PageHeader title={<>Good morning, {personName[s.role]}</>}>
+        {/* Three facts of different classes were joined by middots into one grey
+            string: a date, a sync time, and a reason to distrust every figure below.
+            The caveat is the only one that qualifies the screen, so it leaves the
+            list and takes a mark of its own. */}
         <p className="mt-2 type-data text-muted-foreground">
-          {TODAY} ·{" "}
-          <FreshnessDate>
-            synced {briefing.syncedAt} · booking-system figures up to 48 hours behind
-          </FreshnessDate>
+          {TODAY} · synced {briefing.syncedAt}
+        </p>
+        <p className="mt-1 flex items-center gap-1.5">
+          <Chip tone="warn">
+            Booking-system figures up to 48 hours behind
+          </Chip>
         </p>
       </PageHeader>
 

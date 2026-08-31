@@ -16,7 +16,7 @@ import {
   trips, itinerary, productById, type ItineraryStatus, type Trip,
 } from "@/data/seed";
 import { PageHeader, SplitPage, PropertyImage } from "@/components/layouts";
-import { Chip, Section, SeverityBanner, NarrationNote, SchematicBadge } from "@/components/bits";
+import { Chip, EmptyState, Section, SeverityBanner, NarrationNote, SchematicBadge } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -181,23 +181,20 @@ function Itineraries() {
 
             {/* ── the ledger ── */}
             {rows.length === 0 ? (
-              <Section className="mt-4 py-12 text-center">
-                <p className="type-data-strong">No trips under this filter.</p>
-                <p className="mx-auto mt-2 max-w-[46ch] type-meta">
-                  Nothing is hidden by accident — widen the window or clear the status.
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-4"
-                  onClick={() => {
-                    setNear(false);
-                    setStatus("all");
-                  }}
-                >
-                  Show every trip
-                </Button>
-              </Section>
+              <EmptyState
+                className="mt-4"
+                title="No trips under this filter."
+                body="Nothing is hidden by accident — widen the window or clear the status."
+                action={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setNear(false); setStatus("all"); }}
+                  >
+                    Show every trip
+                  </Button>
+                }
+              />
             ) : (
               <Section variant="list" className="mt-4">
                 <ul>

@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { useDemo, type NoticeState } from "@/lib/store";
 import { notificationsFor, type Notification, type NotifTag } from "@/data/seed";
 import { PageHeader, SplitPage } from "@/components/layouts";
-import { Chip, DataList, Section, Segmented, NarrationNote, SchematicBadge } from "@/components/bits";
+import { Chip, DataList, EmptyState, Section, Segmented, NarrationNote, SchematicBadge } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Check, Clock, Info, OctagonAlert, TriangleAlert } from "lucide-react";
 
@@ -183,14 +183,20 @@ function Triage() {
             {/* ── the stream ── */}
             {mine.length === 0 ? (
               <EmptyState
+                className="mt-3"
                 title="Nothing waiting."
                 body="No item has asked for a decision today. The system is not inventing work to look busy."
               />
             ) : rows.length === 0 ? (
               <EmptyState
+                className="mt-3"
                 title="Nothing waiting under this filter."
                 body="Items are still here under another tag or state."
-                onClear={() => { setTag("all"); setStateFilter("open"); }}
+                action={
+                  <Button variant="outline" size="sm" onClick={() => { setTag("all"); setStateFilter("open"); }}>
+                    Show everything open
+                  </Button>
+                }
               />
             ) : (
               <Section variant="list" className="mt-3">
@@ -263,19 +269,8 @@ function Triage() {
   );
 }
 
-function EmptyState({ title, body, onClear }: { title: string; body: string; onClear?: () => void }) {
-  return (
-    <Section className="mt-3 py-12 text-center">
-      <p className="type-data-strong">{title}</p>
-      <p className="mx-auto mt-1 max-w-[46ch] type-meta">{body}</p>
-      {onClear && (
-        <Button variant="outline" size="sm" className="mt-3" onClick={onClear}>
-          Show everything open
-        </Button>
-      )}
-    </Section>
-  );
-}
+/* The local EmptyState moved into `bits.tsx`, where the other three surfaces that
+   needed one can reach it. */
 
 /* ── the item, in full ──────────────────────────────────────────────────────── */
 function ItemPanel({ n, state }: { n: Notification; state: NoticeState }) {
