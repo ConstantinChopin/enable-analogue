@@ -4,10 +4,70 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { useDemo } from "@/lib/store";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
 import { FileText, HardDrive, Mail, Route, Database, Globe, PenLine, Presentation } from "lucide-react";
 
+/* ── Absent ──────────────────────────────────────────────────────────────────
+   One vocabulary for empty.
+
+   Blank space was carrying three incompatible meanings at once: a value that was
+   never computed, a step already done, and material this reader is not permitted
+   to see. On a product whose whole claim is that you can always tell why something
+   is not there, an advisor could look at a card and not know whether Acuity had
+   been withheld, never run, or did not apply.
+
+   So: restricted material stays genuinely absent — it never reaches the page, and
+   there is nothing here to render. Everything else that is empty says which kind
+   of empty it is, in the em-dash form the commissions ledger already used for
+   not-applicable. The dash is the constant; the word after it is the reason.        */
+export function Absent({ reason, className }: { reason: "not run" | "none on file" | "not applicable" | "pending"; className?: string }) {
+  return (
+    <span className={cn("inline-flex items-baseline gap-1.5 text-muted-foreground", className)}>
+      <span aria-hidden>—</span>
+      <span className="t-micro">{reason}</span>
+    </span>
+  );
+}
+
+/* ── DataList ─────────────────────────────────────────────────────────────────
+   One shape for label-and-value.
+
+   This is among the most repeated structures in the product and it had grown four
+   different implementations — label stacked above value, two-column unruled,
+   two-column ruled, and two-column with a wide gap — none of them shared. A reader
+   moving between the notification inspector, a traveller card and a policy widget
+   was reading the same kind of thing in four different grammars.
+
+   `rows` may carry a null value; a row with nothing to show renders the absence
+   vocabulary rather than an empty cell.                                            */
+export function DataList({
+  rows, className,
+}: {
+  rows: { label: string; value: React.ReactNode; absent?: "not run" | "none on file" | "not applicable" | "pending" }[];
+  className?: string;
+}) {
+  return (
+    <dl className={cn("rounded-md border border-border px-4 t-body", className)}>
+      {rows.map((r, i) => (
+        <div
+          key={r.label}
+          className={cn(
+            "flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5",
+            i > 0 && "border-t border-border",
+          )}
+        >
+          <dt className="text-muted-foreground">{r.label}</dt>
+          <dd className="min-w-0 text-right">
+            {r.value ?? <Absent reason={r.absent ?? "none on file"} />}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 /* ── Chip ── */
-export function Chip({ tone = "neutral", className, children }: { tone?: "neutral" | "ok" | "warn" | "crit" | "primary"; className?: string; children: React.ReactNode }) {
+export function Chip({ tone = "neutral", className, title, children }: { tone?: "neutral" | "ok" | "warn" | "crit" | "primary"; className?: string; title?: string; children: React.ReactNode }) {
   const tones = {
     neutral: "bg-muted text-muted-foreground",
     ok: "bg-ok-soft text-ok",
@@ -15,7 +75,7 @@ export function Chip({ tone = "neutral", className, children }: { tone?: "neutra
     crit: "bg-crit-soft text-crit",
     primary: "bg-primary-soft text-primary",
   } as const;
-  return <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 t-micro whitespace-nowrap", tones[tone], className)}>{children}</span>;
+  return <span title={title} className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 t-micro whitespace-nowrap", tones[tone], className)}>{children}</span>;
 }
 
 /* ── EvidenceDot: state in words + dot, never color alone ── */
@@ -59,13 +119,26 @@ export function SourceTag({ kind, label }: { kind: keyof typeof sourceIcons; lab
 }
 
 /* ── ConfidenceMeter: "3 of 4 sources agree" ── */
-export function ConfidenceMeter({ agree, total, label }: { agree: number; total: number; label?: string }) {
+/** `label={null}` renders the bar alone — for rows where the words beside it already
+    say what the bar says, and repeating them is noise rather than clarity. */
+export function ConfidenceMeter({ agree, total, label, className }: { agree: number; total: number; label?: string | null; className?: string }) {
   return (
-    <span className="inline-flex items-center gap-2">
-      <span className="h-1.5 w-16 rounded-full bg-muted overflow-hidden" aria-hidden>
+    <span className={cn("inline-flex items-center gap-2", className)}>
+      <span
+        className="h-1.5 w-16 rounded-full bg-muted overflow-hidden"
+        role="meter"
+        aria-valuenow={agree}
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-label={label ?? "confidence"}
+      >
         <span className="block h-full rounded-full bg-primary" style={{ width: `${(agree / total) * 100}%` }} />
       </span>
-      <span className="t-micro text-muted-foreground">{label ?? `${agree} of ${total} sources agree`}</span>
+      {label !== null && (
+        <span className="t-micro text-muted-foreground">
+          {label ?? `${agree} of ${total} sources agree`}
+        </span>
+      )}
     </span>
   );
 }
@@ -93,9 +166,24 @@ export function SeverityBanner({ severity, className, children }: { severity: "I
   return <div className={cn("rounded-md border-l-3 px-3 py-2.5 t-body", tones[severity], className)}>{children}</div>;
 }
 
-/* ── SchematicBadge ── */
+/* ── SchematicBadge ──────────────────────────────────────────────────────────
+   One meaning, everywhere: **the controls you can see here are drawn, not wired.**
+
+   It had drifted across three jobs — a feature that does not exist, a feature partly
+   built, and a block of controls that look live and change nothing — which made it
+   unreadable. A thing that does not exist at all is not badged; it is absent, or
+   named on the control itself. This badge marks only the third case, and it now says
+   so on hover rather than relying on the reader to infer which sense is meant.     */
 export function SchematicBadge() {
-  return <Chip tone="neutral" className="font-mono uppercase tracking-wide t-micro">schematic</Chip>;
+  return (
+    <Chip
+      tone="neutral"
+      className="font-mono uppercase tracking-wide t-micro"
+      title="Drawn, not wired — these controls do not change anything in this build."
+    >
+      schematic
+    </Chip>
+  );
 }
 
 /* ── NarrationNote: presenter-overlay only ── */
@@ -203,16 +291,31 @@ export function Segmented<T extends string>({
   );
 }
 
-/* ── Page header ── */
-export function PageHeader({ crumb, title, right, children }: { crumb?: string; title: React.ReactNode; right?: React.ReactNode; children?: React.ReactNode }) {
+/* ── QuietLoading ───────────────────────────────────────────────────
+   The one loading treatment, used by the route boundary (`app/loading.tsx`) and by
+   the session gate while the store rehydrates. A skeleton of the shape that is
+   coming rather than a spinner: the wait is a read, not a computation, and a blank
+   frame on reload reads as a broken build. */
+export function QuietLoading({ note }: { note?: string }) {
   return (
-    <header className="mb-5">
-      {crumb && <div className="mb-1 t-meta text-muted-foreground font-mono">{crumb}</div>}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="t-display flex items-center gap-3">{title}</h1>
-        {right}
+    <div className="p-[var(--panel-pad)]" role="status" aria-live="polite">
+      <Skeleton className="h-7 w-64" />
+      <p className="mt-3 t-meta">
+        {note ?? "Reading the workspace. Nothing is drawn until the data behind it is here."}
+      </p>
+      <div className="mt-6 space-y-3">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="rounded-lg border border-border bg-card p-4">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="mt-3 h-3 w-full" />
+            <Skeleton className="mt-2 h-3 w-2/3" />
+          </div>
+        ))}
       </div>
-      {children}
-    </header>
+    </div>
   );
 }
+
+/* A second PageHeader lived here — its own markup, its own props, its own display size,
+   imported by nothing. Every surface uses the one in layouts.tsx. Two implementations of
+   one component is how a system starts disagreeing with itself, so this one is gone. */

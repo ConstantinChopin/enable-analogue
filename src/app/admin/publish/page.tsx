@@ -4,15 +4,20 @@
  * The Document archetype (§7): main column plus a context rail.
  */
 import React, { useState } from "react";
-import { people, publishQueue, adminPolicy } from "@/data/seed";
+import { people, publishQueue, adminPolicy, type PublishSource } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
 import { Chip, Section, NarrationNote, ConfirmBanner } from "@/components/bits";
 import { Button } from "@/components/ui/button";
-import { Inbox, ShieldAlert, SlidersHorizontal } from "lucide-react";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
+} from "@/components/ui/sheet";
+import { Inbox, Mail, ShieldAlert, SlidersHorizontal } from "lucide-react";
 
 export default function AdminPublish() {
   const [published, setPublished] = useState<Record<string, boolean>>({});
   const [banner, setBanner] = useState(false);
+  /** "Review source" opens the mail the item arrived on — nothing else. */
+  const [source, setSource] = useState<PublishSource | null>(null);
 
   const pending = publishQueue.filter((q) => !published[q.id]).length;
 
@@ -74,11 +79,15 @@ export default function AdminPublish() {
                       >
                         {q.action}
                       </Button>
-                    ) : (
-                      <Button variant="outline" size="sm">
+                    ) : q.source ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSource(q.source ?? null)}
+                      >
                         {q.action}
                       </Button>
-                    )}
+                    ) : null}
                   </span>
                 </li>
               ))}
@@ -194,6 +203,55 @@ export default function AdminPublish() {
           </Section>
         </div>
       </div>
+
+      {/* Review source — the forwarded mail, as it arrived */}
+      <Sheet open={source !== null} onOpenChange={(o) => { if (!o) setSource(null); }}>
+        <SheetContent side="right" className="sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Mail className="size-3.5 text-muted-foreground" aria-hidden /> Forwarded source
+            </SheetTitle>
+            <SheetDescription>
+              {source?.subject} — read the mail before the notice reaches the agency layer.
+            </SheetDescription>
+          </SheetHeader>
+          {source && (
+            <div className="px-4">
+              <dl className="divide-y divide-border">
+                <div className="row-grid">
+                  <dt className="row-primary t-body text-muted-foreground">From</dt>
+                  <dd className="row-trailing font-mono t-micro">{source.from}</dd>
+                </div>
+                <div className="row-grid">
+                  <dt className="row-primary t-body text-muted-foreground">Received</dt>
+                  <dd className="row-trailing tnum t-meta">{source.received}</dd>
+                </div>
+                <div className="row-grid">
+                  <dt className="row-primary t-body text-muted-foreground">Forwarded by</dt>
+                  <dd className="row-trailing t-body">{source.forwardedBy}</dd>
+                </div>
+                <div className="row-grid">
+                  <dt className="row-primary t-body text-muted-foreground">Arrived at</dt>
+                  <dd className="row-trailing font-mono t-micro">{source.via}</dd>
+                </div>
+              </dl>
+              <blockquote className="mt-4 rounded-md border border-border bg-subtle p-4 t-body">
+                {source.body}
+              </blockquote>
+              <p className="mt-4 t-meta">
+                The mail is in the vault as &ldquo;{source.doc}&rdquo;, at{" "}
+                {source.access} scope. Publishing a notice from it stays a separate act,
+                and it keeps the original owner.
+              </p>
+            </div>
+          )}
+          <SheetFooter>
+            <Button variant="outline" onClick={() => setSource(null)}>
+              Close
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </Page>
   );
 }

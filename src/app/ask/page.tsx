@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   ArrowRight, CheckCircle2, XCircle, CircleDashed, Scale, Copy, Loader2, MessagesSquare,
-  Plus, SendHorizontal, ArrowUpRight,
+  Plus, SendHorizontal, ArrowUpRight, X,
 } from "lucide-react";
 
 /** Threads reachable in this build: the six saved conversations plus two demo branches. */
@@ -91,7 +91,7 @@ function Ask() {
       >
         <PageHeader
           className="mb-4 shrink-0"
-          crumb={s.askScope ? <>Scoped to {s.askScope}</> : undefined}
+          /* Scope lives on the composer, where it is removable. One place only. */
           title="Ask"
           actions={
             <>
@@ -190,6 +190,13 @@ function StateMark({ state }: { state?: Conversation["state"] }) {
 function ConversationList({
   active, onPick,
 }: { active: ThreadId | null; onPick: (id: ThreadId | null) => void }) {
+  const { s } = useDemo();
+  const role = s.role;
+  /* Refusal is a v2 capability. In the March build the system answered rather than
+     declining, so a thread marked `refused` could not exist — showing one dates the
+     index to the wrong build and softens the failure the rewind is there to show. */
+  const threads = conversations.filter((c) => s.world === "v2" || c.state !== "refusal");
+
   return (
     <>
       <div className="shrink-0 border-b border-border p-2">
@@ -202,12 +209,14 @@ function ConversationList({
           Recent
         </div>
         <ul className="p-2">
-          {conversations.map((c) => (
+          {threads.map((c) => (
             <li key={c.id}>
               <button
                 type="button"
                 onClick={() => onPick(c.id)}
                 aria-current={active === c.id}
+                /* Named. Six conversation cards announced as "button" six times. */
+                aria-label={`${c.title} — ${c.when}`}
                 className={cn(
                   "w-full cursor-pointer rounded-md px-3 pb-2 text-left transition-colors",
                   active === c.id ? "bg-muted" : "hover:bg-muted/60",
@@ -218,10 +227,14 @@ function ConversationList({
                   <span className="row-trailing t-micro text-muted-foreground">{c.when}</span>
                 </div>
                 <p className="line-clamp-2 t-meta">{c.preview}</p>
-                <div className="mt-1 flex items-center gap-2">
-                  <StateMark state={c.state} />
-                  <span className="ml-auto t-micro text-muted-foreground tnum">{c.messages} messages</span>
-                </div>
+                {/* The outcome and the transcript length describe material this reader
+                    may not be able to open. Absent for them, not greyed. */}
+                {(!c.needsCommission || canViewCommissions(role)) && (
+                  <div className="mt-1 flex items-center gap-2">
+                    <StateMark state={c.state} />
+                    <span className="ml-auto t-micro text-muted-foreground tnum">{c.messages} messages</span>
+                  </div>
+                )}
               </button>
             </li>
           ))}
@@ -236,7 +249,27 @@ function ConversationList({
 function Composer({ large = false }: { large?: boolean }) {
   const [focused, setFocused] = useState(false);
   const [value, setValue] = useState("");
+  const { s, d } = useDemo();
   const grown = large || focused || value.length > 0;
+
+  /* Scope was dispatched from "Ask about this" on every record and read into a crumb
+     the header does not draw, so arriving from a record looked identical to arriving
+     cold. It belongs on the composer: it narrows the question about to be asked, and
+     it has to be removable, because a scope you cannot drop is a trap. */
+  const scopeChip = s.askScope ? (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted py-0.5 pl-2.5 pr-1 t-micro">
+      Scoped to {s.askScope}
+      <button
+        type="button"
+        onClick={() => d({ type: "askScope", scope: null })}
+        aria-label={`Ask across everything instead of ${s.askScope}`}
+        className="grid size-4 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+      >
+        <X className="size-3" aria-hidden />
+      </button>
+    </span>
+  ) : null;
+
   return (
     <form onSubmit={(e) => e.preventDefault()}>
       <div
@@ -258,10 +291,12 @@ function Composer({ large = false }: { large?: boolean }) {
             grown ? (large ? "min-h-[120px]" : "min-h-[76px]") : "min-h-[42px]",
           )}
         />
+        {/* No manifesto here. The composer showed a permanent claim — "every answer cites
+            sources you can open" — that a restricted reader can see is false on the very
+            screen it sits on. The scope chip below is the only thing this row needs to say:
+            it is true, and it changes. */}
         <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
-          <span className="min-w-0 flex-1 t-meta">
-            Every answer cites sources you can open. When the contract fails, you get a refusal, not a guess.
-          </span>
+          <span className="min-w-0 flex-1">{scopeChip}</span>
           <Button type="submit" size="sm" disabled={!value.trim()}>
             <SendHorizontal className="size-3.5" aria-hidden /> Ask
           </Button>
@@ -320,6 +355,18 @@ function Landing({ onPick }: { onPick: (id: ThreadId) => void }) {
 
 /* ── bubbles + citation marks ─────────────────────────────────────────────── */
 
+/* The two voices, on the one surface where the distinction is load-bearing.
+
+   The type system says: sans for anything the machine computed, serif for anything a
+   person reads as prose. Every table, chip and figure in the product honours it — and
+   Ask, which is nothing but prose, was set entirely in the machine voice. The answer
+   is the sentence an advisor forwards to a client; it should not look like a cell.
+
+   The question keeps the sans. It is what you typed, not what was written for you, and
+   the contrast between the two is the point: you ask in the interface's voice and are
+   answered in a human one. The trace, the chips and the sources stay sans throughout —
+   they are the machine showing its work, and that is exactly what they should look
+   like.                                                                              */
 function Q({ children }: { children: React.ReactNode }) {
   return (
     <div className="ml-auto w-fit max-w-[85%] rounded-lg bg-primary px-4 py-3 t-body text-primary-foreground">
@@ -329,7 +376,7 @@ function Q({ children }: { children: React.ReactNode }) {
 }
 function A({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <Section className={cn("px-4 py-3", className)} bodyClassName="t-body">
+    <Section className={cn("px-4 py-3", className)} bodyClassName="type-prose-body">
       {children}
     </Section>
   );
@@ -509,7 +556,12 @@ function SpaThread() {
           <A>
             <p>{askThreads.spa.v1}<Cite n={1} /></p>
             <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-border pt-2">
-              <Chip tone="ok">answer contract met</Chip>
+              {/* The contract is named, not merely asserted. In March it checked that an
+                  answer was sourced and cited — and this answer is both, and wrong. That
+                  is the argument: the contract was real, freshness was not yet in it. */}
+              <Chip tone="ok">
+                {s.world === "v1" ? "answer contract met — sourced, cited" : "answer contract met"}
+              </Chip>
             </div>
           </A>
           {s.world === "v1" && <NarrationNote>{askThreads.spa.v1Note}</NarrationNote>}
@@ -552,11 +604,15 @@ function RefusalThread() {
     <>
       <Q>{r.q}</Q>
       <A>
+        {/* The refusal is the most human sentence the product says, and it was set in
+            the smallest machine face. It reads as prose; the contract beneath it is a
+            check the machine ran, and stays in the machine's voice. */}
         <div className="rounded-md border border-border bg-subtle px-3 py-3">
-          <div className="flex items-center gap-2 t-title">
-            <CircleDashed className="size-4 text-muted-foreground" aria-hidden /> {r.headline}
+          <div className="flex items-center gap-2">
+            <CircleDashed className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="type-prose-lead">{r.headline}</span>
           </div>
-          <p className="mt-1 t-body">{r.body}</p>
+          <p className="mt-1 type-prose-body">{r.body}</p>
         </div>
         <ul className="mt-3 space-y-2">
           {r.contract.map((cl) => (
@@ -638,7 +694,7 @@ function LoadingThread() {
       <SeverityBanner severity="Important">
         <div className="flex flex-wrap items-center gap-2">
           <span>
-            Retrieval timed out at the third stage. The partial trace is shown — no partial answer is
+            Retrieval timed out at the last stage. The partial trace is shown — no partial answer is
             rendered.
           </span>
           <Button asChild size="sm" variant="outline" className="ml-auto">
@@ -674,10 +730,19 @@ function UnbuiltThread({ id }: { id: ThreadId }) {
 /* ── rails ────────────────────────────────────────────────────────────────── */
 
 function TraceList({ pendingStage }: { pendingStage?: number }) {
+  const { s } = useDemo();
+  /* Built from what this reader can see. A stage that only touched restricted
+     material is absent, exactly as the field itself is absent on the record —
+     never a caption saying a stage was hidden. */
+  const stages = trace.filter((t) => !t.needsCommission || canViewCommissions(s.role));
+  /* Clamped, so "the stage that timed out" is always the last visible one rather
+     than an index into a list this reader does not have. */
+  const pendingFrom = pendingStage === undefined ? undefined : Math.min(pendingStage, stages.length - 1);
+
   return (
     <ol className="space-y-3">
-      {trace.map((t, i) => {
-        const pending = pendingStage !== undefined && i >= pendingStage;
+      {stages.map((t, i) => {
+        const pending = pendingFrom !== undefined && i >= pendingFrom;
         return (
           <li key={t.stage} className="flex items-start gap-2 t-body">
             {pending
@@ -767,8 +832,10 @@ function Rail({ active, money }: { active: ThreadId | null; money: boolean }) {
                   {src.label}
                 </div>
                 <div className="mt-1 t-meta">{src.detail}</div>
+                {/* Someone else's words, quoted verbatim from a contract — prose, and
+                    the one place the italic quote role belongs. */}
                 {src.n === 1 && src.quote && (
-                  <blockquote className="mt-2 rounded-md border-l-2 border-primary/60 bg-muted px-3 py-2 t-meta">
+                  <blockquote className="mt-2 rounded-md border-l-2 border-primary/60 bg-muted px-3 py-2 type-prose-quote">
                     {src.quote}
                   </blockquote>
                 )}
@@ -878,7 +945,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
                   <div className="type-data-strong">{src.label}</div>
                   <div className="t-meta">{src.detail} · {src.when}</div>
                 </div>
-                <span className="ml-auto t-display tnum">{src.value}</span>
+                <span className="ml-auto t-title tnum">{src.value}</span>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 <span className="t-body font-semibold">{src.status}</span>

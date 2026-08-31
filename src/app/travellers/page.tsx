@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { useDemo } from "@/lib/store";
 import { travellerCards, traveller, people, type TravellerCard } from "@/data/seed";
 import { PageHeader, SplitPage, ViewToggle } from "@/components/layouts";
-import { Chip, Section, NarrationNote, ConfirmBanner } from "@/components/bits";
+import { Absent, Chip, DataList, Section, NarrationNote, ConfirmBanner } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Lock, Share2, Users } from "lucide-react";
 
@@ -113,10 +113,14 @@ export default function TravellersPage() {
     >
       {rows.length === 0 ? (
         <div className="mt-4 space-y-4">
+          {/* It claimed the request "appears on their briefing"; nothing appeared on any
+              briefing. The confirmation now says only what is true — the request is
+              recorded and waiting on a person — which is also the honest product
+              behaviour: access arrives when the owner grants it, not on a timer. */}
           {requested && (
             <ConfirmBanner show>
-              Request sent to {people.advisor} — it appears on their briefing as a request. Access
-              arrives only if they share.
+              Request recorded for {people.advisor} · today. Access arrives only if they share;
+              nothing here grants it.
             </ConfirmBanner>
           )}
           <Section className="py-12 text-center">
@@ -144,7 +148,9 @@ export default function TravellersPage() {
               {view === "grid" ? (
                 <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {rows.map((c) => (
-                    <li key={c.id}>
+                    /* h-full on the row too, or a card whose title wraps grows past its
+                       neighbours when the inspector narrows the column. */
+                    <li key={c.id} className="h-full">
                       <TravellerCardTile
                         c={c}
                         basic={basic}
@@ -192,11 +198,8 @@ export default function TravellersPage() {
                 </Section>
               )}
 
-              <p className="mt-3 t-meta">
-                {isColleague
-                  ? `Viewing as ${people.colleague}: this list is scope-filtered. Only what is explicitly shared renders.`
-                  : "Every profile here is yours. Sharing one is an act, and it is recorded."}
-              </p>
+              {/* The closing line is gone: it restated the header's sharing claim in the
+                  same viewport. The share chip on every card carries it instead. */}
             </div>
       )}
     </SplitPage>
@@ -219,6 +222,8 @@ function TravellerCardTile({
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
+      /* Named. A screen reader reached six of these and announced "button" six times. */
+      aria-label={`${c.name} — ${c.relationshipStatus}`}
       className={cn(
         "flex h-full w-full cursor-pointer flex-col gap-3 rounded-lg border bg-card p-4 text-left transition-colors",
         selected ? "border-primary bg-muted/40" : "border-border hover:bg-muted/30",
@@ -247,23 +252,33 @@ function TravellerCardTile({
         </span>
       )}
 
-      <span className="mt-auto flex flex-wrap items-center gap-2 border-t border-border pt-3">
+      {/* Sharing leads. It is the subject of this whole surface, and it sat last in a
+          row of otherwise identical pills — counts, a score and a permission state all
+          reading as the same kind of fact. It now sits first, on its own line. */}
+      <span className="mt-auto border-t border-border pt-3">
         {basic ? (
           <Chip tone="primary">Collaborator Basic</Chip>
         ) : (
           <>
-            <Chip tone="neutral">
-              <span className="tnum">{c.profiles}</span> profiles
-            </Chip>
-            <Chip tone="neutral">
-              <span className="tnum">{c.preferences}</span> preferences
-            </Chip>
-            {c.acuityScore !== null && (
-              <Chip tone="ok">
-                Acuity <span className="tnum">{c.acuityScore}</span>
-              </Chip>
-            )}
             <ShareChip state={share} who={sharedWith} />
+            <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 t-meta">
+              <span>
+                <span className="tnum">{c.profiles}</span>{" "}
+                {c.profiles === 1 ? "profile" : "profiles"}
+              </span>
+              <span>
+                <span className="tnum">{c.preferences}</span>{" "}
+                {c.preferences === 1 ? "preference" : "preferences"}
+              </span>
+              {/* Acuity was rendered only when it existed, so a card with no score
+                  looked identical to one where the score was withheld. */}
+              <span>
+                Acuity{" "}
+                {c.acuityScore === null
+                  ? <Absent reason="not run" />
+                  : <span className="tnum">{c.acuityScore}</span>}
+              </span>
+            </span>
           </>
         )}
       </span>
@@ -302,32 +317,23 @@ function TravellerPanel({
         </p>
       ) : (
         <>
-          <dl className="rounded-md border border-border p-4 t-body">
-            <div className="flex items-baseline justify-between gap-3 py-1">
-              <dt className="text-muted-foreground">Next trip</dt>
-              <dd className="text-right">{c.nextTrip ?? "—"}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-3 py-1">
-              <dt className="text-muted-foreground">Departs in</dt>
-              <dd className="tnum text-right">
-                {c.departsInDays === null ? "—" : `${c.departsInDays} days`}
-              </dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-3 py-1">
-              <dt className="text-muted-foreground">Travel profiles</dt>
-              <dd className="tnum text-right">{c.profiles}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-3 py-1">
-              <dt className="text-muted-foreground">Preferences</dt>
-              <dd className="tnum text-right">{c.preferences}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-3 py-1">
-              <dt className="text-muted-foreground">Acuity</dt>
-              <dd className="tnum text-right">
-                {c.acuityScore === null ? "not run" : c.acuityScore}
-              </dd>
-            </div>
-          </dl>
+          <DataList
+            rows={[
+              { label: "Next trip", value: c.nextTrip, absent: "none on file" },
+              {
+                label: "Departs in",
+                value: c.departsInDays === null ? null : <span className="tnum">{c.departsInDays} days</span>,
+                absent: "not applicable",
+              },
+              { label: "Travel profiles", value: <span className="tnum">{c.profiles}</span> },
+              { label: "Preferences", value: <span className="tnum">{c.preferences}</span> },
+              {
+                label: "Acuity",
+                value: c.acuityScore === null ? null : <span className="tnum">{c.acuityScore}</span>,
+                absent: "not run",
+              },
+            ]}
+          />
 
           <div className="flex flex-wrap items-center gap-2">
             <ShareChip state={share} who={sharedWith} />

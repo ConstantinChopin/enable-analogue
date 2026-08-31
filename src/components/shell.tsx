@@ -10,10 +10,11 @@
  */
 import React, { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, History } from "lucide-react";
 import { useDemo, type Action } from "@/lib/store";
 import { Dock } from "@/components/dock";
-import { productById, travellerCards, commissions, candidates } from "@/data/seed";
+import { QuietLoading } from "@/components/bits";
+import { productById, travellerCards, commissions, candidates, type Persona } from "@/data/seed";
 
 /* ── the frame bar: back · forward · breadcrumb, outside the panel ── */
 
@@ -62,6 +63,7 @@ function crumbFor(pathname: string): string[] {
 function FrameBar() {
   const router = useRouter();
   const pathname = usePathname();
+  const { s } = useDemo();
   const crumbs = crumbFor(pathname);
   const btn =
     "grid size-6 place-items-center rounded-[var(--radius-control)] text-muted-foreground " +
@@ -78,12 +80,53 @@ function FrameBar() {
           </span>
         ))}
       </nav>
+
+      {/* The vintage marker lives in the frame, not on the screens. It was marked on
+          one surface and not the others, so pressing V on Ask made the product look
+          like it gave two answers to one question — a bug, not an iteration. Here it
+          is true everywhere at once, and no screen has to caption its own failure. */}
+      {s.world === "v1" && (
+        <span
+          className="ml-auto mr-1 flex shrink-0 items-center gap-1.5 rounded-full border border-crit/40 bg-crit/10 px-2 py-0.5 t-micro text-crit"
+          role="status"
+        >
+          <History className="size-3" aria-hidden />
+          March build — superseded
+        </span>
+      )}
     </div>
   );
 }
 
 type Dispatch = React.Dispatch<Action>;
 type Router = ReturnType<typeof useRouter>;
+
+/* ── route scoping ────────────────────────────────────────────────
+   Which roles a surface exists for. A path not listed is open to every
+   signed-in role. Kept beside the dock's tile list deliberately: if the two
+   ever disagree, a tile leads somewhere that bounces, which is worse than
+   either alone. */
+const routeRoles: { prefix: string; roles: Persona[] }[] = [
+  { prefix: "/admin", roles: ["lead", "ops"] },
+  { prefix: "/ops", roles: ["ops", "lead"] },
+  { prefix: "/ask", roles: ["advisor", "colleague"] },
+  { prefix: "/travellers", roles: ["advisor", "colleague"] },
+  { prefix: "/itineraries", roles: ["advisor"] },
+  { prefix: "/commissions", roles: ["advisor", "ops", "lead"] },
+  { prefix: "/notices", roles: ["advisor"] },
+];
+
+const roleHome: Record<Persona, string> = {
+  advisor: "/briefing",
+  colleague: "/briefing",
+  lead: "/briefing",
+  ops: "/briefing",
+};
+
+function allowedRoles(pathname: string): Persona[] | null {
+  const hit = routeRoles.find((r) => pathname === r.prefix || pathname.startsWith(r.prefix + "/"));
+  return hit ? hit.roles : null;
+}
 
 /** Demo checkpoints. A persona change is now a sign-in, not a toggle. */
 const checkpoints: { key: string; label: string; go: (r: Router, d: Dispatch) => void }[] = [
@@ -129,6 +172,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
     if (s.signedIn && onSignIn) router.replace("/briefing");
   }, [settled, s.signedIn, onSignIn, router]);
 
+  /* Role scoping is a product claim, not a nav convenience: a surface a role cannot
+     use does not exist for them. Hiding the dock tile is not enough — the route has
+     to hold when the URL is typed, or the claim is only true of the menu. */
+  useEffect(() => {
+    if (!settled || !s.signedIn) return;
+    const allowed = allowedRoles(pathname);
+    if (allowed && !allowed.includes(s.role)) router.replace(roleHome[s.role]);
+  }, [settled, s.signedIn, s.role, pathname, router]);
+
   /* ── Invisible presenter layer ── */
   const onKey = useCallback((e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;   /* ⌘1…⌘7 belong to the dock */
@@ -149,7 +201,26 @@ export function Shell({ children }: { children: React.ReactNode }) {
   /* Sign-in sits outside the product: no dock, no page chrome, no presenter keys. */
   if (onSignIn) return <>{children}</>;
 
-  if (!settled || !s.signedIn) return <div className="min-h-dvh bg-background" />;
+  /* While the store rehydrates — and while a session-less route is being replaced —
+     the frame is drawn and the panel carries the one loading treatment. A blank
+     screen on reload reads as a broken build, which is the wrong first impression
+     for a product whose argument is that nothing is hidden. */
+  if (!settled || !s.signedIn) {
+    return (
+      <div className="h-dvh overflow-hidden bg-subtle p-[var(--frame-inset)]">
+        <div className="flex h-full flex-col gap-[var(--frame-inset)]">
+          <div className="h-7 shrink-0" aria-hidden />
+          <div
+            className="min-h-0 flex-1 overflow-hidden bg-background"
+            style={{ border: "1px solid var(--frame-stroke)", borderRadius: "var(--radius-panel)" }}
+          >
+            <QuietLoading note="Restoring the session. The workspace draws once who you are is settled." />
+          </div>
+          <div className="h-[60px] shrink-0" aria-hidden />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-dvh overflow-hidden bg-subtle p-[var(--frame-inset)]">
@@ -175,7 +246,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       {s.narration && (
         <div
-          className="pointer-events-none fixed bottom-6 left-4 z-50 rounded-full border border-border bg-card/90 px-2.5 py-1 font-mono t-micro uppercase tracking-widest text-muted-foreground"
+          /* Above the dock, not beside it. At 375px the dock fills the width and the
+             badge sat on top of the first tile. */
+          className="pointer-events-none fixed bottom-[84px] left-4 z-50 rounded-full border border-border bg-card/90 px-2.5 py-1 font-mono t-micro uppercase tracking-widest text-muted-foreground sm:bottom-6"
           role="status"
         >
           narration

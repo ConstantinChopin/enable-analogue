@@ -42,3 +42,4 @@ next-env.d.ts
 
 # build variant used to avoid dev-server dist collisions
 /.next-build/
+

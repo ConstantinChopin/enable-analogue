@@ -14,7 +14,8 @@ import Link from "next/link";
 import { useDemo, canViewCommissions } from "@/lib/store";
 import {
   widgetsFor, personName, commissions, departures, notices, promotions, briefing,
-  publishQueue, candidates, connections, adminPolicy, orphanedPayments, travellerCards, people,
+  publishQueue, candidates, connections, connectionHealth, adminPolicy, orphanedPayments,
+  travellerCards, people,
   type Widget,
 } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
@@ -111,18 +112,13 @@ export default function Briefing() {
     switch (w.id) {
       /* ── advisor / colleague ── */
       case "commissions":
-        if (!money) {
-          return (
-            <Quiet>
-              Commission figures sit with the owning advisor. They are absent from this
-              briefing by policy, not hidden behind a mask.
-            </Quiet>
-          );
-        }
+        /* No permission branch. A role without commission access does not receive this
+           widget at all (see `widgetsFor.colleague`), so there is nothing here to
+           explain — which is the whole of "absent, not masked". */
         return (
           <>
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="t-display tnum">{eur(outstanding)}</span>
+              <span className="t-title tnum">{eur(outstanding)}</span>
               <span className="t-meta">
                 outstanding across {openCommissions.length} commissions
               </span>
@@ -237,7 +233,7 @@ export default function Briefing() {
         return (
           <>
             <div className="flex items-baseline gap-3">
-              <span className="t-display tnum">{briefing.recordsVerified.done}</span>
+              <span className="t-title tnum">{briefing.recordsVerified.done}</span>
               <span className="t-meta tnum">
                 of {briefing.recordsVerified.of} in Paris
               </span>
@@ -330,7 +326,7 @@ export default function Briefing() {
         return (
           <>
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="t-display tnum">
+              <span className="t-title tnum">
                 {eur(orphanedPayments.reduce((n, p) => n + p.amount, 0))}
               </span>
               <span className="t-meta">
@@ -349,9 +345,6 @@ export default function Briefing() {
                 ))}
               </Rows>
             </div>
-            <p className="mt-2 t-meta">
-              Unmatched money stays visible. It is never parked.
-            </p>
           </>
         );
 
@@ -363,12 +356,12 @@ export default function Briefing() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Collected</div>
-                <div className="mt-1 t-display tnum">{eur(collected)}</div>
+                <div className="mt-1 t-title tnum">{eur(collected)}</div>
                 <div className="t-meta tnum">{paid.length} settled</div>
               </div>
               <div>
                 <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Outstanding</div>
-                <div className="mt-1 t-display tnum">{eur(outstanding)}</div>
+                <div className="mt-1 t-title tnum">{eur(outstanding)}</div>
                 <div className="t-meta tnum">
                   {openCommissions.length} open · {overdueCount} overdue
                 </div>
@@ -424,8 +417,10 @@ export default function Briefing() {
     if (w.id === "unmatched") return <Chip tone="warn">{orphanedPayments.length} to match</Chip>;
     if (w.id === "confirm") return <Chip tone="warn">{candidates.length} waiting</Chip>;
     if (w.id === "connections") {
-      const bad = connections.filter((c) => c.state !== "ok").length;
-      return bad > 0 ? <Chip tone="warn">{bad} need attention</Chip> : undefined;
+      /* The seed's one rule, so this chip cannot disagree with /admin/connections. */
+      return connectionHealth.needAttention > 0 ? (
+        <Chip tone="warn">{connectionHealth.label}</Chip>
+      ) : undefined;
     }
     return undefined;
   };
@@ -464,10 +459,9 @@ export default function Briefing() {
         })}
       </div>
 
-      <p className="mt-4 t-meta">
-        Each widget is a saved view. Expanding one opens the surface it summarises, with the
-        same filter already applied.
-      </p>
+      {/* The saved-view explanation is gone from all three roles' briefings. Every
+          widget footer already names the surface it opens — "Open the ledger", "All
+          departures" — and clicking one proves the claim in a way a sentence cannot. */}
     </Page>
   );
 }

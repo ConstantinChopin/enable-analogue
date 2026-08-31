@@ -5,9 +5,9 @@
  */
 import Link from "next/link";
 import { useDemo } from "@/lib/store";
-import { candidates } from "@/data/seed";
+import { candidates, confirmedRecently } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
-import { Chip, Section, NarrationNote, SchematicBadge } from "@/components/bits";
+import { Chip, Section, NarrationNote } from "@/components/bits";
 import { CircleDashed } from "lucide-react";
 
 export default function ReviewQueue() {
@@ -40,12 +40,6 @@ export default function ReviewQueue() {
         flush
         className="mt-4"
         bodyClassName="p-0"
-        footer={
-          <span className="t-meta">
-            Admin reviews every product candidate for the first three months, including exact
-            place-id matches. Programmes and promotions stay admin-only.
-          </span>
-        }
       >
         <div className="row-grid px-4 t-micro uppercase tracking-widest text-muted-foreground">
           <span className="row-primary">Candidate</span>
@@ -104,22 +98,36 @@ export default function ReviewQueue() {
         </ul>
       </Section>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <Section title="Scope inheritance">
-          <p className="t-body text-muted-foreground">
-            A derived record inherits the tightest scope of its sources. A record extracted from a
-            private document arrives private; widening it is an explicit, attributed act — never a
-            side effect of confirmation.
-          </p>
-        </Section>
-        <Section title="Bulk seeding" chips={<SchematicBadge />}>
-          <p className="t-body text-muted-foreground">
-            A list import — an openings list, a consortium roster — creates dozens of candidates at
-            once. The queue batch-confirms high-confidence fields and holds the flagged ones; a held
-            field never rides through on a batch.
-          </p>
-        </Section>
-      </div>
+      {/* The two essays that used to sit here — scope inheritance, bulk seeding — are
+          gone. One described a feature that does not exist, and both explained the
+          queue to someone already looking at it. Scope inheritance is demonstrated on
+          the candidate itself, where a private source produces a private record.
+
+          What sits here instead is what the queue has already cleared: three rows above
+          an empty half-page read as a broken screen, and an empty queue is the state
+          this surface is built to reach. */}
+      <Section
+        flush
+        className="mt-4"
+        title="Confirmed"
+        chips={<Chip tone="neutral"><span className="tnum">{confirmedRecently.length}</span> in the last two days</Chip>}
+        bodyClassName="p-0"
+      >
+        <ul>
+          {confirmedRecently.map((c, i) => (
+            <li key={c.id} className={i > 0 ? "border-t border-border" : undefined}>
+              <div className="px-4 py-3">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <span className="type-data-strong">{c.name}</span>
+                  <span className="font-mono t-micro text-muted-foreground">{c.uri}</span>
+                  <span className="ml-auto t-meta">{c.by} · {c.when}</span>
+                </div>
+                <p className="mt-1 t-meta">{c.note}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Section>
     </Page>
   );
 }

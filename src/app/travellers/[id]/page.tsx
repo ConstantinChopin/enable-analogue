@@ -16,7 +16,8 @@ import {
 } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
 import {
-  Chip, Section, SeverityBanner, NarrationNote, ConfirmBanner, SourceTag, SchematicBadge,
+  Chip, DataList, Section, SeverityBanner, NarrationNote, ConfirmBanner, SourceTag, SchematicBadge,
+  ConfidenceMeter,
 } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -27,7 +28,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, Check, CircleDashed, Lock, Share2, Sparkles, Users } from "lucide-react";
 
-const TABS = ["Overview", "Journeys", "Intelligence", "Communications", "Financials"] as const;
+/* The profile-type tab row was removed — see the note where it stood. Its sections
+   live in the main column and the rail. */
 
 export default function TravellerProfilePage() {
   const params = useParams<{ id: string }>();
@@ -57,8 +59,8 @@ function MarchettiProfile() {
         <div className="space-y-4">
           {requested && (
             <ConfirmBanner show>
-              Request sent to {people.advisor} — it appears on their briefing as a request. Access
-              arrives only if they share.
+              Request recorded for {people.advisor} · today. Access arrives only if they share;
+              nothing here grants it.
             </ConfirmBanner>
           )}
           <Section className="py-12 text-center">
@@ -174,76 +176,20 @@ function MarchettiProfile() {
       <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* ── Main column ── */}
         <div className="min-w-0 space-y-4">
-          {/* Departure checklist */}
-          <Section
-            title={`${traveller.departure.trip} — departure checklist`}
-            chips={
-              <Chip tone="primary">
-                <span className="tnum">
-                  {done}/{of}
-                </span>
-              </Chip>
-            }
-          >
-            <Progress value={(done / of) * 100} className="h-1.5" />
-            <ul className="mt-4 grid gap-x-4 gap-y-2 t-body sm:grid-cols-2">
-              {traveller.departure.checklist.items.map((item) => {
-                const pending = item.includes("pending");
-                return (
-                  <li key={item} className="flex items-center gap-2">
-                    {pending ? (
-                      <CircleDashed className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                    ) : (
-                      <Check className="size-3.5 shrink-0 text-ok" aria-hidden />
-                    )}
-                    <span className={pending ? "text-muted-foreground" : undefined}>
-                      {item.replace(" — pending", "")}
-                    </span>
-                    {pending && (
-                      <span className="ml-auto">
-                        <Chip tone="neutral">pending</Chip>
-                      </span>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </Section>
+          {/* The departure checklist used to open this page, so the most sensitive
+              record type in the product led with logistics and a heavy progress bar
+              rather than with the person. It now sits below the preferences, where
+              trip admin belongs. */}
 
-          {/* Profile-type tabs — Intelligence is the built tab in this vintage */}
-          <div
-            role="tablist"
-            aria-label="Profile sections"
-            className="flex flex-wrap items-center gap-1 border-b border-border pb-px t-body"
-          >
-            {TABS.map((t) =>
-              t === "Intelligence" ? (
-                <button
-                  key={t}
-                  type="button"
-                  role="tab"
-                  aria-selected="true"
-                  className="rounded-t-md border border-b-0 border-border bg-card px-3 py-2 font-semibold"
-                >
-                  {t}
-                </button>
-              ) : (
-                <button
-                  key={t}
-                  type="button"
-                  role="tab"
-                  aria-selected="false"
-                  disabled
-                  className="cursor-not-allowed px-3 py-2 text-muted-foreground/60"
-                >
-                  {t}
-                </button>
-              ),
-            )}
-            <span className="ml-auto pb-1">
-              <SchematicBadge />
-            </span>
-          </div>
+          {/* The tab row is gone.
+
+              It was never navigation: five tabs sat above a single stacked column that
+              already contained all of their content, four of them inert, one marked
+              selected. It produced three separate defects — controls that look pressable
+              and are not, a badge at the row's end that read as a sixth tab, and, once
+              Financials was actually built below, a tab calling built content unbuilt.
+              A Document archetype navigates by its sections and its rail, which this
+              page already has. */}
 
           {/* Shortlist conflict — warn, not block */}
           <SeverityBanner severity="Important">
@@ -311,9 +257,17 @@ function MarchettiProfile() {
                           1 source
                         </>
                       )}
-                      <span className="ml-auto tnum">
-                        confidence {p.confidence.toFixed(2)}
-                      </span>
+                      {/* The bare probability is gone. An advisor cannot act on the
+                          difference between 0.60 and 0.65, and printing six unexplained
+                          decimals beside a client's preferences is the opposite of the
+                          claim that we do not guess. The corroboration count to the left
+                          already carries the real signal; the bar shows its weight. */}
+                      <ConfidenceMeter
+                        className="ml-auto"
+                        agree={Math.round(p.confidence * 100)}
+                        total={100}
+                        label={null}
+                      />
                     </div>
                   </div>
                 );
@@ -373,6 +327,44 @@ function MarchettiProfile() {
             ))}
           </Section>
 
+          {/* Departure checklist — trip admin, below the person it belongs to */}
+          <Section
+            title={`${traveller.departure.trip} — departure checklist`}
+            chips={
+              <Chip tone="neutral">
+                <span className="tnum">
+                  {done}/{of}
+                </span>{" "}
+                complete
+              </Chip>
+            }
+          >
+            <Progress value={(done / of) * 100} className="h-1" />
+            <ul className="mt-4 grid gap-x-4 gap-y-2 t-body sm:grid-cols-2">
+              {traveller.departure.checklist.items.map((item) => {
+                const pending = item.includes("pending");
+                return (
+                  <li key={item} className="flex items-center gap-2">
+                    {pending ? (
+                      <CircleDashed className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                    ) : (
+                      <Check className="size-3.5 shrink-0 text-ok" aria-hidden />
+                    )}
+                    <span className={pending ? "text-muted-foreground" : undefined}>
+                      {item.replace(" — pending", "")}
+                    </span>
+                    {/* Both states are marked. A row whose trailing slot was empty was
+                        relying on blank space to mean "done", which is one of the three
+                        things blank space was being asked to mean at once. */}
+                    <span className="ml-auto shrink-0">
+                      {pending ? <Chip tone="warn">pending</Chip> : <span className="t-micro text-muted-foreground">done</span>}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </Section>
+
           {/* Profiles */}
           <Section title="Travel profiles">
             <div className="flex flex-wrap gap-2">
@@ -405,11 +397,46 @@ function MarchettiProfile() {
 
           {/* Financials — gated; absent for the colleague, never masked */}
           {money && (
-            <Section title="Financials" chips={<SchematicBadge />}>
-              <p className="t-meta">
-                Lifetime spend and average daily rate render here, for the owning advisor and the
-                policy roles. Spend fields stay behind the commission entitlement at every sharing
-                tier.
+            <Section
+              title="Financials"
+              chips={<Chip tone="neutral">commission entitlement</Chip>}
+            >
+              <DataList
+                rows={[
+                  {
+                    label: `Lifetime spend · since ${traveller.financials.since}`,
+                    value: (
+                      <span className="tnum">
+                        {traveller.financials.currency}{" "}
+                        {traveller.financials.lifetimeSpend.toLocaleString("en-GB")}
+                      </span>
+                    ),
+                  },
+                  { label: "Trips booked", value: <span className="tnum">{traveller.financials.trips}</span> },
+                  {
+                    label: "Average trip value",
+                    value: (
+                      <span className="tnum">
+                        {traveller.financials.currency}{" "}
+                        {traveller.financials.averageTripValue.toLocaleString("en-GB")}
+                      </span>
+                    ),
+                  },
+                  {
+                    label: "Average daily rate",
+                    value: (
+                      <span className="tnum">
+                        {traveller.financials.currency}{" "}
+                        {traveller.financials.averageDailyRate.toLocaleString("en-GB")}
+                      </span>
+                    ),
+                  },
+                ]}
+              />
+              <p className="mt-3 t-meta">
+                {traveller.financials.source}. Figures follow the booking system, which stays
+                authoritative for money — they carry its sync time rather than claiming to be
+                current.
               </p>
             </Section>
           )}
@@ -453,7 +480,7 @@ function MarchettiProfile() {
 
           <Section title="Acuity" chips={<Chip tone="ok">{traveller.acuity.status}</Chip>}>
             <div className="flex items-baseline gap-2">
-              <span className="tnum t-display">{traveller.acuity.score}</span>
+              <span className="tnum t-title">{traveller.acuity.score}</span>
               <span className="t-meta">last run {traveller.acuity.lastRun}</span>
             </div>
             <p className="mt-2 t-meta">
@@ -713,7 +740,7 @@ function GenericProfile({ id }: { id: string }) {
                 </p>
               ) : (
                 <div className="flex items-baseline gap-2">
-                  <span className="tnum t-display">{card.acuityScore}</span>
+                  <span className="tnum t-title">{card.acuityScore}</span>
                   <span className="t-meta">last complete run</span>
                 </div>
               )}

@@ -12,19 +12,25 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useDemo } from "@/lib/store";
 import type { Persona } from "@/data/seed";
-import { people } from "@/data/seed";
+import { personEmail, personInitials, personName, personas, roleLabel } from "@/data/seed";
 import { Section } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChevronDown, KeyRound } from "lucide-react";
 
-const accounts: { role: Persona; name: string; title: string; email: string; initials: string }[] = [
-  { role: "advisor", name: people.advisor, title: "Advisor, Paris desk", email: "r.devane@parisdesk.travel", initials: people.advisorShort },
-  { role: "colleague", name: people.colleague, title: "Advisor, Paris desk", email: "j.dubois@parisdesk.travel", initials: people.colleagueShort },
-  { role: "lead", name: people.lead, title: "Agency lead", email: "m.keller@parisdesk.travel", initials: people.leadShort },
-  { role: "ops", name: people.ops, title: "Operations", email: "a.blanc@parisdesk.travel", initials: people.opsShort },
-];
+/* The demo accounts are the personas, read from the seed. The address advertised
+   here is the address the product shows in Settings and stamps on a record: a
+   sign-in that offers a domain the workspace has never heard of is the first
+   thing in the demo that is not true. */
+const accounts: { role: Persona; name: string; title: string; email: string; initials: string }[] =
+  personas.map((role) => ({
+    role,
+    name: personName[role],
+    title: roleLabel[role],
+    email: personEmail[role],
+    initials: personInitials[role],
+  }));
 
 export default function SignInPage() {
   const { s, d } = useDemo();
@@ -47,7 +53,15 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="relative flex min-h-dvh flex-col items-center justify-center bg-subtle px-4 py-12">
+    /* The first screen a panel sees now carries the same structural signature as every
+       screen after it: the 12px inset, the hairline panel, and a window that does not
+       scroll. It had none of them — it was the one surface where the design language
+       was absent, on the one surface seen first. */
+    <div className="h-dvh overflow-hidden bg-subtle p-[var(--frame-inset)]">
+      <div
+        className="flex h-full items-center justify-center overflow-y-auto bg-background px-4 py-10"
+        style={{ border: "1px solid var(--frame-stroke)", borderRadius: "var(--radius-panel)" }}
+      >
       <div className="w-full max-w-[404px]">
         {/* product mark */}
         <div className="mb-6 flex items-center justify-center gap-2.5">
@@ -148,15 +162,16 @@ export default function SignInPage() {
             })}
           </div>
         </section>
-      </div>
 
-      {/* Demo setup — the one place a demo control is visible */}
-      <details className="group mt-10 w-full max-w-[404px] t-meta sm:absolute sm:right-5 sm:bottom-5 sm:mt-0 sm:w-auto">
-        <summary className="flex cursor-pointer list-none items-center gap-1 sm:justify-end">
+      {/* Demo setup — the one place a demo control is visible. It used to float
+          bottom-right, right-aligned against a centred card and attached to nothing.
+          It now sits in the column it belongs to. */}
+      <details className="group mt-8 t-meta">
+        <summary className="flex cursor-pointer list-none items-center gap-1">
           Demo setup
           <ChevronDown className="size-3.5 transition-transform group-open:rotate-180" aria-hidden />
         </summary>
-        <Section className="mt-2 p-3 sm:w-[240px]">
+        <Section className="mt-2 p-3">
           <div className="mb-2 t-micro text-muted-foreground">Build vintage</div>
           <div className="flex overflow-hidden rounded-md border border-border">
             {([["v2", "Current build"], ["v1", "March build"]] as const).map(([w, label]) => (
@@ -175,6 +190,8 @@ export default function SignInPage() {
           </div>
         </Section>
       </details>
+      </div>
+      </div>
     </div>
   );
 }

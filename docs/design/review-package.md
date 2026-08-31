@@ -76,7 +76,38 @@ Single-screen problems are cheap; sequence problems are expensive. These are the
 
 ---
 
-## 5 · Known open questions
+## 5 · How to hand this over
+
+Layered deliberately. The director asked for a minimum — the one-sentence description, the primary action, the frequency, and a first flow — and giving him everything at once buries the thing he asked for.
+
+**Send first**
+1. §1 above, pasted into the message rather than attached.
+2. The five sequences from §4, as screenshot runs, each shot labelled with the screen's name and its position in the flow. A screen with no before and after can only be judged as a poster.
+3. One line on content status: fake but load-bearing, sized to stress the layouts, so density is fair game.
+
+**Have ready, offer rather than lead with**
+The two state inventories — ~200 verified states between them, each with the exact recipe to reach it. Reference material. The offer to make is *"tell me a state and I'll give you the path to it"*, not a document dump.
+
+**Hold back until after his read: the gap list.**
+Both inventories end with what the specs promise and the build does not do — 46 items on the advisor side, 22 on the admin side. Sending it first is contamination; he explicitly asked to be told that a suspicion exists, not what it is. There is a better reason than manners: withheld, his audit becomes a genuine test of ours. Anything he finds that our inventory missed is a real signal about where we are blind; anything he finds that we already hold is validation. Send it afterwards as a reconciliation.
+
+## 6 · Capture list
+
+In order. Roughly twenty-two shots.
+
+| Flow | Shots |
+|---|---|
+| **Two doors** | `/signin` · `/briefing` · `/records` (grid) · `/records/maison-leandre` · resolve sheet open · `/ask` showing the same disagreement |
+| **Refusal loop** | `/ask?state=refusal` · the recovery confirmation after forwarding to the vault · the answered state |
+| **The morning** | `/briefing` · `/commissions/vo` · the drafted chase, before and after sending |
+| **Confirmation** (sign in as the agency lead) | `/admin/review` · `/admin/review/sereno` · after confirming, with the two held fields named |
+| **The iteration** | `/records/maison-leandre` in v2, then press `V` for the March build where the notice has silently expired |
+| **States** | a colleague session on `/briefing` and `/records` (content absent, not masked) · `/ask?state=loading` · the notification queue at full length |
+| **390px** | briefing and records |
+
+A deployed URL would beat all of this: the frame, the dock and the inspector only really read in motion, and he could drive the states himself. The seed data is entirely fictional, so nothing confidential ships.
+
+## 7 · Known open questions
 
 Recorded so the director is not spending findings on things already known:
 

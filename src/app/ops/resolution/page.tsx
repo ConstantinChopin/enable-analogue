@@ -6,7 +6,7 @@
  */
 import { useState } from "react";
 import { useDemo, canViewCommissions } from "@/lib/store";
-import { orphanedPayments, people } from "@/data/seed";
+import { closedPayments, orphanedPayments, people } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
 import { Chip, Section, NarrationNote, ConfirmBanner, MoneyValue } from "@/components/bits";
 import { Button } from "@/components/ui/button";
@@ -59,8 +59,8 @@ export default function ResolutionQueue() {
         }
       >
         <p className="mt-2 max-w-[62ch] t-body text-muted-foreground">
-          Money that cannot be matched to a booking lands here. Ranking orders identity candidates
-          only — never intelligence values.
+          Money that cannot be matched to a booking lands here, and stays until a person closes
+          it with a reason.
         </p>
       </PageHeader>
 
@@ -132,6 +132,36 @@ export default function ResolutionQueue() {
         </ul>
       </Section>
 
+      {/* The queue's floor. Two open rows above a large empty panel read as a broken
+          screen; this is the state the queue is built to reach, so it has to look like
+          a finished morning rather than a failure to load. */}
+      <Section
+        flush
+        className="mt-4"
+        title="Closed"
+        chips={<Chip tone="neutral"><span className="tnum">{closedPayments.length}</span> in the last two days</Chip>}
+        bodyClassName="p-0"
+      >
+        <ul>
+          {closedPayments.map((p, i) => (
+            <li key={p.id} className={i > 0 ? "border-t border-border" : undefined}>
+              <div className="px-4 py-3">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  {money && (
+                    <span className="tnum type-data-strong">
+                      {p.currency} {p.amount.toLocaleString("en-GB")}
+                    </span>
+                  )}
+                  <span className="t-body">{p.ref}</span>
+                  <span className="ml-auto t-meta">{p.by} · {p.when}</span>
+                </div>
+                <p className="mt-1 t-meta">{p.reason}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Section>
+
       {!money && (
         <Section className="mt-4" title="Amounts are absent here">
           <p className="t-body text-muted-foreground">
@@ -181,7 +211,8 @@ export default function ResolutionQueue() {
                     ))}
                   </RadioGroup>
                   <p className="mt-2 t-meta">
-                    Ranking orders identity candidates only — never intelligence values.
+                    Ranking suggests which booking this payment belongs to. It never edits
+                    anything on the booking itself.
                   </p>
                 </div>
                 <div>

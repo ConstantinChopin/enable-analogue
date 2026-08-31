@@ -50,7 +50,23 @@ function RecordPlate({ p }: { p: Product }) {
 /* ═══════════════ Resolve sheet ═══════════════ */
 function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { d } = useDemo();
-  const keep = () => { d({ type: "resolveConflict" }); onOpenChange(false); };
+  /* All three values are selectable. Two of the buttons were disabled, so the sheet
+     that exists to prove "the advisor decides" in fact permitted one answer — the one
+     a ranking rule would have picked. And the decision now carries a reason, because
+     every other irreversible act in this product does: a rejection logs one, a payment
+     match requires one, and this one moves money. */
+  const [picked, setPicked] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
+  const chosen = commissionConflict.sources.find((s) => s.id === picked);
+
+  const commit = () => {
+    if (!picked || !reason.trim()) return;
+    d({ type: "resolveConflict" });
+    onOpenChange(false);
+    setPicked(null);
+    setReason("");
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[540px]">
@@ -64,23 +80,59 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
           </NarrationNote>
 
           {commissionConflict.sources.map((src) => (
-            <div key={src.id} className={cn("rounded-lg border p-4", src.id === "portal" ? "border-primary/50" : "border-border")}>
+            <div
+              key={src.id}
+              className={cn(
+                "rounded-lg border p-4 transition-colors",
+                picked === src.id ? "border-primary bg-primary-soft/40" : "border-border",
+              )}
+            >
               <div className="flex flex-wrap items-start gap-3">
                 <div className="min-w-0">
                   <div className="type-data-strong">{src.label}</div>
                   <div className="t-meta">{src.detail} · {src.when}</div>
                 </div>
-                <span className="ml-auto t-display tnum">{src.value}</span>
+                <span className="ml-auto t-title tnum">{src.value}</span>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 <span className="t-body font-semibold">{src.status}</span>
                 <ConfidenceMeter agree={src.agree} total={src.total} />
-                <Button size="sm" variant="outline" className="ml-auto" onClick={keep} disabled={src.id !== "portal"}>
-                  Keep this value
+                <Button
+                  size="sm"
+                  variant={picked === src.id ? "default" : "outline"}
+                  className="ml-auto"
+                  onClick={() => setPicked(src.id)}
+                >
+                  {picked === src.id ? "Selected" : "Keep this value"}
                 </Button>
               </div>
             </div>
           ))}
+
+          {/* The reason, required — and shown only once a value is chosen, so the sheet
+              asks one question at a time. */}
+          {chosen && (
+            <div className="rounded-lg border border-primary/50 bg-card p-4">
+              <Label htmlFor="resolve-reason" className="t-body font-semibold">
+                Why {chosen.value}? <span className="text-muted-foreground">(required)</span>
+              </Label>
+              <p className="mt-1 t-meta">
+                Stored with the value at the agency layer, attributed to you and dated. The next
+                person to open this field reads it instead of asking again.
+              </p>
+              <Textarea
+                id="resolve-reason"
+                rows={2}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="e.g. confirmed by Corvin & Wells on the 21 June rate note"
+                className="mt-3 t-body"
+              />
+              <Button size="sm" className="mt-3" disabled={!reason.trim()} onClick={commit}>
+                Store {chosen.value} at the agency layer
+              </Button>
+            </div>
+          )}
 
           {/* ImpactPanel */}
           <div className="rounded-md border border-border bg-subtle p-4">
@@ -184,13 +236,9 @@ function LeandreRecord() {
             </div>
           </SeverityBanner>
         )}
-        {s.world === "v1" && (
-          <SeverityBanner severity="Info">
-            <span className="text-muted-foreground">
-              The spa notice auto-expired on 1 Aug — the card looks clean, the spa is still closed.
-            </span>
-          </SeverityBanner>
-        )}
+        {/* The v1 record does not caption itself. Its whole failure is that the notice
+            is gone and nothing says so; a banner saying so undoes the demonstration.
+            The frame bar marks the vintage on every surface instead. */}
         <ConfirmBanner show={s.noteSaved}>Note saved — {scopeLabel} · attributed and dated.</ConfirmBanner>
       </div>
 
@@ -204,16 +252,15 @@ function LeandreRecord() {
                   <FieldRow key={f.key} f={f} resolved={s.conflictResolved} onResolve={() => setResolveOpen(true)} />
                 ))}
                 {g.layer === "personal" && s.noteSaved && s.role === "advisor" && (
-                  <div className="grid gap-2 py-3 sm:grid-cols-[140px_minmax(0,1fr)]">
-                    <div className="t-body text-muted-foreground">My note</div>
+                  <FieldGrid
+                    label="My note"
+                    provenance={<SourceTag kind="manual" label={`${people.advisor} · today`} />}
+                  >
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                       <span className="t-body">{noteText.trim() ? `“${noteText.trim()}”` : "Note on file"}</span>
                       <Chip tone="ok">Saved just now · {savedScope}</Chip>
-                      <span className="ml-auto flex items-center gap-2">
-                        <SourceTag kind="manual" label={`${people.advisor} · today`} />
-                      </span>
                     </div>
-                  </div>
+                  </FieldGrid>
                 )}
               </div>
             </Section>
@@ -353,16 +400,15 @@ function FieldRow({ f, resolved, onResolve }: { f: Field; resolved: boolean; onR
   const [verified, setVerified] = useState(false);
   if (f.state === "conflict") {
     return (
-      <div className="grid gap-2 py-3 sm:grid-cols-[140px_minmax(0,1fr)]">
-        <div className="t-body text-muted-foreground">{f.label}</div>
+      <FieldGrid label={f.label}>
         {resolved ? (
-          <div className="flex flex-wrap items-center gap-2 t-body">
-            <ProvenancePopover source={f.source}><span className="font-medium tnum">12%</span></ProvenancePopover>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <ProvenancePopover source={f.source}><span className="t-body font-medium tnum">12%</span></ProvenancePopover>
             <Chip tone="ok">resolved</Chip>
             <span className="t-meta">agency layer · by {people.advisor} today · both sources reachable</span>
           </div>
         ) : (
-          <div>
+          <>
             <div className="flex flex-wrap items-center gap-2">
               {commissionConflict.sources.map((src) => (
                 <span key={src.id} className="rounded-md border border-border px-2 py-1 t-body">
@@ -374,47 +420,79 @@ function FieldRow({ f, resolved, onResolve }: { f: Field; resolved: boolean; onR
               <Chip tone="crit">3 sources disagree</Chip>
               <Button size="sm" onClick={onResolve}>Resolve 3 sources</Button>
             </div>
-          </div>
+          </>
         )}
-      </div>
+      </FieldGrid>
     );
   }
 
   return (
-    <div className="grid gap-2 py-3 sm:grid-cols-[140px_minmax(0,1fr)]">
-      <div className="t-body text-muted-foreground">{f.label}</div>
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <ProvenancePopover source={f.source}>
-            <span className={cn("t-body", f.key === "rooms" && "tnum", f.state === "template" && "italic text-muted-foreground")}>{f.value}</span>
-          </ProvenancePopover>
-          {f.state === "edited-overlay" && <Chip tone="primary">agency overlay</Chip>}
-          {f.state === "stale" && (
-            verified ? (
-              <Chip tone="ok">verified today · {people.advisor}</Chip>
-            ) : (
-              <>
-                <Chip tone="warn" className="tnum">{f.staleDays}d unverified</Chip>
-                <Button variant="outline" size="sm" onClick={() => setVerified(true)}>Verify against source</Button>
-              </>
-            )
-          )}
-          {f.state === "template" && <Chip tone="warn">template copy — needs editorial</Chip>}
-          <span className="ml-auto flex items-center gap-2">
-            <SourceTag kind={f.source.kind} label={f.source.where} />
-            <FreshnessDate stale={f.state === "stale" && !verified}>{f.state === "stale" && verified ? "verified today" : f.source.when}</FreshnessDate>
-          </span>
-        </div>
-        {f.state === "template" && (
-          <p className="mt-1 t-meta">Excluded from answer corroboration.</p>
-        )}
-        {f.state === "edited-overlay" && f.beneath && (
-          <p className="mt-1 t-meta">
-            canonical beneath ·{" "}
-            <ProvenancePopover source={f.beneath.source}><span>{f.beneath.value}</span></ProvenancePopover>
-          </p>
-        )}
+    <FieldGrid
+      label={f.label}
+      provenance={
+        <>
+          <SourceTag kind={f.source.kind} label={f.source.where} />
+          <FreshnessDate stale={f.state === "stale" && !verified}>
+            {f.state === "stale" && verified ? "verified today" : f.source.when}
+          </FreshnessDate>
+        </>
+      }
+    >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <ProvenancePopover source={f.source}>
+          <span className={cn("t-body", f.key === "rooms" && "tnum", f.state === "template" && "italic text-muted-foreground")}>{f.value}</span>
+        </ProvenancePopover>
+        {f.state === "edited-overlay" && <Chip tone="primary">agency overlay</Chip>}
+        {f.state === "stale" && verified && <Chip tone="ok">verified today · {people.advisor}</Chip>}
+        {f.state === "stale" && !verified && <Chip tone="warn" className="tnum">{f.staleDays}d unverified</Chip>}
+        {f.state === "template" && <Chip tone="warn">template copy — needs editorial</Chip>}
       </div>
+
+      {/* The action sits under the value, not beside it. Inline, it competed with the
+          value for the eye and it was the thing forcing the wrap that broke the
+          provenance column on every stale row. */}
+      {f.state === "stale" && !verified && (
+        <Button variant="outline" size="sm" className="mt-2" onClick={() => setVerified(true)}>
+          Verify against source
+        </Button>
+      )}
+
+      {f.state === "template" && (
+        <p className="mt-1 t-meta">Excluded from answer corroboration.</p>
+      )}
+      {f.state === "edited-overlay" && f.beneath && (
+        <p className="mt-1 t-meta">
+          canonical beneath ·{" "}
+          <ProvenancePopover source={f.beneath.source}><span>{f.beneath.value}</span></ProvenancePopover>
+        </p>
+      )}
+    </FieldGrid>
+  );
+}
+
+/* ── the field row's shape ───────────────────────────────────────────────────
+   Three real columns: label, value, provenance.
+
+   Every row used one wrapping flex with `ml-auto` on the provenance cluster. That
+   right-aligns against whatever line the cluster happens to wrap onto, not against a
+   shared axis — so the "provenance column" was only a column while nothing wrapped.
+   Measured on this record before the change: five rows, five different left edges
+   spanning 96px, at three different vertical offsets.
+
+   A grid column cannot do that. Alignment now comes from the track, and a row that
+   needs two lines pushes its own height without moving anything else.               */
+function FieldGrid({
+  label, provenance, children,
+}: { label: string; provenance?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="grid gap-x-4 gap-y-1 py-3 sm:grid-cols-[140px_minmax(0,1fr)_auto]">
+      <div className="t-body text-muted-foreground">{label}</div>
+      <div className="min-w-0">{children}</div>
+      {provenance && (
+        <div className="flex flex-col items-start gap-0.5 sm:items-end sm:text-right">
+          {provenance}
+        </div>
+      )}
     </div>
   );
 }

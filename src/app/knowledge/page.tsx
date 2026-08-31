@@ -8,13 +8,19 @@
  */
 import React, { useMemo, useState, useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
-import { vaultDocs, vaultStats, connections, type VaultDoc } from "@/data/seed";
+import { useDemo } from "@/lib/store";
+import { vaultDocs, vaultStats, connections, personName, type VaultDoc } from "@/data/seed";
 import { PageHeader, SplitPage } from "@/components/layouts";
-import { Chip, Section, NarrationNote, SchematicBadge } from "@/components/bits";
+import { Absent, Chip, DataList, Section, NarrationNote, SchematicBadge } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
-  Building2, FileText, HardDrive, History, Lock, Mail, Upload, Users2, X,
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
+} from "@/components/ui/sheet";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import {
+  Building2, FileText, HardDrive, History, Lock, Mail, Upload, Users2,
 } from "lucide-react";
 
 const sourceIcon: Record<string, React.ElementType> = {
@@ -58,9 +64,12 @@ const subscribeDesktop = (cb: () => void) => {
 };
 
 export default function KnowledgeVault() {
+  const { s } = useDemo();
   const [tab, setTab] = useState<string>("All");
-  const [ownerFilter, setOwnerFilter] = useState(true);
   const [selected, setSelected] = useState<string | null>("Atelier Collection terms.pdf");
+  const [accessFor, setAccessFor] = useState<string | null>(null);
+  const [accessScope, setAccessScope] = useState<string>("agency");
+  const [accessDone, setAccessDone] = useState(false);
 
   /* The panel is the vault's second column, so it opens with the page — but only
      where there is a column for it. On a phone SplitPage is a sheet, and a sheet
@@ -75,13 +84,29 @@ export default function KnowledgeVault() {
   const panelOpen = pinned ?? desktop;
   const setPanelOpen = (v: boolean) => setPinned(v);
 
+  /* The vault is permission-filtered like every other surface: a document a role
+     cannot open does not appear in the list at all — absent, not masked, and not
+     merely badged. `admin only` belongs to the agency lead and operations; a
+     `private` document belongs to the advisor who received it, so a colleague
+     never sees it. Counting rows after the filter is deliberate: the totals a
+     reader is given must be totals of what they can actually reach. */
+  const visible = useMemo(() => {
+    const canSeeAdminOnly = s.role === "lead" || s.role === "ops";
+    const canSeeOwnPrivate = s.role === "advisor";
+    return vaultDocs.filter((doc) => {
+      if (doc.access === "admin only") return canSeeAdminOnly;
+      if (doc.access === "private") return canSeeOwnPrivate;
+      return true;
+    });
+  }, [s.role]);
+
   const rows = useMemo(() => {
     const src = tabSource[tab];
-    return vaultDocs.filter((doc) => !src || doc.source === src);
-  }, [tab]);
+    return visible.filter((doc) => !src || doc.source === src);
+  }, [tab, visible]);
 
   const sel: VaultDoc | undefined = selected
-    ? vaultDocs.find((doc) => doc.name === selected)
+    ? visible.find((doc) => doc.name === selected)
     : undefined;
   const inbound = connections.find((c) => c.name.startsWith("Inbound mail"));
 
@@ -147,49 +172,80 @@ export default function KnowledgeVault() {
       header={header}
       panelOpen={panelOpen}
       onClosePanel={() => setPanelOpen(false)}
-      panelTitle="Provenance"
-      panel={<ProvenancePanel sel={sel} />}
+      /* Titled with the document it describes. It was called "Provenance" and opened
+         with a vault-wide percentage before switching to the selected file, so two
+         scopes sat under one heading and the percentage stayed pinned above whichever
+         document you picked. The vault meter has moved to the page. */
+      panelTitle={sel ? sel.name : "No document selected"}
+      panel={<ProvenancePanel sel={sel} onManageAccess={setAccessFor} />}
     >
       {
           <div className="min-w-0">
             {/* ── applied filters and connector state ── */}
+            {/* "Owner: anyone ×" is gone — it dressed the default state as an applied
+                filter you could remove, and removing it changed nothing. */}
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              {ownerFilter && (
-                <Chip tone="primary" className="pr-1">
-                  <span className="text-muted-foreground">Owner</span> anyone
-                  <button
-                    type="button"
-                    onClick={() => setOwnerFilter(false)}
-                    aria-label="Remove the owner filter"
-                    className="grid size-4 cursor-pointer place-items-center rounded-full hover:bg-border"
-                  >
-                    <X className="size-3" aria-hidden />
-                  </button>
-                </Chip>
-              )}
               <span className="ml-auto flex items-center gap-4 t-meta">
                 <span className="flex items-center gap-2">
                   <span className="size-2 rounded-full bg-ok" aria-hidden /> drive · live
                 </span>
-                <span className="flex items-center gap-2">
-                  <span className="size-2 rounded-full bg-crit" aria-hidden />{" "}
+                {/* The error count now goes somewhere: it filters to the source it counts. */}
+                <button
+                  type="button"
+                  onClick={() => setTab("Intranet")}
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-1 transition-colors hover:bg-muted"
+                >
+                  <span className="size-2 rounded-full bg-crit" aria-hidden />
                   <span className="tnum">3</span> intranet errors
-                </span>
+                </button>
               </span>
             </div>
+
+            {/* The vault's one number, on the page it describes rather than pinned above
+                whichever document happened to be selected. */}
+            <Section className="mt-4" title="Carrying a verified source">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                <span className="tnum t-title">{vaultStats.verifiedSourcePct}%</span>
+                <span className="flex min-w-[180px] flex-1 flex-col gap-2">
+                  <Progress value={vaultStats.verifiedSourcePct} className="h-1" />
+                  <span className="flex flex-wrap items-center gap-x-4 t-meta">
+                    <span className="flex items-center gap-2">
+                      <span className="size-2 rounded-full bg-ok" aria-hidden /> verified ·{" "}
+                      <span className="tnum">{vaultStats.verified}</span>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="size-2 rounded-full bg-muted-foreground/40" aria-hidden /> no
+                      source yet · <span className="tnum">{vaultStats.noSource}</span>
+                    </span>
+                  </span>
+                </span>
+              </div>
+              <p className="mt-3 t-meta">
+                A document with no verified source still answers — with its date and a freshness
+                warning attached.
+              </p>
+            </Section>
 
             {/* ── the table ── */}
             <Section
               flush
               className="mt-4"
               bodyClassName="p-0"
+              /* The facets total 1,284 and the list holds eleven. Rather than imply a
+                 pagination that does not exist, the footer says which of the two numbers
+                 is the build and which is the vault. */
+              /* Two slots, stacked at narrow and split at wide — not `ml-auto` across a
+                 wrap, which dropped the sample note 27px and right-aligned it under the
+                 count at 375px. */
               footer={
-                <span className="flex flex-wrap items-center gap-3 t-meta">
-                  <span className="tnum">
-                    {vaultStats.total.toLocaleString("en-GB")} documents · newest first
+                <span className="flex flex-col gap-1 t-meta sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+                  <span className="shrink-0">
+                    <span className="tnum">{rows.length}</span> shown · newest first
                   </span>
-                  <span className="ml-auto tnum">
-                    {rows.length} of {vaultStats.total.toLocaleString("en-GB")} shown
+                  <span className="sm:text-right">
+                    This reconstruction carries a working sample of the{" "}
+                    <span className="tnum">{vaultStats.total.toLocaleString("en-GB")}</span>{" "}
+                    documents. Paging is not built.
                   </span>
                 </span>
               }
@@ -212,6 +268,7 @@ export default function KnowledgeVault() {
                           setPanelOpen(true);
                         }}
                         aria-pressed={isSel}
+                        aria-label={`${doc.name} — ${doc.source}, ${doc.access}`}
                         className={cn(
                           "row-grid w-full cursor-pointer px-4 text-left transition-colors",
                           isSel ? "bg-muted/70" : "hover:bg-muted/40",
@@ -240,10 +297,15 @@ export default function KnowledgeVault() {
                             )}
                             aria-hidden
                           />
-                          {doc.state === "processing" ? "processing" : doc.updated}
+                          {/* The word "processing" used to fill both this column and the
+                              access column, so one state read as two different facts.
+                              Updated keeps its date; access says it is not yet assigned. */}
+                          {doc.updated}
                         </span>
                         <span className="row-trailing">
-                          <AccessChip access={doc.access} />
+                          {doc.access === "processing"
+                            ? <Absent reason="pending" />
+                            : <AccessChip access={doc.access} />}
                         </span>
                       </button>
                     </li>
@@ -256,6 +318,51 @@ export default function KnowledgeVault() {
               Upload a document, or mail one in —{" "}
               {inbound?.name.replace("Inbound mail — ", "")} · {inbound?.posture}
             </p>
+
+            {/* Manage access — widening is an act, and the act is attributed and logged */}
+            <Sheet
+              open={!!accessFor}
+              onOpenChange={(o) => { if (!o) { setAccessFor(null); setAccessDone(false); } }}
+            >
+              <SheetContent side="right" className="w-full sm:max-w-[460px]">
+                <SheetHeader>
+                  <SheetTitle>Access · {accessFor}</SheetTitle>
+                  <SheetDescription>
+                    A document arrives at the tightest scope its source allows. Widening it is
+                    deliberate, attributed and recorded in this document&rsquo;s history.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="px-4">
+                  <RadioGroup value={accessScope} onValueChange={setAccessScope} className="gap-3">
+                    {[
+                      { v: "private", label: "Private", detail: "Only you. Never reaches another desk's answers." },
+                      { v: "team · Paris", label: "Team · Paris", detail: "The Paris desk. Answers for anyone on it may cite this." },
+                      { v: "agency", label: "Whole agency", detail: "Every advisor. The widest scope, and the hardest to walk back." },
+                    ].map((o) => (
+                      <div key={o.v} className="flex items-start gap-3">
+                        <RadioGroupItem value={o.v} id={`acc-${o.v}`} className="mt-1" />
+                        <Label htmlFor={`acc-${o.v}`} className="flex flex-col items-start gap-1 font-normal">
+                          <span className="t-body font-semibold">{o.label}</span>
+                          <span className="t-meta">{o.detail}</span>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                  {accessDone && (
+                    <p className="mt-4 rounded-md border border-ok/40 bg-ok/10 p-3 t-meta">
+                      Access set to {accessScope} · {personName[s.role]} · today. Recorded in this
+                      document&rsquo;s history.
+                    </p>
+                  )}
+                </div>
+                <SheetFooter>
+                  <Button variant="outline" onClick={() => setAccessFor(null)}>Close</Button>
+                  <Button disabled={accessDone} onClick={() => setAccessDone(true)}>
+                    Apply and log
+                  </Button>
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
           </div>
       }
     </SplitPage>
@@ -263,65 +370,43 @@ export default function KnowledgeVault() {
 }
 
 /* ── the panel: the meter, the document, the history ────────────────────────── */
-function ProvenancePanel({ sel }: { sel: VaultDoc | undefined }) {
+function ProvenancePanel({ sel, onManageAccess }: { sel: VaultDoc | undefined; onManageAccess: (name: string) => void }) {
   return (
     <div className="space-y-4">
-      {/* The meter — the vault's one number */}
-      <section>
-        <h3 className="t-micro uppercase tracking-widest text-muted-foreground">
-          Carrying a verified source
-        </h3>
-        <div className="mt-2 tnum t-display">{vaultStats.verifiedSourcePct}%</div>
-        <Progress value={vaultStats.verifiedSourcePct} className="mt-2 h-1.5" />
-        <ul className="mt-3 space-y-2 t-body">
-          <li className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-ok" aria-hidden /> Verified source ·{" "}
-            <span className="tnum">{vaultStats.verified}</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-muted-foreground/40" aria-hidden /> No source yet
-            · <span className="tnum">{vaultStats.noSource}</span>
-          </li>
-        </ul>
-        <p className="mt-3 t-meta">
-          A document with no verified source still answers. It answers with its date and a freshness
-          warning attached.
-        </p>
-      </section>
-
       {sel ? (
         <>
           <section className="rounded-md border border-border p-4">
             <h3 className="t-title">{sel.name}</h3>
-            <dl className="mt-3 space-y-2 t-body">
-              <div className="flex items-baseline justify-between gap-3">
-                <dt className="text-muted-foreground">Source</dt>
-                <dd className="text-right">{sel.detail ? "Drive / Partners" : sel.source}</dd>
-              </div>
-              {sel.detail && (
-                <>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <dt className="text-muted-foreground">Synced</dt>
-                    <dd className="tnum text-right">{sel.detail.synced}</dd>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <dt className="text-muted-foreground">Used in</dt>
-                    <dd className="text-right">{sel.detail.usedIn}</dd>
-                  </div>
-                </>
-              )}
-              <div className="flex items-baseline justify-between gap-3">
-                <dt className="text-muted-foreground">Updated</dt>
-                <dd className="tnum text-right">{sel.updated}</dd>
-              </div>
-              <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2">
-                <dt className="text-muted-foreground">Access</dt>
-                <dd className="text-right">
-                  {sel.access === "agency" ? "Whole agency" : sel.access}
-                </dd>
-              </div>
-            </dl>
-            <Button size="sm" variant="outline" className="mt-4 w-full">
+            {/* The same DataList every other panel uses. */}
+            <DataList
+              className="mt-3"
+              rows={[
+                { label: "Source", value: sel.detail ? "Drive / Partners" : sel.source },
+                ...(sel.detail
+                  ? [
+                      { label: "Synced", value: <span className="tnum">{sel.detail.synced}</span> },
+                      { label: "Used in", value: sel.detail.usedIn },
+                    ]
+                  : []),
+                { label: "Updated", value: <span className="tnum">{sel.updated}</span> },
+                {
+                  label: "Access",
+                  value: sel.access === "processing"
+                    ? null
+                    : sel.access === "agency" ? "Whole agency" : sel.access,
+                  absent: "pending" as const,
+                },
+              ]}
+            />
+            {/* Widening a scope is the vault's own governance claim — "every widening is
+                an act somebody performs and the log records" — so this was the wrong
+                control to leave inert. It opens the act, and the act is attributed. */}
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-4 w-full"
+              onClick={() => onManageAccess(sel.name)}
+            >
               <Lock className="size-3.5" aria-hidden /> Manage access
             </Button>
           </section>

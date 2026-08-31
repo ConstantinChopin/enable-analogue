@@ -20,7 +20,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, Check, CircleDashed, Pencil } from "lucide-react";
+import { ArrowRight, Check, CircleDashed, CopyPlus, FileSearch, Pencil } from "lucide-react";
 
 export default function CandidateDetail() {
   const params = useParams<{ id: string }>();
@@ -34,6 +34,7 @@ export default function CandidateDetail() {
   const [editField, setEditField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [rejectOpen, setRejectOpen] = useState(false);
+  const [sourceOpen, setSourceOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [banner, setBanner] = useState<string | null>(null);
@@ -56,34 +57,11 @@ export default function CandidateDetail() {
     );
   }
 
-  /* A candidate whose source row could not be read — held, and visibly so. */
-  if (candidate.kind === "held") {
-    return (
-      <Page width="wide">
-        <PageHeader
-          title={
-            <>
-              {candidate.name}
-              <Chip tone="crit">
-                <CircleDashed className="size-3" aria-hidden /> held
-              </Chip>
-            </>
-          }
-        />
-        <Section>
-          <div className="font-mono t-micro text-muted-foreground">
-            {candidate.from} · {candidate.uri}
-          </div>
-          <p className="mt-3 t-body text-muted-foreground">
-            Nothing was extracted with confidence from this row. The candidate is held — it never
-            surfaces anywhere until a person opens the source, fixes it by hand, or rejects it with
-            a reason.
-          </p>
-        </Section>
-      </Page>
-    );
-  }
-
+  /* A candidate whose source row could not be read — held, and visibly so. The three
+     acts the sentence names (open the source, fix it by hand, reject it with a reason)
+     are rendered as controls rather than described. */
+  const isHeld = candidate.kind === "held";
+  const raw = "raw" in candidate ? candidate.raw : undefined;
   const isDup = candidate.kind === "duplicate";
   const canonical = products.find((p) => p.id === "maison-leandre");
   const canonicalByLabel: Record<string, string> = canonical
@@ -108,7 +86,11 @@ export default function CandidateDetail() {
         title={
           <>
             {candidate.name}
-            {isDup ? (
+            {isHeld ? (
+              <Chip tone="crit">
+                <CircleDashed className="size-3" aria-hidden /> held
+              </Chip>
+            ) : isDup ? (
               <Chip tone="warn">possible duplicate</Chip>
             ) : (
               <Chip tone="primary">new candidate</Chip>
@@ -121,11 +103,13 @@ export default function CandidateDetail() {
         </p>
       </PageHeader>
 
-      <NarrationNote>
-        Every extracted field arrives with what, where and when. The two held fields demonstrate the
-        hold gate: a converted figure without its source currency, and boilerplate masquerading as
-        content.
-      </NarrationNote>
+      {!isHeld && (
+        <NarrationNote>
+          Every extracted field arrives with what, where and when. The two held fields demonstrate
+          the hold gate: a converted figure without its source currency, and boilerplate
+          masquerading as content.
+        </NarrationNote>
+      )}
 
       <div className="mt-4 space-y-4">
         {banner && <ConfirmBanner show>{banner}</ConfirmBanner>}
@@ -137,7 +121,7 @@ export default function CandidateDetail() {
         )}
 
         {/* Identity check */}
-        {isDup && candidate.match ? (
+        {isHeld ? null : isDup && candidate.match ? (
           <SeverityBanner severity="Important">
             <div className="flex flex-wrap items-start gap-3">
               <span className="min-w-0">
@@ -152,16 +136,35 @@ export default function CandidateDetail() {
                 </span>
               </span>
               <span className="ml-auto" />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setMergeOpen(true);
-                  setReason("");
-                }}
-              >
-                Merge
-              </Button>
+              {/* The decision on a duplicate is merge into the existing record or create a
+                  new one. Offering only Merge makes the other half of the choice invisible. */}
+              <span className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setMergeOpen(true);
+                    setReason("");
+                  }}
+                >
+                  Merge
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setBanner(
+                      `Created as a separate record — both stand, attributed to ${people.lead}. The match signal is logged against them.`,
+                    )
+                  }
+                >
+                  <CopyPlus className="size-3.5" aria-hidden /> Create new record
+                </Button>
+              </span>
+              <p className="w-full t-meta">
+                Creating a new record keeps both. The match stays logged against them, so the
+                duplicate comes back for a later human pass rather than disappearing.
+              </p>
             </div>
           </SeverityBanner>
         ) : (
@@ -171,7 +174,32 @@ export default function CandidateDetail() {
           </SeverityBanner>
         )}
 
+        {/* Nothing extracted — the row is all there is to show */}
+        {isHeld && (
+          <Section title="Nothing extracted from this row">
+            <p className="t-body text-muted-foreground">
+              Nothing was extracted with confidence from this row. The candidate is held — it never
+              surfaces anywhere until a person opens the source, fixes it by hand, or rejects it
+              with a reason.
+            </p>
+            {corrected.Name && (
+              <>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className="w-24 shrink-0 t-meta">Name</span>
+                  <span className="t-body font-semibold">{corrected.Name}</span>
+                  <Chip tone="ok">corrected · {people.lead}</Chip>
+                </div>
+                <p className="mt-2 t-meta">
+                  Keyed by hand, attributed. The source row is unchanged, and the candidate stays
+                  held until the rest of it can be read.
+                </p>
+              </>
+            )}
+          </Section>
+        )}
+
         {/* Fields */}
+        {!isHeld && (
         <Section
           flush
           bodyClassName="p-0"
@@ -214,10 +242,13 @@ export default function CandidateDetail() {
                       )}
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
+                      {/* The bar carries the signal; the two-decimal probability beside it
+                          was model internals wearing a UI, and added false precision to a
+                          decision that is only ever confirm / correct / hold. */}
                       <ConfidenceMeter
                         agree={Math.round(f.confidence * 100)}
                         total={100}
-                        label={`confidence ${f.confidence.toFixed(2)}`}
+                        label="extraction confidence"
                       />
                       {!held &&
                         !template &&
@@ -279,9 +310,58 @@ export default function CandidateDetail() {
             })}
           </ul>
         </Section>
+        )}
 
-        {/* Actions */}
-        {!isDup && (
+        {/* Actions — the held candidate gets the three the copy names */}
+        {isHeld ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" onClick={() => setSourceOpen(true)}>
+              <FileSearch className="size-3.5" aria-hidden /> Open source
+            </Button>
+            {editField === "Name" ? (
+              <form
+                className="flex items-center gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (editValue.trim())
+                    setCorrected((m) => ({ ...m, Name: editValue.trim() }));
+                  setEditField(null);
+                }}
+              >
+                <Input
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  aria-label="Corrected value for Name"
+                  placeholder="Name, keyed by hand"
+                  className="h-9 w-56 t-body"
+                  autoFocus
+                />
+                <Button type="submit" variant="outline">
+                  Save
+                </Button>
+              </form>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditField("Name");
+                  setEditValue(corrected.Name ?? "");
+                }}
+              >
+                <Pencil className="size-3.5" aria-hidden /> Fix manually
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRejectOpen(true);
+                setReason("");
+              }}
+            >
+              Reject — reason logged
+            </Button>
+          </div>
+        ) : !isDup ? (
           <div className="flex flex-wrap items-center gap-2">
             <Button disabled={confirmedAlready} onClick={confirmRecord}>
               Confirm record — stamped {people.lead}, today
@@ -296,8 +376,36 @@ export default function CandidateDetail() {
               Reject — reason logged
             </Button>
           </div>
-        )}
+        ) : null}
       </div>
+
+      {/* Open source — the row exactly as it arrived */}
+      <Sheet open={sourceOpen} onOpenChange={setSourceOpen}>
+        <SheetContent side="right" className="sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Source row</SheetTitle>
+            <SheetDescription>
+              {candidate.from} · {candidate.uri}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="px-4">
+            <div className="font-mono t-micro text-muted-foreground">{raw?.where}</div>
+            <pre className="mt-2 overflow-x-auto rounded-md border border-border bg-subtle p-4 font-mono t-micro">
+              {raw?.text}
+            </pre>
+            <p className="mt-4 t-body text-muted-foreground">{raw?.note}</p>
+            <p className="mt-4 t-meta">
+              The source is read-only here. Ground truth stays in the sheet: a correction is keyed
+              against the candidate and attributed, and the row is left as it is.
+            </p>
+          </div>
+          <SheetFooter>
+            <Button variant="outline" onClick={() => setSourceOpen(false)}>
+              Close
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* Reject sheet */}
       <Sheet open={rejectOpen} onOpenChange={setRejectOpen}>

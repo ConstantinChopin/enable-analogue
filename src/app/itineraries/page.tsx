@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import {
-  ArrowRight, Bed, CarFront, Compass, PlaneTakeoff, Search, Ticket, UtensilsCrossed, X,
+  ArrowRight, Bed, CarFront, Compass, PlaneTakeoff, Plus, Search, Ticket, UtensilsCrossed, X,
 } from "lucide-react";
 
 /* The pipeline, in its own order. */
@@ -96,16 +96,15 @@ function Itineraries() {
         title={
           <>
             Itineraries
+            {/* Counts what is on screen. It counted every trip regardless of the
+                filters, so the header disagreed with the list under it. */}
             <Chip tone="neutral">
-              <span className="tnum">{trips.length}</span> trips
+              <span className="tnum">{rows.length}</span>
+              {rows.length === trips.length ? " trips" : ` of ${trips.length} trips`}
             </Chip>
           </>
         }
       >
-        <p className="mt-2 max-w-[62ch] t-body text-muted-foreground">
-          A departure is an itinerary with a near date. The briefing&rsquo;s departures widget is this
-          list, filtered to the next thirty days.
-        </p>
       </PageHeader>
 
       <NarrationNote>
@@ -145,7 +144,9 @@ function Itineraries() {
               ))}
             </div>
 
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            {/* Same rule as the records filter bar: no `ml-auto` across a wrap. */}
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
               {near ? (
                 <Chip tone="primary" className="pr-1">
                   <span className="text-muted-foreground">Window</span> departing within 30 days
@@ -159,15 +160,21 @@ function Itineraries() {
                   </button>
                 </Chip>
               ) : (
+                /* The off state used to read "Departing within 30 days" in a bordered
+                   pill — indistinguishable from the applied filter chip beside it, so
+                   the page appeared to be showing a filtered list while listing trips
+                   96, 138 and 142 days out. It now names the action, not the state. */
                 <button
                   type="button"
                   onClick={() => setNear(true)}
-                  className="cursor-pointer rounded-md border border-border px-3 py-1 t-body text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="flex cursor-pointer items-center gap-1.5 rounded-md border border-dashed border-border px-3 py-1 t-body text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
-                  Departing within 30 days
+                  <Plus className="size-3.5" aria-hidden />
+                  Limit to the next 30 days
                 </button>
               )}
-              <span className="ml-auto t-meta">
+              </div>
+              <span className="shrink-0 t-meta">
                 <span className="tnum">{rows.length}</span> {rows.length === 1 ? "trip" : "trips"}
               </span>
             </div>
@@ -367,9 +374,16 @@ function WorkedExample({ money }: { money: boolean }) {
   const builtDays = itinerary.days.map((d) => d.n);
 
   return (
-    <section className="mt-8 border-t border-border pt-8">
+    /* A Ledger and a Document used to sit in one scroll with only a hairline between
+       them, so the reader crossed from "all trips" into "this trip" without any signal
+       that the unit had changed. The band below is that signal: a labelled change of
+       ground, on its own tinted plane. */
+    <section className="-mx-[var(--panel-pad)] mt-8 border-t border-border bg-subtle px-[var(--panel-pad)] pb-8 pt-6">
       <header className="mb-4">
-        <h2 className="flex flex-wrap items-center gap-2 t-title">
+        <p className="font-mono t-micro uppercase tracking-widest text-muted-foreground">
+          One trip, opened
+        </p>
+        <h2 className="mt-1 flex flex-wrap items-center gap-2 t-title">
           {itinerary.title} — the day board
           <Chip tone="neutral">{itinerary.status}</Chip>
           <SchematicBadge />

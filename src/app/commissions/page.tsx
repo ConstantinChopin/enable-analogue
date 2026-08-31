@@ -148,12 +148,12 @@ function Ledger() {
             <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">
               Total outstanding
             </div>
-            <div className="mt-1 t-display tnum">{eur(outstanding)}</div>
+            <div className="mt-1 t-title tnum">{eur(outstanding)}</div>
             <div className="t-meta tnum">{open.length} open commissions</div>
           </Section>
           <Section>
             <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">Overdue</div>
-            <div className="mt-1 t-display tnum">{overdueCount}</div>
+            <div className="mt-1 t-title tnum">{overdueCount}</div>
             <div className="t-meta tnum">
               {eur(commissions.filter((c) => c.state === "overdue").reduce((n, c) => n + c.amount, 0))} unrecovered
             </div>
@@ -162,7 +162,7 @@ function Ledger() {
             <div className="t-micro font-mono uppercase tracking-widest text-muted-foreground">
               Collected this week
             </div>
-            <div className="mt-1 t-display tnum">{eur(briefing.headline.collectedThisWeek)}</div>
+            <div className="mt-1 t-title tnum">{eur(briefing.headline.collectedThisWeek)}</div>
             <div className="t-meta">actuals read-only from the booking system</div>
           </Section>
         </div>

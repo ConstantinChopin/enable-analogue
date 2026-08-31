@@ -14,7 +14,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useDemo } from "@/lib/store";
 import type { Persona } from "@/data/seed";
-import { people, notifications } from "@/data/seed";
+/* Identity — name, role label and initials — comes from the seed, never from a
+   second map here. Two label maps produced two spellings of the same role. */
+import { notifications, personInitials, personName, roleLabel } from "@/data/seed";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
@@ -27,7 +29,7 @@ import {
 } from "@/components/ui/command";
 import {
   Sunrise, Bell, MessageCircle, LayoutGrid, Users, Route as RouteIcon, Archive,
-  Search, RefreshCw,
+  Search, RefreshCw, ClipboardCheck, Send, Scale,
 } from "lucide-react";
 
 /* ── Geometry. Pages clear the dock using DOCK_CLEARANCE (see layouts.tsx). ── */
@@ -49,35 +51,20 @@ const T = {
   travellers: { href: "/travellers", label: "Travellers", icon: Users },
   itineraries: { href: "/itineraries", label: "Itineraries", icon: RouteIcon },
   knowledge: { href: "/knowledge", label: "Knowledge", icon: Archive },
+  /* The work these two roles actually do all day. Both were reachable only through a
+     briefing widget or a notification, so the dock offered the lead and the ops person
+     tiles they may never open and nothing for their own job. */
+  confirm: { href: "/admin/review", label: "Confirm records", icon: ClipboardCheck },
+  publish: { href: "/admin/publish", label: "Publish queue", icon: Send },
+  resolution: { href: "/ops/resolution", label: "Unmatched payments", icon: Scale },
 } satisfies Record<string, DockTile>;
 
 /** Per-role tile sets — the permission story you can see at a glance (§10.7, §10b). */
 export const dockTiles: Record<Persona, DockTile[]> = {
   advisor: [T.briefing, T.notifications, T.ask, T.records, T.travellers, T.itineraries, T.knowledge],
   colleague: [T.briefing, T.notifications, T.ask, T.records, T.travellers, T.itineraries, T.knowledge],
-  lead: [T.briefing, T.notifications, T.records, T.knowledge],
-  ops: [T.briefing, T.notifications, T.records, T.knowledge],
-};
-
-const roleLabel: Record<Persona, string> = {
-  advisor: "Advisor, Paris desk",
-  colleague: "Advisor, Paris desk",
-  lead: "Agency lead",
-  ops: "Operations",
-};
-
-const personName: Record<Persona, string> = {
-  advisor: people.advisor,
-  colleague: people.colleague,
-  lead: people.lead,
-  ops: people.ops,
-};
-
-const personInitials: Record<Persona, string> = {
-  advisor: people.advisorShort,
-  colleague: people.colleagueShort,
-  lead: people.leadShort,
-  ops: people.opsShort,
+  lead: [T.briefing, T.notifications, T.confirm, T.publish, T.records, T.knowledge],
+  ops: [T.briefing, T.notifications, T.resolution, T.records, T.knowledge],
 };
 
 /** ⌘K canned destinations — no live search index in this build. */
@@ -109,18 +96,23 @@ function Tile({ tile, active, badge, index }: {
           aria-current={active ? "page" : undefined}
           className="group relative flex shrink-0 flex-col items-center"
         >
+          {/* Every tile is the same 44px square, active or not. The active tile used to
+              grow to fit its label, and because the dock is centre-justified the whole
+              dock slid sideways on every navigation — 56px between the shortest label
+              and the longest, so the tile under the cursor moved as you arrived.
+              The label is gone rather than floated: the frame bar's breadcrumb already
+              names the current surface, so a permanent dock label said it twice. The
+              dock now answers only "where can I go" — active state is the filled tile
+              and the indicator dot, and every label is one hover away. */}
           <span
             className={cn(
-              "relative flex h-11 items-center justify-center gap-2 rounded-xl transition-colors",
+              "relative flex size-11 items-center justify-center rounded-xl transition-colors",
               active
-                ? "bg-muted px-3 text-foreground"
-                : "w-11 text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                ? "bg-muted text-foreground"
+                : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
             )}
           >
             <Icon className="size-[18px] shrink-0" aria-hidden />
-            {active && (
-              <span className="type-data-strong whitespace-nowrap">{tile.label}</span>
-            )}
             {badge ? (
               <span
                 className="absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-crit px-1 t-micro text-white tnum"
@@ -224,7 +216,11 @@ export function Dock() {
       <div className="pointer-events-none fixed inset-x-0 bottom-3 z-40 flex justify-center px-3">
         <nav
           aria-label="Workspaces"
-          className="pointer-events-auto flex max-w-full items-center gap-1.5 overflow-x-auto rounded-2xl border border-border bg-card px-2 py-2 shadow-[0_8px_30px_rgba(28,29,34,0.12)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          /* Seven 44px tiles plus the account do not fit 375px, and shrinking them
+             would drop below the 44pt touch minimum the iOS thesis rests on. So the
+             dock scrolls — and the edge fade says so. Without it the row simply ended
+             mid-tile and read as clipped chrome rather than a scrollable one. */
+          className="pointer-events-auto flex max-w-full items-center gap-1.5 overflow-x-auto rounded-2xl border border-border bg-card px-2 py-2 shadow-[0_8px_30px_rgba(28,29,34,0.12)] [scrollbar-width:none] [mask-image:linear-gradient(to_right,transparent_0,#000_12px,#000_calc(100%-12px),transparent_100%)] sm:[mask-image:none] [&::-webkit-scrollbar]:hidden"
         >
           {tiles.map((t, i) => (
             <Tile
@@ -239,13 +235,20 @@ export function Dock() {
           <span className="mx-1 h-8 w-px shrink-0 self-center bg-border" aria-hidden />
 
           <div className="flex shrink-0 items-center gap-0.5 self-center">
-            <UtilityButton label="Search — ⌘K" onClick={() => setPaletteOpen(true)}>
-              <Search className="size-[17px]" aria-hidden />
-            </UtilityButton>
+            {/* Search and the sync indicator drop below `sm`. Seven tiles plus three
+                utilities exceed 375px, and the dock scrolled — which clipped the account
+                avatar and read as a broken control rather than a scrollable one. Neither
+                is lost: ⌘K still opens the palette, and the sync time is in Settings.
+                The account stays, because signing out has to be reachable. */}
+            <span className="hidden sm:contents">
+              <UtilityButton label="Search — ⌘K" onClick={() => setPaletteOpen(true)}>
+                <Search className="size-[17px]" aria-hidden />
+              </UtilityButton>
 
-            <UtilityButton label="Synced 12:04">
-              <RefreshCw className="size-[17px]" aria-hidden />
-            </UtilityButton>
+              <UtilityButton label="Synced 12:04">
+                <RefreshCw className="size-[17px]" aria-hidden />
+              </UtilityButton>
+            </span>
 
             <DropdownMenu>
               <Tooltip>

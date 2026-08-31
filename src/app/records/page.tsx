@@ -12,7 +12,7 @@ import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useDemo, canViewCommissions } from "@/lib/store";
 import {
-  products, directoryCounts, filterOptions, leandreFields, notices, people,
+  products, directoryCounts, filterOptions, leandreFields, notices, people, promotions,
   type Product, type ProductCategory, type EvidenceKind, type Layer,
 } from "@/data/seed";
 import { PageHeader, SplitPage, ViewToggle, PropertyImage } from "@/components/layouts";
@@ -31,10 +31,10 @@ function EvidenceMark({ kind, label }: { kind: EvidenceKind; label: string }) {
 }
 
 /* ── facets ─────────────────────────────────────────────────────────────────── */
-type FacetKey = "region" | "luxuryTier" | "programme" | "status" | "consortia" | "evidence";
+type FacetKey = "region" | "luxuryTier" | "programme" | "status" | "consortia" | "evidence" | "promotion";
 type Filters = Record<FacetKey, string[]>;
 
-const EMPTY: Filters = { region: [], luxuryTier: [], programme: [], status: [], consortia: [], evidence: [] };
+const EMPTY: Filters = { region: [], luxuryTier: [], programme: [], status: [], consortia: [], evidence: [], promotion: [] };
 
 const FACETS: {
   key: FacetKey;
@@ -72,6 +72,15 @@ const FACETS: {
     options: filterOptions.evidence.map((e) => ({ value: e.key, label: e.label })),
     match: (p, v) => p.evidence.kind === v,
   },
+  /* An incentive is a fact about a promotion, not a trust state of a record — the two
+     were conflated in the evidence facet, so the briefing's incentives widget listed
+     three properties and expanded into a filter that returned one. This facet reads
+     the promotions themselves, which is what the widget is summarising. */
+  {
+    key: "promotion", label: "Promotion",
+    options: [{ value: "active", label: "Active incentive" }],
+    match: (p, v) => v === "active" && promotions.some((pr) => pr.productId === p.id),
+  },
 ];
 
 const facetLabel = (key: FacetKey) => FACETS.find((f) => f.key === key)!.label;
@@ -94,11 +103,14 @@ function RecordsCatalogue() {
 
   /* Briefing widgets are saved views (§8): the query string is the view, applied on entry. */
   const evidenceParam = search?.get("evidence") ?? null;
+  const promotionParam = search?.get("promotion") ?? null;
 
   const [category, setCategory] = useState<ProductCategory>("Hotel");
   const [view, setView] = useState<"grid" | "table">("grid");
   const [filters, setFilters] = useState<Filters>(() =>
-    evidenceParam && filterOptions.evidence.some((e) => e.key === evidenceParam)
+    promotionParam === "active"
+      ? { ...EMPTY, promotion: ["active"] }
+      : evidenceParam && filterOptions.evidence.some((e) => e.key === evidenceParam)
       ? { ...EMPTY, evidence: [evidenceParam] }
       : EMPTY,
   );
@@ -194,8 +206,14 @@ function RecordsCatalogue() {
     >
       {
           <div className="min-w-0">
-            {/* ── filter bar ── */}
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            {/* ── filter bar ──
+                The count is a sibling of the filter row, not an `ml-auto` child of it.
+                Inside a wrapping flex, `ml-auto` right-aligns against whichever line the
+                element wraps onto rather than a shared axis — at 375px the count dropped
+                74px and sat right-aligned under the facets, reading as a stray value.
+                Stacked below at narrow widths, opposite ends of one row at wide. */}
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
               {FACETS.map((f) => (
                 <Popover key={f.key}>
                   <PopoverTrigger asChild>
@@ -240,7 +258,8 @@ function RecordsCatalogue() {
                 </Popover>
               ))}
 
-              <span className="ml-auto t-meta">
+            </div>
+              <span className="shrink-0 t-meta sm:pt-1">
                 <span className="tnum">{rows.length}</span> {rows.length === 1 ? "record" : "records"}
               </span>
             </div>
@@ -467,13 +486,9 @@ function RecordPanel({ p }: { p: Product }) {
           </div>
         </SeverityBanner>
       )}
-      {p.hasNotice && notice && s.world === "v1" && (
-        <SeverityBanner severity="Info">
-          <span className="text-muted-foreground">
-            The notice on this record auto-expired. The card looks clean; nothing at the property changed.
-          </span>
-        </SeverityBanner>
-      )}
+      {/* No v1 caption here. A record that announces its own failure has already
+          removed the failure — the point is that the card looks clean and says
+          nothing. The frame bar carries the vintage; the silence is the evidence. */}
 
       {p.id === "maison-leandre" ? <LayerSummary money={money} role={s.role} /> : <PlainSummary p={p} money={money} />}
     </div>

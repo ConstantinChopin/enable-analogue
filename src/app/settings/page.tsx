@@ -8,7 +8,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useDemo } from "@/lib/store";
-import { personName, personEmail, roleLabel, connections } from "@/data/seed";
+import { personName, personEmail, roleLabel, connectionHealth } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
 import { Chip, Section, SchematicBadge } from "@/components/bits";
 import { Button } from "@/components/ui/button";
@@ -54,7 +54,8 @@ export default function SettingsPage() {
     Object.fromEntries(NOTIFICATION_PREFS.map((p) => [p.id, p.on])),
   );
 
-  const failing = connections.filter((c) => c.state !== "ok").length;
+  /* Same helper the connections page and the lead briefing read. */
+  const { sources, needAttention } = connectionHealth;
 
   return (
     <Page width="wide">
@@ -115,9 +116,9 @@ export default function SettingsPage() {
               </span>
             }
             chips={
-              failing > 0 ? (
+              needAttention > 0 ? (
                 <Chip tone="crit">
-                  <span className="tnum">{failing}</span> need attention
+                  <span className="tnum">{needAttention}</span> need attention
                 </Chip>
               ) : (
                 <Chip tone="ok">all connected</Chip>
@@ -125,7 +126,7 @@ export default function SettingsPage() {
             }
           >
             <p className="t-body text-muted-foreground">
-              <span className="tnum">{connections.length}</span> sources feed this workspace. Each
+              <span className="tnum">{sources}</span> sources feed this workspace. Each
               one carries its last success, and a failed source degrades answers visibly.
             </p>
             <Button asChild variant="outline" size="sm" className="mt-4">
@@ -134,15 +135,10 @@ export default function SettingsPage() {
               </Link>
             </Button>
           </Section>
-        ) : (
-          <Section title="Connections">
-            <p className="t-body text-muted-foreground">
-              Source connections are an agency lead&rsquo;s setting. What they change is visible to
-              you on every answer: a source that has failed is named in the answer rather than
-              quietly left out.
-            </p>
-          </Section>
-        )}
+        ) : null}
+        {/* For a role that cannot manage connections there is no Connections section.
+            It held prose and no control — a settings section whose only content was
+            the news that the setting is somewhere else. Absent, not masked, again. */}
       </div>
     </Page>
   );

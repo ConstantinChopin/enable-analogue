@@ -34,6 +34,13 @@ export const personEmail: Record<Persona, string> = {
   advisor: people.advisorEmail, colleague: people.colleagueEmail, lead: people.leadEmail, ops: people.opsEmail,
 };
 
+export const personInitials: Record<Persona, string> = {
+  advisor: people.advisorShort, colleague: people.colleagueShort, lead: people.leadShort, ops: people.opsShort,
+};
+
+/** Every persona, in the order the sign-in screen lists them. */
+export const personas: Persona[] = ["advisor", "colleague", "lead", "ops"];
+
 /* ── provenance ───────────────────────────────────────────── */
 
 export interface Source {
@@ -176,7 +183,10 @@ export const commissionConflict = {
 export const leandreFields: Field[] = [
   { key: "address", label: "Address", value: "14 rue de Sévigné, Paris 4e", layer: "canonical", source: { what: "canonical registry", where: "Enable directory", uri: "enable://products/maison-leandre", when: "verified May", kind: "portal" } },
   { key: "rooms", label: "Rooms", value: "42", layer: "canonical", source: { what: "brand feed", where: "Brand feed", uri: "portal://atelier/feed", when: "Mar", kind: "portal" } },
-  { key: "pool", label: "Pool hours", value: "07:00–21:00", layer: "canonical", source: { what: "property site capture", where: "Property website", uri: "gdrive://capture-2026-05", when: "96d unverified", kind: "gdrive" }, state: "stale", staleDays: 96 },
+  /* `when` is a date. It held "96d unverified" — the same fact the stale chip and
+     `staleDays` already carry — so the row printed one state twice, in two places,
+     in two colours. A source's `when` answers "as of when", never "how bad". */
+  { key: "pool", label: "Pool hours", value: "07:00–21:00", layer: "canonical", source: { what: "property site capture", where: "Property website", uri: "gdrive://capture-2026-05", when: "May", kind: "gdrive" }, state: "stale", staleDays: 96 },
   { key: "amenities-desc", label: "Amenities copy", value: "“View Hotel — experience refined luxury…”", layer: "canonical", source: { what: "portal boilerplate", where: "Consortium portal", uri: "portal://consortium/desc", when: "Feb", kind: "portal" }, state: "template" },
   { key: "commission", label: "Commission", value: "12% Atelier rate", layer: "agency", source: { what: "“…participating agencies receive twelve percent (12%) on the Atelier Collection rate, paid within 45 days of departure…”", where: "Partner portal · Atelier terms p.4", uri: "claromentis://partners/atelier-terms.pdf", when: "12 Mar", kind: "intranet" }, state: "conflict" },
   { key: "perk", label: "Negotiated perk", value: "EUR 100 property credit + daily breakfast for two", layer: "agency", source: { what: "keyed after rep call", where: "Edited by R. Devane", uri: "manual://rd", when: "21 Jun", kind: "manual" }, state: "edited-overlay", beneath: { value: "Daily breakfast for two", source: { what: "programme standard", where: "Atelier terms", uri: "claromentis://partners/atelier-terms.pdf", when: "12 Mar", kind: "intranet" } } },
@@ -319,18 +329,25 @@ export const widgetsFor: Record<Persona, Widget[]> = {
     { id: "commissions", title: "Commissions", expandsTo: "/commissions?state=open", expandLabel: "Open the ledger" },
     { id: "departures", title: "Departures", expandsTo: "/itineraries?window=30", expandLabel: "All departures" },
     { id: "notices", title: "Notices", expandsTo: "/notifications?tag=Records", expandLabel: "Open triage" },
-    { id: "incentives", title: "Expiring incentives", expandsTo: "/records?evidence=incentive", expandLabel: "See affected records" },
+    /* Expands into the promotion facet, which returns the same three records the widget
+       lists. It pointed at `evidence=incentive`, which returned one of the three. */
+    { id: "incentives", title: "Expiring incentives", expandsTo: "/records?promotion=active", expandLabel: "See affected records" },
     { id: "verification", title: "Records verified this quarter", expandsTo: "/records?evidence=stale", expandLabel: "Records needing verification" },
   ],
   colleague: [
-    { id: "commissions", title: "Commissions", expandsTo: "/commissions?state=open", expandLabel: "Open the ledger" },
+    /* No Commissions widget. A titled card occupying a grid cell to explain that it is
+       empty is a mask with a caption — the thing the policy claims not to do. Expiring
+       incentives is simply not here either, and the record does the same: the field is
+       gone, with no gap and no note. One rule, one implementation. */
     { id: "departures", title: "Departures", expandsTo: "/itineraries?window=30", expandLabel: "All departures" },
     { id: "notices", title: "Notices", expandsTo: "/notifications?tag=Records", expandLabel: "Open triage" },
     { id: "verification", title: "Records verified this quarter", expandsTo: "/records?evidence=stale", expandLabel: "Records needing verification" },
   ],
   lead: [
     { id: "publish", title: "Awaiting publication", expandsTo: "/notifications?tag=Knowledge", expandLabel: "Open triage" },
-    { id: "confirm", title: "Records awaiting confirmation", expandsTo: "/notifications?tag=Ingestion", expandLabel: "Open triage" },
+    /* The queue index is the surface this widget summarises, and it is the only way in:
+       nothing else in the product links to /admin/review. */
+    { id: "confirm", title: "Records awaiting confirmation", expandsTo: "/admin/review", expandLabel: "Open the confirmation queue" },
     { id: "connections", title: "Connection health", expandsTo: "/admin/connections", expandLabel: "All connections" },
     { id: "policy", title: "Policy and access", expandsTo: "/admin/publish", expandLabel: "Sharing defaults" },
   ],
@@ -427,6 +444,23 @@ export const traveller = {
     { title: "Kyoto & Kansai", dates: "12–19 Oct 2026", status: "Booked" },
     { title: "Amalfi coast", dates: "May 2025", status: "Traveled" },
   ],
+  /**
+   * Real figures, gated. This section used to be a paragraph explaining that spend
+   * "renders here" — narration standing in for the feature, which made the entitlement
+   * rule something the reader had to take on trust. With the numbers present, a
+   * colleague at Collaborator Full opening the same profile and finding no Financials
+   * section at all is the proof: the sharing tier grants the person, the commission
+   * entitlement grants the money, and the two are separate grants.
+   */
+  financials: {
+    lifetimeSpend: 148_600,
+    currency: "EUR",
+    trips: 7,
+    averageTripValue: 21_229,
+    averageDailyRate: 1_180,
+    since: "2019",
+    source: "Booking system · synced yesterday 18:00",
+  },
   financialsGated: true,
 };
 
@@ -460,7 +494,16 @@ export const candidates = [
       { label: "Commission", value: "12%", snippet: "sync record 114", confidence: 0.9 },
     ],
   },
-  { id: "villa-unknown", name: "“Villa ????”", from: "unreadable source row", uri: "gdrive://dmc-kyoto-2026.xlsx", kind: "held" as const, match: null, fields: [] },
+  {
+    id: "villa-unknown", name: "“Villa ????”", from: "unreadable source row",
+    uri: "gdrive://dmc-kyoto-2026.xlsx", kind: "held" as const, match: null, fields: [],
+    /* Nothing was extracted, so the only honest thing to show is the row itself. */
+    raw: {
+      where: "row 63 · cols B–H",
+      text: "Villa ????\t\t0\t\t\t¤¤¤\t(see attached)",
+      note: "The row is in the sheet and unreadable: the name cell holds placeholder characters, the city cell is empty, and the rate cell carries a symbol with no currency.",
+    },
+  },
 ];
 
 /* ── knowledge vault ──────────────────────────────────────── */
@@ -499,7 +542,45 @@ export const connections = [
   { name: "Inbound mail — parisdesk@inbound.enable…", state: "ok" as const, lastSuccess: "11:52", posture: "private by default, sender-verified" },
 ];
 
+/**
+ * Connection health — one rule, three surfaces.
+ *
+ * A source needs attention when its state is not `ok`. Expired credentials and a
+ * sync running behind both degrade an answer, so both are counted: a source that
+ * cannot be reached and a source that is stale are the same fact to the person
+ * reading the answer. `/admin/connections`, `/settings` and the lead briefing all
+ * read this, because a product whose argument is data integrity cannot have two
+ * screens disagreeing about the same number.
+ */
+export const connectionsNeedingAttention = connections.filter((c) => c.state !== "ok");
+
+export const connectionHealth = {
+  sources: connections.length,
+  needAttention: connectionsNeedingAttention.length,
+  /** The one phrase for the count, so the three surfaces also agree in words. */
+  label: `${connectionsNeedingAttention.length} need attention`,
+};
+
 /* ── ops: unmatched payments ──────────────────────────────── */
+
+/** The confirmation queue's floor, for the same reason as `closedPayments`. */
+export const confirmedRecently = [
+  { id: "cr1", name: "Ryokan Nishimura", uri: "gdrive://kyoto-partners.xlsx", by: "M. Keller", when: "Today 08:15", note: "Four fields confirmed, one corrected — rate currency was JPY, not USD." },
+  { id: "cr2", name: "Casa Bellavista", uri: "mail://forwarded · Amalfi openings", by: "M. Keller", when: "Yesterday 14:50", note: "Confirmed as written. Programme left unset — no evidence in the source." },
+  { id: "cr3", name: "Hôtel des Marais", uri: "intranet://paris-additions", by: "A. Blanc", when: "Yesterday 09:05", note: "Merged into the existing record; the duplicate stayed logged." },
+];
+
+/**
+ * What the queue has already closed. A queue built to trend toward zero looks broken
+ * in the state it is designed to reach — two rows and a large empty panel reads as a
+ * failure to load, not as a good morning's work. The closed list gives the surface a
+ * floor, and it is the audit trail the reconciliation claim depends on anyway.
+ */
+export const closedPayments = [
+  { id: "cp1", amount: 1240, currency: "EUR", ref: "LN-4471 · Maison Léandre", reason: "Booker paid under her married name; matched against the booking email.", by: "A. Blanc", when: "Today 09:40" },
+  { id: "cp2", amount: 305, currency: "EUR", ref: "KX-1108 · Kyoto transfer", reason: "Split payment, second half. Matched to the same booking as the deposit.", by: "A. Blanc", when: "Yesterday 16:15" },
+  { id: "cp3", amount: 2180, currency: "EUR", ref: "VO-2214 · Verlaine", reason: "Property name misspelt on the transfer; confirmed by the partner portal reference.", by: "A. Blanc", when: "Yesterday 11:02" },
+];
 
 export const orphanedPayments = [
   { id: "op1", amount: 410, currency: "EUR", raw: "R. Osei", note: "arrived under traveller name; booker is M. Osei", candidates: [{ ref: "VO-2214 · booker M. Osei (traveller R. Osei)", strength: "strong" }, { ref: "KX-1108 · no name overlap", strength: "weak" }] },
@@ -511,10 +592,18 @@ export const orphanedPayments = [
 export interface Conversation {
   id: string; title: string; preview: string; when: string; messages: number;
   state?: "conflict" | "refusal" | "answered";
+  /**
+   * The thread is about commission terms. A reader without commission access may
+   * still hold the question — it is theirs to ask — but the outcome describes
+   * material they cannot read. `sources disagree` told a colleague that a
+   * commission conflict exists, and the message count sized a transcript they
+   * cannot open. Both are withheld from the index for that reader.
+   */
+  needsCommission?: boolean;
 }
 
 export const conversations: Conversation[] = [
-  { id: "leandre-rate", title: "Maison Léandre — Atelier rate", preview: "What is our commission, and does the rate include breakfast?", when: "Today 09:14", messages: 4, state: "conflict" },
+  { id: "leandre-rate", title: "Maison Léandre — Atelier rate", preview: "What is our commission, and does the rate include breakfast?", when: "Today 09:14", messages: 4, state: "conflict", needsCommission: true },
   { id: "third-night", title: "Third night free on suites", preview: "Does Maison Léandre still give a third night free?", when: "Today 08:31", messages: 2, state: "refusal" },
   { id: "kaiseki", title: "Kaiseki near Gion", preview: "Counter seats for two, mid-October, walkable from the ryokan.", when: "Yesterday 17:02", messages: 6, state: "answered" },
   { id: "patagonia-mobility", title: "Patagonia — mobility-friendly cabins", preview: "Which operators have step-free cabins on the fjord sailings?", when: "Yesterday 11:20", messages: 5, state: "answered" },
@@ -550,7 +639,11 @@ export const askThreads = {
       { clause: "Freshness", ok: false, note: "The newest source is 14 months old." },
       { clause: "Corroboration", ok: false, note: "Neither source confirms the other." },
     ],
-    policy: "Offers like this change without notice. I hold anything older than twelve months unless a second source confirms it.",
+    /* Third person, deliberately. The headline and body are the product speaking to
+       the advisor and are set in the prose face; this is a footnote about how the
+       system behaves, set in the machine face. A first-person sentence wearing the
+       machine face made the two voices disagree in the same card. */
+    policy: "Offers like this change without notice. Anything older than twelve months is held unless a second source confirms it.",
     held: [
       { label: "Partner portal", detail: "Suite offers, spring · 08 Apr 2025", age: "14 months old" },
       { label: "Email extract", detail: "Forwarded offer notice · 19 Mar 2025", age: "15 months old" },
@@ -566,17 +659,47 @@ export const askThreads = {
   },
 };
 
-export const trace = [
+/**
+ * The trace is built from what the reader is allowed to see, not from the answer's
+ * full lineage. A stage that only ever touched restricted material does not appear
+ * for a reader who cannot see that material — otherwise the panel asserts it checked
+ * a figure the answer has just declined to give, which is the contradiction the
+ * whole product exists to avoid. `needsCommission` marks such a stage.
+ */
+export const trace: { stage: string; detail: string; needsCommission?: boolean }[] = [
   { stage: "Agency directory, vault, and notes", detail: "Read 3 documents in Partners / Atelier" },
-  { stage: "Curated specialist layer", detail: "Checked the rate against the agency overlay" },
+  {
+    stage: "Curated specialist layer",
+    detail: "Checked the rate against the agency overlay",
+    needsCommission: true,
+  },
   { stage: "Vetted external sources", detail: "Found no active notice on this property" },
 ];
 
 /* ── admin ────────────────────────────────────────────────── */
 
-export const publishQueue = [
+/** A queue item that arrived by mail carries the mail with it. */
+export interface PublishSource {
+  doc: string; from: string; via: string; received: string;
+  subject: string; body: string; forwardedBy: string; access: string;
+}
+
+export const publishQueue: { id: string; text: string; action: string; source?: PublishSource }[] = [
   { id: "spa-pub", text: "Spa closure — submitted by R. Devane, team scope", action: "Publish agency-wide (owner preserved)" },
-  { id: "camp-pub", text: "Serengeti camp relocation — from forwarded mail", action: "Review source" },
+  {
+    id: "camp-pub", text: "Serengeti camp relocation — from forwarded mail", action: "Review source",
+    /* An item that arrived by mail carries the mail. "Review source" opens this. */
+    source: {
+      doc: "Serengeti camp relocation note",
+      from: "operations@tsavora.example",
+      via: "parisdesk@inbound.enable… · sender-verified",
+      received: "18 Aug 09:26",
+      subject: "Camp relocation — September",
+      body: "The camp moves with the migration from 10 September. New coordinates follow next week; the airstrip transfer is unchanged. Please pass this to anyone holding September arrivals.",
+      forwardedBy: "R. Devane",
+      access: "agency",
+    },
+  },
 ];
 
 export const adminPolicy = {

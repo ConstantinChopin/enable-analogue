@@ -16,9 +16,9 @@ import { cn } from "@/lib/utils";
 import { useDemo, type NoticeState } from "@/lib/store";
 import { notificationsFor, type Notification, type NotifTag } from "@/data/seed";
 import { PageHeader, SplitPage } from "@/components/layouts";
-import { Chip, Section, Segmented, NarrationNote, SchematicBadge } from "@/components/bits";
+import { Chip, DataList, Section, Segmented, NarrationNote, SchematicBadge } from "@/components/bits";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Check, CircleAlert, Clock, Info, OctagonAlert, TriangleAlert } from "lucide-react";
+import { ArrowRight, Check, Clock, Info, OctagonAlert, TriangleAlert } from "lucide-react";
 
 const TAG_ORDER: NotifTag[] = ["Records", "Commissions", "Ingestion", "Traveller", "Connections", "Knowledge"];
 
@@ -147,13 +147,26 @@ function Triage() {
       header={header}
       panelOpen={!!active}
       onClosePanel={() => setSelected(null)}
-      panelTitle={active ? active.tag : "Item"}
+      /* The panel is titled with what the item is about, not which tag it filed under.
+         It read "Records" above an item concerning Hôtel Verlaine, and the tag then
+         repeated as a chip directly below it. */
+      panelTitle={active ? (active.subject?.label ?? active.headline) : "Item"}
       panel={active ? <ItemPanel n={active} state={stateOf(active)} /> : null}
     >
       {
           <div className="min-w-0">
-            {/* ── tag filter ── */}
-            <div className="mt-3">
+            {/* Two identical segmented controls doing different jobs, stacked with a
+                sentence wedged between them, put ~90px of chrome above the first item
+                on a surface whose job is getting to zero. They now share one row: the
+                state on the left because it is the smaller, more-used axis, the tags
+                on the right. One line instead of three. */}
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <Segmented
+                value={stateFilter}
+                onChange={setStateFilter}
+                options={STATE_FILTERS}
+                label="Triage state"
+              />
               <Segmented<NotifTag | "all">
                 value={tag}
                 /* Clicking the live tag clears it, as the pill row did. */
@@ -165,19 +178,6 @@ function Triage() {
                 label="Tag"
                 className="max-w-full flex-wrap"
               />
-            </div>
-
-            {/* ── state filter ── */}
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Segmented
-                value={stateFilter}
-                onChange={setStateFilter}
-                options={STATE_FILTERS}
-                label="Triage state"
-              />
-              <p className="t-meta">
-                Nothing here clears itself. An item is actioned or deferred deliberately.
-              </p>
             </div>
 
             {/* ── the stream ── */}
@@ -204,17 +204,31 @@ function Triage() {
                         type="button"
                         onClick={() => setSelected(n.id)}
                         aria-pressed={selected === n.id}
+                        aria-label={`${n.severity}: ${n.headline}`}
+                        /* A Critical item sat among six Important ones at identical row
+                           height and weight, separated only by a glyph and a slight hue
+                           shift. The highest-consequence row now takes a solid rail and
+                           a tinted ground — the same weight the record's critical banner
+                           carries, so severity reads the same way everywhere. */
                         className={cn(
                           "block w-full cursor-pointer border-l-2 px-3 pb-3 text-left transition-colors",
                           selected === n.id ? "bg-muted/70" : "hover:bg-muted/40",
-                          isNew ? "border-l-primary" : "border-l-transparent",
+                          n.severity === "Critical"
+                            ? "border-l-crit bg-crit/[0.04]"
+                            : isNew
+                              ? "border-l-primary"
+                              : "border-l-transparent",
                         )}
                       >
                         <span className="row-grid">
                           <span
                             className={cn(
                               "row-primary t-body",
-                              isNew ? "font-semibold text-foreground" : "text-muted-foreground",
+                              n.severity === "Critical"
+                                ? "font-semibold text-foreground"
+                                : isNew
+                                  ? "font-semibold text-foreground"
+                                  : "text-muted-foreground",
                             )}
                           >
                             <span className="mr-2 inline-block align-text-bottom">
@@ -282,34 +296,22 @@ function ItemPanel({ n, state }: { n: Notification; state: NoticeState }) {
         <p className="mt-2 t-body text-muted-foreground">{n.detail}</p>
       </div>
 
-      <dl className="space-y-2 rounded-md border border-border p-4 t-body">
-        {n.evidence && (
-          <div>
-            <dt className="font-mono t-micro uppercase tracking-widest text-muted-foreground">Evidence</dt>
-            <dd className="mt-1">{n.evidence}</dd>
-          </div>
-        )}
-        <div>
-          <dt className="font-mono t-micro uppercase tracking-widest text-muted-foreground">Generated by</dt>
-          <dd className="mt-1">{n.generatedBy}</dd>
-        </div>
-        <div>
-          <dt className="font-mono t-micro uppercase tracking-widest text-muted-foreground">When</dt>
-          <dd className="mt-1">{n.when}</dd>
-        </div>
-        <div>
-          <dt className="font-mono t-micro uppercase tracking-widest text-muted-foreground">Subject</dt>
-          <dd className="mt-1">
-            {n.subject ? (
+      <DataList
+        rows={[
+          ...(n.evidence ? [{ label: "Evidence", value: n.evidence }] : []),
+          { label: "Generated by", value: n.generatedBy },
+          { label: "When", value: n.when },
+          {
+            label: "Subject",
+            value: n.subject ? (
               <Link href={n.subject.href} className="text-primary underline underline-offset-2">
                 {n.subject.label}
               </Link>
-            ) : (
-              <span className="text-muted-foreground">Not attached to one record — it describes a connection.</span>
-            )}
-          </dd>
-        </div>
-      </dl>
+            ) : null,
+            absent: "not applicable" as const,
+          },
+        ]}
+      />
 
       {/* Heavy work opens the real surface; light actions resolve here. */}
       <div className="space-y-2">
@@ -358,10 +360,9 @@ function ItemPanel({ n, state }: { n: Notification; state: NoticeState }) {
         )}
       </div>
 
-      <p className="flex items-start gap-2 t-meta">
-        <CircleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-        This item stays here until you action or defer it. Nothing expires on a timer.
-      </p>
+      {/* The "nothing expires on a timer" line is gone. It was the fifth restatement of
+          one principle across four surfaces, and the two buttons above are the proof:
+          the only way this item leaves the list is through one of them. */}
     </div>
   );
 }

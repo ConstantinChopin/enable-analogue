@@ -5,7 +5,7 @@
  * source degrades answers visibly instead of silently.
  */
 import { useState } from "react";
-import { connections } from "@/data/seed";
+import { connectionHealth, connections } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
 import { Chip, Section, NarrationNote, SchematicBadge } from "@/components/bits";
 import { Button } from "@/components/ui/button";
@@ -18,9 +18,11 @@ import { KeyRound, Plus, RefreshCw } from "lucide-react";
 
 function StateChip({ state }: { state: (typeof connections)[number]["state"] }) {
   if (state === "ok") return <Chip tone="ok">connected</Chip>;
+  /* `syncing` is counted in "need attention", so it is marked as one — a neutral chip
+     beside a header that counts it read as a disagreement on the same screen. */
   if (state === "syncing")
     return (
-      <Chip tone="neutral">
+      <Chip tone="warn">
         <RefreshCw className="size-3" aria-hidden /> syncing
       </Chip>
     );
@@ -34,8 +36,12 @@ function StateChip({ state }: { state: (typeof connections)[number]["state"] }) 
 export default function Connections() {
   const [addOpen, setAddOpen] = useState(false);
   const [connector, setConnector] = useState<"mcp" | "self">("mcp");
+  const [reconnect, setReconnect] = useState<string | null>(null);
+  const [reconnectSent, setReconnectSent] = useState(false);
 
-  const failing = connections.filter((c) => c.state === "credentials").length;
+  /* The count comes from the seed's one rule (anything not `ok`), so this header,
+     /settings and the lead briefing cannot disagree about the same number. */
+  const { sources, needAttention, label } = connectionHealth;
 
   return (
     <Page width="wide">
@@ -43,9 +49,9 @@ export default function Connections() {
         title={
           <>
             Connections
-            <Chip tone={failing > 0 ? "crit" : "neutral"}>
-              <span className="tnum">{connections.length}</span> sources
-              {failing > 0 ? ` · ${failing} failing` : ""}
+            <Chip tone={needAttention > 0 ? "crit" : "neutral"}>
+              <span className="tnum">{sources}</span> sources
+              {needAttention > 0 ? ` · ${label}` : ""}
             </Chip>
           </>
         }
@@ -56,7 +62,8 @@ export default function Connections() {
         }
       >
         <p className="mt-2 max-w-[62ch] t-body text-muted-foreground">
-          Each source shows when it last succeeded. Nothing stale is presented as fresh.
+          A source needs attention when it is not connected — expired credentials and a sync
+          running behind both degrade an answer.
         </p>
       </PageHeader>
 
@@ -79,22 +86,66 @@ export default function Connections() {
                 <span className="block truncate t-meta">{c.posture}</span>
               </span>
               <span className="row-meta tnum t-meta">{c.lastSuccess}</span>
-              <span className="row-trailing">
+              <span className="row-trailing flex items-center gap-2">
                 <StateChip state={c.state} />
+                {/* A health surface where the broken thing has no fix is a report, not a
+                    console. Reconnecting is credential work that happens at the source,
+                    so the control opens that — it does not pretend to repair anything. */}
+                {c.state === "credentials" && (
+                  <Button size="sm" variant="outline" onClick={() => setReconnect(c.name)}>
+                    Reconnect
+                  </Button>
+                )}
               </span>
             </li>
           ))}
         </ul>
       </Section>
 
-      <Section className="mt-4" title="When a source fails downstream">
-        <p className="t-body text-muted-foreground">
-          Answers exclude a failed source and carry a visible gap note — &ldquo;source unreachable
-          since 24 Aug&rdquo; — instead of answering as if the source were current. Previously
-          confirmed records remain, with their provenance and their date. Nothing stale is presented
-          as fresh.
-        </p>
-      </Section>
+      {/* The closing essay is gone. It restated the subtitle's claim in the same
+          viewport, and what it described — a failed source producing a visible gap
+          note rather than a confident answer — is shown on the answer itself. */}
+
+      {/* Reconnect — the fix for the one broken row */}
+      <Sheet open={!!reconnect} onOpenChange={(o) => { if (!o) { setReconnect(null); setReconnectSent(false); } }}>
+        <SheetContent side="right">
+          <SheetHeader>
+            <SheetTitle>Reconnect {reconnect}</SheetTitle>
+            <SheetDescription>
+              Last successful sync 24 Aug. Credentials expired; the source has not been reachable
+              since.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-4 px-4">
+            <div className="rounded-lg border border-border p-3">
+              <div className="type-data-strong">While this source is down</div>
+              <p className="mt-1 t-meta">
+                Answers exclude it and carry a gap note naming the date. Records confirmed before
+                24 Aug still answer, with their own provenance and their own date.
+              </p>
+            </div>
+            <div className="rounded-lg border border-border p-3">
+              <div className="type-data-strong">What reconnecting needs</div>
+              <p className="mt-1 t-meta">
+                A named person re-authorises at the partner portal. Enable never stores the
+                credential — it holds a scoped token, which is what expired.
+              </p>
+            </div>
+            {reconnectSent && (
+              <p className="rounded-lg border border-ok/40 bg-ok/10 p-3 t-meta">
+                Re-authorisation requested from A. Blanc · logged today. The row stays flagged until
+                a sync succeeds.
+              </p>
+            )}
+          </div>
+          <SheetFooter>
+            <Button variant="outline" onClick={() => setReconnect(null)}>Close</Button>
+            <Button disabled={reconnectSent} onClick={() => setReconnectSent(true)}>
+              Request re-authorisation
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* Add connection — schematic */}
       <Sheet open={addOpen} onOpenChange={setAddOpen}>
