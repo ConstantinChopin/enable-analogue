@@ -199,7 +199,7 @@ function Itineraries() {
                 </Button>
               </Section>
             ) : (
-              <Section flush className="mt-4" bodyClassName="p-0">
+              <Section variant="list" className="mt-4">
                 <ul>
                 <li className="row-grid px-4 type-micro uppercase tracking-widest text-muted-foreground">
                   <span className="row-primary">Trip</span>

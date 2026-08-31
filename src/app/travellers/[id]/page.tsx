@@ -381,7 +381,7 @@ function MarchettiProfile() {
           </Section>
 
           {/* Trips */}
-          <Section flush title="Trips" bodyClassName="p-0">
+          <Section variant="list" title="Trips">
             <ul className="divide-y divide-border">
               {traveller.trips.map((t) => (
                 <li key={t.title} className="row-grid px-4">
@@ -445,8 +445,7 @@ function MarchettiProfile() {
         {/* ── Context rail ── */}
         <div className="space-y-4">
           <Section
-            flush
-            bodyClassName="p-0"
+            variant="list"
             title="Where these come from"
             footer={<span className="type-meta">The product extracts signals. It does not decide that a signal is true.</span>}
           >
@@ -665,7 +664,7 @@ function GenericProfile({ id }: { id: string }) {
               )}
             </Section>
 
-            <Section flush title="All journeys" bodyClassName="p-0">
+            <Section variant="list" title="All journeys">
               <ul className="divide-y divide-border">
                 {past.map((t) => (
                   <li key={t.id} className="row-grid px-4">
@@ -700,7 +699,7 @@ function GenericProfile({ id }: { id: string }) {
           </div>
 
           <div className="space-y-4">
-            <Section flush title="At a glance" bodyClassName="p-0">
+            <Section variant="list" title="At a glance">
               <ul className="divide-y divide-border">
                 <li className="row-grid px-4">
                   <span className="row-primary type-data">Relationship</span>

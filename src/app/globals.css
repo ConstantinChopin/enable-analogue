@@ -305,7 +305,23 @@ b, strong { font-weight: 590; }
   }
 }
 
-/* ── row primitive: exactly one element truncates ────────────────── */
+/* ── row primitive ─────────────────────────────────────────────────
+   The rule is "exactly one element truncates", and the element that gives
+   way is the subject. That is the right principle applied backwards:
+   trailing chips are `flex-shrink: 0` and therefore incompressible, so the
+   row protects its metadata and sacrifices the thing it is about. Measured
+   before this change: a traveller's name reduced to 13% of the row, and a
+   Critical advisory losing two thirds of its message — the actionable half.
+
+   The contract is now: the subject keeps at least half its natural width.
+   When metadata will not fit inside that budget, the row becomes two lines
+   (`.row-stack`) rather than truncating further. `/notifications` already
+   proved the two-line shape works — it is the one list in the product with
+   no truncation at all — so this promotes that shape into the primitive
+   rather than inventing one.
+
+   Tabular rows are exempt: their columns are tracks, so the subject has a
+   guaranteed share and cannot be squeezed by its neighbours.            */
 .row-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
@@ -314,6 +330,17 @@ b, strong { font-weight: 590; }
   min-height: 36px;
   padding-block: 10px;
 }
+
+/* Two-line: subject and its most consequential mark on the first line, the
+   message and age on the second. Nothing truncates. */
+.row-stack { padding-block: 10px; min-height: 52px; }
+.row-stack > .row-stack-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+.row-stack > .row-stack-body { margin-top: 2px; }
 .row-grid > .row-primary { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-grid > .row-meta,
 .row-grid > .row-trailing { white-space: nowrap; flex-shrink: 0; }

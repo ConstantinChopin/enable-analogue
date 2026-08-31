@@ -43,8 +43,7 @@ export default function AdminPublish() {
           {banner && <ConfirmBanner show>Published agency-wide — owner preserved.</ConfirmBanner>}
 
           <Section
-            flush
-            bodyClassName="p-0"
+            variant="list"
             title={
               <span className="inline-flex items-center gap-2">
                 <Inbox className="size-3.5 text-muted-foreground" aria-hidden /> Publish queue
@@ -95,8 +94,7 @@ export default function AdminPublish() {
           </Section>
 
           <Section
-            flush
-            bodyClassName="p-0"
+            variant="list"
             title={
               <span className="inline-flex items-center gap-2">
                 <SlidersHorizontal className="size-3.5 text-muted-foreground" aria-hidden /> Default
@@ -125,8 +123,7 @@ export default function AdminPublish() {
           </Section>
 
           <Section
-            flush
-            bodyClassName="p-0"
+            variant="list"
             title={
               <span className="inline-flex items-center gap-2">
                 <ShieldAlert className="size-3.5 text-muted-foreground" aria-hidden /> Admin access to
@@ -167,7 +164,7 @@ export default function AdminPublish() {
 
         {/* ── Context rail ── */}
         <div className="space-y-4">
-          <Section flush bodyClassName="p-0" title="Who this applies to">
+          <Section variant="list" title="Who this applies to">
             <ul className="divide-y divide-border">
               <li className="row-grid px-4">
                 <span className="row-primary type-data">Advisors</span>

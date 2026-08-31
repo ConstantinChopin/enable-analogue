@@ -19,7 +19,7 @@ import {
   type Widget,
 } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
-import { Chip, Section, NarrationNote, FreshnessDate } from "@/components/bits";
+import { Chip, Section, NarrationNote, FreshnessDate, Rows, Row, RowStack } from "@/components/bits";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -40,7 +40,7 @@ function WidgetCard({
 }) {
   return (
     <Section
-      flush
+      variant="list"
       title={title}
       chips={chip}
       footer={
@@ -58,24 +58,13 @@ function WidgetCard({
   );
 }
 
-function Rows({ children }: { children: React.ReactNode }) {
-  return <ul className="divide-y divide-border type-data">{children}</ul>;
-}
-/** The row primitive (visual-system §6): one grid, exactly one element truncates. */
-function Row({ children }: { children: React.ReactNode }) {
-  return <li className="row-grid">{children}</li>;
-}
-/** A row that carries a second line of detail beneath it. */
-function StackRow({ children, detail }: { children: React.ReactNode; detail: React.ReactNode }) {
-  return (
-    <li>
-      <div className="row-grid">{children}</div>
-      <div className="type-meta pb-2">{detail}</div>
-    </li>
-  );
-}
 function Quiet({ children }: { children: React.ReactNode }) {
-  return <p className="py-1 type-data text-muted-foreground">{children}</p>;
+  return <p className="px-[var(--space-4)] py-1 type-data text-muted-foreground">{children}</p>;
+}
+/** A widget's non-row content — a headline figure, a meter — owning its own gutter,
+    which is the `list` card's contract: children inset themselves so rows can bleed. */
+function Figure({ children }: { children: React.ReactNode }) {
+  return <div className="px-[var(--space-4)]">{children}</div>;
 }
 
 const eur = (n: number) => `EUR ${n.toLocaleString("en-GB")}`;
@@ -117,15 +106,17 @@ export default function Briefing() {
            explain — which is the whole of "absent, not masked". */
         return (
           <>
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="type-data-strong tnum">{eur(outstanding)}</span>
-              <span className="type-meta">
-                outstanding across {openCommissions.length} commissions
-              </span>
-            </div>
-            <p className="mt-1 type-meta tnum">
-              {eur(briefing.headline.collectedThisWeek)} collected this week
-            </p>
+            <Figure>
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="type-data-strong tnum">{eur(outstanding)}</span>
+                <span className="type-meta">
+                  outstanding across {openCommissions.length} commissions
+                </span>
+              </div>
+              <p className="mt-1 type-meta tnum">
+                {eur(briefing.headline.collectedThisWeek)} collected this week
+              </p>
+            </Figure>
             <div className="mt-3">
               <Rows>
                 {[...openCommissions]
@@ -176,24 +167,37 @@ export default function Briefing() {
       case "notices":
         return (
           <>
+            {/* Two lines: the property and its severity on the first, the advisory
+                itself on the second. On one line the Critical notice lost two thirds
+                of its text — and the part it lost was "do not confirm bookings until
+                the property confirms reopening", which is the only actionable half. */}
             <Rows>
               {activeNotices.map((n) => (
-                <Row key={n.id}>
-                  <Link href={`/records/${n.productId}`} className="row-primary hover:text-primary">
-                    <span className="type-data-strong">{n.productName}</span>{" "}
-                    <span className="text-muted-foreground">— {n.text}</span>
-                  </Link>
-                  <span className="row-trailing flex items-center gap-2">
-                    <Chip tone={n.severity === "Critical" ? "crit" : n.severity === "Important" ? "warn" : "neutral"}>
-                      {n.severity}
-                    </Chip>
-                    {n.staleReviewDue && s.world === "v2" && <Chip tone="warn">review due</Chip>}
-                  </span>
-                </Row>
+                <RowStack
+                  key={n.id}
+                  head={
+                    <>
+                      <Link
+                        href={`/records/${n.productId}`}
+                        className="row-primary type-data-strong hover:text-primary"
+                      >
+                        {n.productName}
+                      </Link>
+                      <span className="flex shrink-0 items-center gap-2">
+                        <Chip tone={n.severity === "Critical" ? "crit" : n.severity === "Important" ? "warn" : "neutral"}>
+                          {n.severity}
+                        </Chip>
+                        {n.staleReviewDue && s.world === "v2" && <Chip tone="warn">review due</Chip>}
+                      </span>
+                    </>
+                  }
+                >
+                  {n.text}
+                </RowStack>
               ))}
             </Rows>
             {s.world === "v1" && (
-              <div className="mt-3">
+              <div className="mt-3 px-[var(--space-4)]">
                 <NarrationNote>
                   The spa notice is missing from this list. The v1 build let it expire on
                   1 August; the spa is still closed. Nothing on the screen marks the silence
@@ -208,30 +212,28 @@ export default function Briefing() {
         return (
           <Rows>
             {promotions.map((p) => (
-              <StackRow
+              <RowStack
                 key={p.id}
-                detail={
+                head={
                   <>
-                    {p.stacksWithBase ? "bonus — adds to base" : "override — replaces base"} · book by{" "}
-                    {p.bookingWindowEnd} · travel by {p.travelWindowEnd}
+                    <span className="row-primary">
+                      <span className="type-data-strong">{p.productName}</span>
+                      <span> · {p.rate}</span>
+                    </span>
+                    <Chip tone="warn" className="tnum">{p.daysLeft} days left</Chip>
                   </>
                 }
               >
-                <span className="row-primary">
-                  <span className="type-data-strong">{p.productName}</span>
-                  <span> · {p.rate}</span>
-                </span>
-                <span className="row-trailing">
-                  <Chip tone="warn" className="tnum">{p.daysLeft} days left</Chip>
-                </span>
-              </StackRow>
+                {p.stacksWithBase ? "bonus — adds to base" : "override — replaces base"} · book by{" "}
+                {p.bookingWindowEnd} · travel by {p.travelWindowEnd}
+              </RowStack>
             ))}
           </Rows>
         );
 
       case "verification":
         return (
-          <>
+          <Figure>
             <div className="flex items-baseline gap-3">
               <span className="type-data-strong tnum">{briefing.recordsVerified.done}</span>
               <span className="type-meta tnum">
@@ -240,13 +242,13 @@ export default function Briefing() {
             </div>
             <Progress
               value={(briefing.recordsVerified.done / briefing.recordsVerified.of) * 100}
-              className="mt-2 h-1.5"
+              className="mt-2 h-1"
             />
             <p className="mt-2 type-meta">
               Carried forward, unchecked: <span className="tnum">{briefing.recordsVerified.carriedForward}</span>.
               An unchecked field still answers — with its date and a freshness warning.
             </p>
-          </>
+          </Figure>
         );
 
       /* ── agency lead ── */
@@ -254,9 +256,9 @@ export default function Briefing() {
         return (
           <Rows>
             {publishQueue.map((q) => (
-              <StackRow key={q.id} detail={q.action}>
-                <span className="row-primary type-data-strong">{q.text}</span>
-              </StackRow>
+              <RowStack key={q.id} head={<span className="row-primary type-data-strong">{q.text}</span>}>
+                {q.action}
+              </RowStack>
             ))}
           </Rows>
         );
@@ -325,7 +327,7 @@ export default function Briefing() {
       case "unmatched":
         return (
           <>
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-[var(--space-4)]">
               <span className="type-data-strong tnum">
                 {eur(orphanedPayments.reduce((n, p) => n + p.amount, 0))}
               </span>
@@ -336,12 +338,17 @@ export default function Briefing() {
             <div className="mt-3">
               <Rows>
                 {orphanedPayments.map((p) => (
-                  <StackRow key={p.id} detail={p.note}>
-                    <span className="row-primary">
-                      <span className="type-data-strong tnum">{eur(p.amount)}</span>
-                      <span className="text-muted-foreground"> {p.raw}</span>
-                    </span>
-                  </StackRow>
+                  <RowStack
+                    key={p.id}
+                    head={
+                      <span className="row-primary">
+                        <span className="type-data-strong tnum">{eur(p.amount)}</span>
+                        <span className="text-muted-foreground"> {p.raw}</span>
+                      </span>
+                    }
+                  >
+                    {p.note}
+                  </RowStack>
                 ))}
               </Rows>
             </div>
@@ -353,7 +360,7 @@ export default function Briefing() {
         const collected = paid.reduce((n, c) => n + c.amount, 0);
         return (
           <>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 px-[var(--space-4)]">
               <div>
                 <div className="type-code uppercase tracking-widest text-muted-foreground">Collected</div>
                 <div className="mt-1 type-data-strong tnum">{eur(collected)}</div>
@@ -385,22 +392,22 @@ export default function Briefing() {
         return (
           <Rows>
             {flagged.map((c) => (
-              <StackRow
+              <RowStack
                 key={c.id}
-                detail={
-                  <span className="tnum">
-                    {c.discrepancy &&
-                      `expected ${eur(c.discrepancy.expected)} · received ${eur(c.discrepancy.actual)} · ${c.discrepancy.causes.join(" · ")}`}
-                  </span>
+                head={
+                  <>
+                    <Link href={`/commissions/${c.id}`} className="row-primary type-data-strong hover:text-primary">
+                      {c.property}
+                    </Link>
+                    <Chip tone="warn">actual under projection</Chip>
+                  </>
                 }
               >
-                <Link href={`/commissions/${c.id}`} className="row-primary type-data-strong hover:text-primary">
-                  {c.property}
-                </Link>
-                <span className="row-trailing">
-                  <Chip tone="warn">actual under projection</Chip>
+                <span className="tnum">
+                  {c.discrepancy &&
+                    `expected ${eur(c.discrepancy.expected)} · received ${eur(c.discrepancy.actual)} · ${c.discrepancy.causes.join(" · ")}`}
                 </span>
-              </StackRow>
+              </RowStack>
             ))}
           </Rows>
         );

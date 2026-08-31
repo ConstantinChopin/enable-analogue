@@ -201,8 +201,7 @@ export default function CandidateDetail() {
         {/* Fields */}
         {!isHeld && (
         <Section
-          flush
-          bodyClassName="p-0"
+          variant="list"
           title="Extracted fields"
           chips={<Chip tone="neutral">value · source snippet · confidence</Chip>}
         >

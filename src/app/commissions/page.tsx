@@ -192,7 +192,7 @@ function Ledger() {
         </div>
 
         {/* ── the table ── */}
-        <Section flush className="mt-4" bodyClassName="p-0">
+        <Section variant="list" className="mt-4">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">

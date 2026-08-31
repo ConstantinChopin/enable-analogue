@@ -72,7 +72,7 @@ export default function Connections() {
         which is the difference between a system you can trust and one you have to second-guess.
       </NarrationNote>
 
-      <Section flush className="mt-4" bodyClassName="p-0">
+      <Section variant="list" className="mt-4">
         <div className="row-grid px-4 type-micro uppercase tracking-widest text-muted-foreground">
           <span className="row-primary">Source</span>
           <span className="row-meta">Last success</span>

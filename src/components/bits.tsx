@@ -66,6 +66,34 @@ export function DataList({
   );
 }
 
+/* ── Rows ─────────────────────────────────────────────────────────────────────
+   The list row, shared. Previously each surface declared its own `Row`/`Rows` pair
+   locally, which is why the two-line shape existed on exactly one screen.
+
+   A row owns its horizontal gutter so its divider and hover fill span the full card;
+   the `list` card body owns none. Use `RowStack` whenever the trailing marks would
+   otherwise squeeze the subject — the subject keeps at least half its width, and the
+   second line takes the message.                                                    */
+export function Rows({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <ul className={cn("divide-y divide-border type-data", className)}>{children}</ul>;
+}
+
+export function Row({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <li className={cn("row-grid px-[var(--space-4)]", className)}>{children}</li>;
+}
+
+/** Subject + one trailing mark on line one; the message on line two. */
+export function RowStack({
+  head, children, className,
+}: { head: React.ReactNode; children: React.ReactNode; className?: string }) {
+  return (
+    <li className={cn("row-stack px-[var(--space-4)]", className)}>
+      <div className="row-stack-head">{head}</div>
+      <div className="row-stack-body type-meta">{children}</div>
+    </li>
+  );
+}
+
 /* ── Chip ── */
 export function Chip({ tone = "neutral", className, title, children }: { tone?: "neutral" | "ok" | "warn" | "crit" | "primary"; className?: string; title?: string; children: React.ReactNode }) {
   const tones = {
@@ -216,39 +244,64 @@ export function ProvenancePopover({ source, children }: { source: { what: string
   );
 }
 
-/* ── Section — the one card shell ──────────────────────────────────
-   Defaults render exactly as before, so existing call sites are unchanged.
-   `flush` gives the header a rule and removes body padding, for cards whose
-   content is a list of `.row-grid` rows that own their own gutters — which is
-   why several surfaces had hand-rolled their own card shell. */
+/**
+ * The card primitive.
+ *
+ * Two variants, each complete on its own:
+ *   padded (default) — 16px body inset; prose and mixed content
+ *   list             — zero body inset, children own theirs; header and footer ruled
+ *
+ * `list` replaces the old `flush`, which required every one of its call sites to *also*
+ * pass a body padding override. A primitive that needs a second prop to function is one
+ * people route around, and 31 hand-rolled card shells across 13 files were the cost.
+ *
+ * The header has two zones and an admission rule:
+ *   IDENTITY (left) — the title, plus at most one qualifier, and only if it carries
+ *                     information the title does not.
+ *   ACTION (right)  — controls only.
+ * Status that describes the *content* belongs in the body's first row, not up here.
+ * The rule is what makes "Enable canonical ● canonical" a violation rather than taste.
+ */
 export function Section({
-  title, chips, actions, footer, flush, className, bodyClassName, children,
+  title, chips, actions, footer, variant = "padded", className, bodyClassName, children,
 }: {
   title?: React.ReactNode;
+  /** One qualifier, admitted only if it adds what the title does not. */
   chips?: React.ReactNode;
   actions?: React.ReactNode;
   footer?: React.ReactNode;
-  flush?: boolean;
+  variant?: "padded" | "list";
   className?: string;
   bodyClassName?: string;
   children: React.ReactNode;
 }) {
+  const list = variant === "list";
   return (
-    <section className={cn("flex min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card", !flush && "p-4", className)}>
+    <section
+      className={cn(
+        "flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-border bg-card",
+        !list && "p-[var(--space-4)]",
+        className,
+      )}
+    >
       {title && (
         <header
           className={cn(
-            "flex flex-wrap items-center gap-2",
-            flush ? "border-b border-border px-4 py-3" : "mb-3",
+            "flex flex-wrap items-center gap-[var(--space-2)]",
+            list ? "border-b border-border px-[var(--space-4)] py-[var(--space-3)]" : "mb-[var(--space-3)]",
           )}
         >
-          <h3 className="flex min-w-0 flex-wrap items-center gap-2 type-data-strong">{title}</h3>
+          <h3 className="flex min-w-0 flex-wrap items-center gap-[var(--space-2)] type-data-strong">{title}</h3>
           {chips}
-          {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
+          {actions && <div className="ml-auto flex items-center gap-[var(--space-2)]">{actions}</div>}
         </header>
       )}
-      <div className={cn("min-w-0 flex-1", flush && "px-4 py-3", bodyClassName)}>{children}</div>
-      {footer && <footer className="mt-auto border-t border-border px-4 py-3">{footer}</footer>}
+      <div className={cn("min-w-0 flex-1", list && "py-[var(--space-3)]", bodyClassName)}>{children}</div>
+      {footer && (
+        <footer className="mt-auto border-t border-border px-[var(--space-4)] py-[var(--space-3)]">
+          {footer}
+        </footer>
+      )}
     </section>
   );
 }

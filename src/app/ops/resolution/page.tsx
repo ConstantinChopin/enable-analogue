@@ -70,7 +70,7 @@ export default function ResolutionQueue() {
         person closes it with a reason.
       </NarrationNote>
 
-      <Section flush className="mt-4" bodyClassName="p-0">
+      <Section variant="list" className="mt-4">
         <ul>
           {orphanedPayments.map((p, i) => {
             const matched = matches[p.id];
@@ -136,11 +136,10 @@ export default function ResolutionQueue() {
           screen; this is the state the queue is built to reach, so it has to look like
           a finished morning rather than a failure to load. */}
       <Section
-        flush
+        variant="list"
         className="mt-4"
         title="Closed"
         chips={<Chip tone="neutral"><span className="tnum">{closedPayments.length}</span> in the last two days</Chip>}
-        bodyClassName="p-0"
       >
         <ul>
           {closedPayments.map((p, i) => (

@@ -193,7 +193,7 @@ function Triage() {
                 onClear={() => { setTag("all"); setStateFilter("open"); }}
               />
             ) : (
-              <Section flush className="mt-3" bodyClassName="p-0">
+              <Section variant="list" className="mt-3">
                 <ul>
                 {rows.map((n, i) => {
                   const st = stateOf(n);

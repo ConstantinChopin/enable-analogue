@@ -317,7 +317,7 @@ function RecordsCatalogue() {
                 ))}
               </ul>
             ) : (
-              <Section flush className="mt-4" bodyClassName="p-0">
+              <Section variant="list" className="mt-4">
                 <div className="overflow-x-auto">
                   <table className="w-full type-data">
                     <thead>

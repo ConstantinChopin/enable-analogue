@@ -108,7 +108,7 @@ function Ask() {
         <div className="flex min-h-0 flex-1 gap-6">
           {/* ── recent conversations (page furniture, not nav) ── */}
           <Section
-            flush
+            variant="list"
             className="hidden w-[290px] shrink-0 lg:flex"
             bodyClassName="flex min-h-0 flex-col p-0"
           >
@@ -329,7 +329,7 @@ function Landing({ onPick }: { onPick: (id: ThreadId) => void }) {
         <div className="type-code uppercase tracking-widest text-muted-foreground">
           Recent conversations
         </div>
-        <Section flush className="mt-2" bodyClassName="p-0">
+        <Section variant="list" className="mt-2">
           <ul className="divide-y divide-border">
           {conversations.slice(0, 4).map((c) => (
             <li key={c.id}>

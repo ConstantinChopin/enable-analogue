@@ -163,7 +163,7 @@ export default function TravellersPage() {
                   ))}
                 </ul>
               ) : (
-                <Section flush className="mt-4" bodyClassName="p-0">
+                <Section variant="list" className="mt-4">
                   <ul>
                   {rows.map((c, i) => (
                     <li key={c.id} className={cn(i > 0 && "border-t border-border")}>

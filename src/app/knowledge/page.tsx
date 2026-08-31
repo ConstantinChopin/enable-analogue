@@ -228,9 +228,8 @@ export default function KnowledgeVault() {
 
             {/* ── the table ── */}
             <Section
-              flush
+              variant="list"
               className="mt-4"
-              bodyClassName="p-0"
               /* The facets total 1,284 and the list holds eleven. Rather than imply a
                  pagination that does not exist, the footer says which of the two numbers
                  is the build and which is the vault. */

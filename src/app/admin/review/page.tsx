@@ -37,9 +37,8 @@ export default function ReviewQueue() {
       </NarrationNote>
 
       <Section
-        flush
+        variant="list"
         className="mt-4"
-        bodyClassName="p-0"
       >
         <div className="row-grid px-4 type-micro uppercase tracking-widest text-muted-foreground">
           <span className="row-primary">Candidate</span>
@@ -107,11 +106,10 @@ export default function ReviewQueue() {
           an empty half-page read as a broken screen, and an empty queue is the state
           this surface is built to reach. */}
       <Section
-        flush
+        variant="list"
         className="mt-4"
         title="Confirmed"
         chips={<Chip tone="neutral"><span className="tnum">{confirmedRecently.length}</span> in the last two days</Chip>}
-        bodyClassName="p-0"
       >
         <ul>
           {confirmedRecently.map((c, i) => (
