@@ -375,7 +375,7 @@ function ProvenancePanel({ sel, onManageAccess }: { sel: VaultDoc | undefined; o
       {sel ? (
         <>
           <section className="rounded-lg border border-border p-4">
-            <h3 className="type-data-strong">{sel.name}</h3>
+            <h3 className="type-section">{sel.name}</h3>
             {/* The same DataList every other panel uses. */}
             <DataList
               className="mt-3"

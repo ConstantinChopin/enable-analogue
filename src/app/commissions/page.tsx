@@ -250,7 +250,7 @@ function DetailPanel({ c }: { c: Commission }) {
     <div className="space-y-4 type-data">
       <div>
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="type-data-strong">{c.property}</h3>
+          <h3 className="type-section">{c.property}</h3>
           {stateChip(c)}
         </div>
         <p className="mt-1 type-code">

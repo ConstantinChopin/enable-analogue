@@ -277,6 +277,15 @@ b, strong { font-weight: 590; }
      competing with the serif page name. */
   .type-figure      { font-family: var(--font-sans); font-size: 17px; line-height: 20px; font-weight: 510; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 
+  /* A heading that OWNS what follows it — the rung between the page's name and its
+     data. The scale ran 24px serif, then nothing until 13px, so a section heading and
+     the field values beneath it were the same size and differed only in weight. A
+     border can enclose things at that ratio but it cannot subordinate them: the card
+     said "these are in a box", never "this layer owns these fields". At 15/590 against
+     13/400 the heading reads as a parent without a box being needed at all, which is
+     what lets the record become a document instead of a stack of tiles. */
+  .type-section     { font-family: var(--font-sans); font-size: 15px; line-height: 20px; font-weight: 590; letter-spacing: -0.005em; }
+
   /* ── the person ─────────────────────────────────────────────────
      `prose-quote` is a size step below `prose`, not merely an italic:
      a quotation should sit under the sentence that introduces it. */
@@ -351,6 +360,49 @@ b, strong { font-weight: 590; }
     padding-left: 0; padding-right: 0;
   }
 }
+
+/* ── the record's groups ───────────────────────────────────────────
+   One column. Every group is a peer of every other, at the same width.
+
+   This replaced a body-plus-margin split, where commission sat alone in a 320px rail
+   beside a 731px body. That geometry belongs to the Document archetype and encodes a
+   claim: the narrow side is commentary on the wide side. Commission is not commentary
+   on the record — it is one of the things the record is FOR, and at 320px against 731
+   it read as chrome parked beside the content rather than as content.
+
+   Width is the tell. Equal width says the groups rank equally; unequal width ranks
+   them whatever the headings do. A single column also keeps the layers in their own
+   order — canonical, then agency, then personal — as one reading sequence rather than
+   a shape the eye has to reassemble, which two columns cannot promise once the groups
+   are of unequal height.                                                            */
+.bento { display: grid; gap: var(--space-6); }
+
+/* ── the field row's track ─────────────────────────────────────────
+   label · value · provenance, on one shared axis.
+
+   The record rendered its fields two ways. The three layers used a real grid — a
+   140px label column, values on a common left edge, provenance in a track of its own.
+   Everything else used `justify-between`, which pins the label left and flings the
+   value to the far right, so at 730px a two-character value sits 600px from the word
+   naming it and the eye has to cross the column to pair them. Two geometries for one
+   semantic role, on the same screen.
+
+   The track lives here rather than in either component because BOTH need it and a
+   copied `grid-template-columns` is a drift waiting to happen: `FieldGrid` composes it
+   from divs, `Row` from `dt`/`dd`, and they now differ only in markup.              */
+.field-row {
+  display: grid;
+  gap: var(--space-1) var(--space-4);
+  padding-block: var(--space-3);
+}
+@media (min-width: 640px) {
+  .field-row { grid-template-columns: 140px minmax(0, 1fr) auto; }
+}
+
+/* A note on the scale, because it cost time once: it runs 4·8·12·16·24·32 and has NO
+   5th or 7th stop. `var(--space-5)` resolves to nothing and computes to 0 without
+   warning — which is how a rule meant to sit 20px clear of a heading ended up pressed
+   flat against it. Between cards, reach for `--space-6`. */
 
 /* ── row primitive ─────────────────────────────────────────────────
    The rule is "exactly one element truncates", and the element that gives

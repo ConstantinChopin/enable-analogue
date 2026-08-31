@@ -287,7 +287,7 @@ function ItemPanel({ n, state }: { n: Notification; state: NoticeState }) {
       </div>
 
       <div>
-        <h2 className="type-data-strong">{n.headline}</h2>
+        <h2 className="type-section">{n.headline}</h2>
         <p className="mt-2 type-data text-muted-foreground">{n.detail}</p>
       </div>
 

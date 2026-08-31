@@ -280,7 +280,7 @@ function TripPanel({ t }: { t: Trip }) {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="type-data-strong">{t.title}</h2>
+        <h2 className="type-section">{t.title}</h2>
         <p className="type-meta">
           {t.traveller} · {t.destinations.join(" · ")}
         </p>
@@ -380,7 +380,7 @@ function WorkedExample({ money }: { money: boolean }) {
         <p className="type-code uppercase tracking-widest text-muted-foreground">
           One trip, opened
         </p>
-        <h2 className="mt-1 flex flex-wrap items-center gap-2 type-data-strong">
+        <h2 className="mt-1 flex flex-wrap items-center gap-2 type-section">
           {itinerary.title} — the day board
           <Chip tone="neutral">{itinerary.status}</Chip>
           <SchematicBadge />

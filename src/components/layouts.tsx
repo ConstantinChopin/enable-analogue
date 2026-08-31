@@ -11,6 +11,10 @@ import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Segmented } from "@/components/bits";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 import { X, LayoutGrid, Rows3 } from "lucide-react";
 
 /* ── Dock clearance ────────────────────────────────────────────────────────────
@@ -187,19 +191,22 @@ export function ViewToggle({
 }
 
 /* ── PropertyImage ──────────────────────────────────────────────────────────────
-   A photograph where the record has one, the generated plate where it does not.
+   A picture where the record has one, the generated plate where it does not.
 
-   Photographs live in `public/records/<id>.jpg` and ship with the build — no runtime
-   network, so a demo cannot fail on a dead image host. They are freely-licensed
-   Wikimedia Commons images chosen for GENERIC subject matter — a courtyard, a
-   coastline, an interior — never a photograph of a specific named hotel, because the
-   product attaches invented commission rates and a fabricated "do not confirm
-   bookings" advisory to these fictional names. Credits are in
-   `public/records/credits.json` and surface on the record as provenance.
+   The images are GENERATED, not photographed, and that is a correctness decision
+   rather than a convenience. These properties are fictional, and the product attaches
+   invented commission rates and a fabricated "do not confirm bookings" advisory to
+   them — so a photograph of a real, identifiable hotel sitting above that advisory is
+   a problem no licence solves. Generation also gives the whole set one art direction;
+   28 stock photographs by 28 photographers read as a mood board, not as one catalogue.
 
-   The generated plate stays as the fallback: an abstract architectural drawing derived
-   from a hash of the id, so a record without a photograph still has a picture and the
-   same id always draws the same one.                                               */
+   They live in `public/records/<id>.jpg` (plus `-2`, `-3` for the gallery) and ship
+   with the build, so no demo can fail on a dead image host. Each is produced from a
+   fixed seed derived from the id, so the same record always yields the same picture —
+   the property the generated plate had, and the reason the demo looks the same twice.
+
+   The plate stays as the fallback: an abstract architectural drawing from a hash of
+   the id, so a record whose image is missing still has a picture rather than a hole. */
 
 /** FNV-1a, 32-bit. Stable across runs and machines. */
 function hashId(id: string) {
@@ -364,5 +371,96 @@ export function PropertyImage({
         </g>
       )}
     </svg>
+  );
+}
+
+/* ── PropertyGallery ────────────────────────────────────────────────────────────
+   The record's images, as a mosaic rather than a band.
+
+   What this replaces was a full-width strip of fixed height — 112px, 160px above
+   `sm`. Against a 1200px column that is a 7.5:1 crop of a 16:10 picture: a sliver of
+   façade and sky, from which nothing can be read. The geometry was inherited from the
+   era when the image was an abstract plate, where the crop carried no information and
+   any band would do. A photograph is not a texture and cannot be cropped that way.
+
+   So the gallery is sized by RATIO, not by height, and the ratio is the composition:
+   one establishing view held large, two closer views stacked beside it. Each tile
+   keeps a sane aspect, and the whole block scales with the column instead of
+   flattening as the column grows.                                                  */
+export function PropertyGallery({
+  id, name, category, className,
+}: { id: string; name?: string; category?: string; className?: string }) {
+  const [open, setOpen] = useState(false);
+  const [at, setAt] = useState(0);
+  /* Three views per record, by convention: the hero plus two numbered. A view that is
+     missing renders its plate rather than a hole, so the mosaic never loses a cell. */
+  const views = [`/records/${id}.jpg`, `/records/${id}-2.jpg`, `/records/${id}-3.jpg`];
+  const openAt = (i: number) => { setAt(i); setOpen(true); };
+  const step = (n: number) => setAt((v) => (v + n + views.length) % views.length);
+
+  const tile = (i: number, extra?: string) => (
+    <button
+      type="button"
+      onClick={() => openAt(i)}
+      aria-label={`${name ?? "Property"} — view ${i + 1} of ${views.length}`}
+      className={cn(
+        "group relative overflow-hidden bg-subtle transition-opacity hover:opacity-90",
+        "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
+        extra,
+      )}
+    >
+      <PropertyImage id={id} name={name} category={category} src={views[i]} />
+    </button>
+  );
+
+  return (
+    <>
+      <div
+        className={cn(
+          "grid gap-[2px] overflow-hidden rounded-[var(--radius-card)] border border-border",
+          /* One view on a narrow column — two more would be postage stamps. The count
+             button says what is behind it, so nothing is hidden by the collapse. */
+          "aspect-[16/10] grid-cols-1 sm:aspect-[2/1] sm:grid-cols-[1.7fr_1fr]",
+          className,
+        )}
+      >
+        {tile(0, "size-full")}
+        <div className="hidden grid-rows-2 gap-[2px] sm:grid">
+          {tile(1)}
+          {tile(2)}
+        </div>
+      </div>
+
+      {/* Deliberately below the mosaic rather than floated over its corner: an overlaid
+          control has to carry its own scrim to stay legible against an unknown image,
+          and that scrim is the one piece of chrome on this page that would not match
+          any other button in the product. */}
+      <button
+        type="button"
+        onClick={() => openAt(0)}
+        className="mt-[var(--space-2)] type-meta text-muted-foreground underline underline-offset-2 hover:text-foreground"
+      >
+        Show all {views.length} photos
+      </button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-[min(96vw,1100px)] gap-[var(--space-3)]">
+          <DialogHeader>
+            <DialogTitle className="type-data-strong">{name ?? "Property"}</DialogTitle>
+            <DialogDescription className="type-meta">
+              Generated view {at + 1} of {views.length}. The properties in this directory are fictional; the imagery is generated and depicts no real business.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="aspect-[16/10] w-full overflow-hidden rounded-[var(--radius-card)] border border-border bg-subtle">
+            <PropertyImage id={id} name={name} category={category} src={views[at]} />
+          </div>
+          <div className="flex items-center gap-[var(--space-2)]">
+            <Button variant="outline" size="sm" onClick={() => step(-1)}>Previous</Button>
+            <Button variant="outline" size="sm" onClick={() => step(1)}>Next</Button>
+            <span className="ml-auto type-meta tnum">{at + 1} / {views.length}</span>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

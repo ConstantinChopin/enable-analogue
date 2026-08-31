@@ -296,7 +296,7 @@ function TravellerPanel({
           {initialsOf(c.name)}
         </span>
         <div className="min-w-0">
-          <h2 className="truncate type-data-strong">{c.name}</h2>
+          <h2 className="truncate type-section">{c.name}</h2>
           <p className="type-meta">{c.relationshipStatus}</p>
         </div>
       </div>

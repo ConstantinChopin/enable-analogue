@@ -333,7 +333,14 @@ export function Section({
             list ? "border-b border-border px-[var(--space-4)] py-[var(--space-3)]" : "mb-[var(--space-3)]",
           )}
         >
-          <h3 className="flex min-w-0 flex-wrap items-center gap-[var(--space-2)] type-data-strong">{title}</h3>
+          {/* `type-section`, not `type-data-strong`. At 13/590 the card's title was the
+              same SIZE as the values under it and differed only in weight, so it sat
+              among its content rather than above it — a border can enclose a group but
+              it cannot subordinate one, which is why a stack of cards read as a pile of
+              equals no matter how the spacing was tuned. 15/590 over 13/400 is the step
+              that makes the heading own what follows, and every card in the product
+              inherits it from here. */}
+          <h3 className="flex min-w-0 flex-wrap items-center gap-[var(--space-2)] type-section">{title}</h3>
           {chips}
           {actions && <div className="ml-auto flex items-center gap-[var(--space-2)]">{actions}</div>}
         </header>

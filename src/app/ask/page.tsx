@@ -322,7 +322,7 @@ function Composer({ large = false }: { large?: boolean }) {
 function Landing({ onPick }: { onPick: (id: ThreadId) => void }) {
   return (
     <div className="pt-6">
-      <h2 className="type-data-strong">What do you need to know?</h2>
+      <h2 className="type-section">What do you need to know?</h2>
       <p className="mt-1 type-data text-muted-foreground">
         Ask about a rate, a property, a traveller. Answers are built from this desk&apos;s own
         knowledge and carry their sources.

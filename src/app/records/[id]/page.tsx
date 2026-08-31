@@ -17,9 +17,9 @@ import {
   notices, promotions, people,
   type Field, type Layer, type Product, keptSource,
 } from "@/data/seed";
-import { Page, PageHeader, PropertyImage } from "@/components/layouts";
+import { Page, PageHeader, PropertyGallery } from "@/components/layouts";
 import {
-  Chip, Section, SeverityBanner, NarrationNote, FreshnessDate, EvidenceDot,
+  Chip, Section, Absent, SeverityBanner, NarrationNote, FreshnessDate, EvidenceDot,
   ConfirmBanner, SchematicBadge, LayerBadge, ProvenancePopover, SourceTag, ConfidenceMeter,
 } from "@/components/bits";
 import { Button } from "@/components/ui/button";
@@ -38,12 +38,60 @@ export default function RecordPage() {
   return <GenericRecord id={id ?? ""} />;
 }
 
-/* ── the plate that opens every record ─────────────────────────────────────── */
+/* ── the images that open every record ─────────────────────────────────────── */
 function RecordPlate({ p }: { p: Product }) {
   return (
-    <div className="mt-4 h-28 w-full overflow-hidden rounded-lg border border-border sm:h-40">
-      <PropertyImage id={p.id} name={p.name} category={p.category} />
+    <div className="mt-[var(--space-4)]">
+      <PropertyGallery id={p.id} name={p.name} category={p.category} />
     </div>
+  );
+}
+
+/* ── the action column ───────────────────────────────────────────────────────
+   What an advisor came to this record to do, held in one card that follows the
+   scroll: the figure they are checking, whatever is blocking them, and the way to
+   ask about it. Everything else on the page is evidence for these three.
+
+   The margin used to hold amenities, contacts and representation — reference, which
+   nobody scrolls back up for. Those moved into the body with the record's other
+   groups, and the column carries the decision instead.
+
+   It holds no FIELD-level action. Moving "Resolve 3 sources" up here put the same
+   filled button in two places at once, because the conflict belongs to one row rather
+   than to the page. The column states the value and its condition; the row that owns
+   the field owns the act.                                                          */
+function ActionCard({
+  figure, figureLabel, figureNote, notice, actions, footer,
+}: {
+  figure?: ReactNode;
+  figureLabel?: string;
+  figureNote?: ReactNode;
+  notice?: ReactNode;
+  actions: ReactNode;
+  footer?: ReactNode;
+}) {
+  return (
+    /* Titled, like every other group. Untitled it was the one card on the page whose
+       first line was a field label rather than a heading, which read as a fragment
+       that had lost its header rather than as a group in its own right. */
+    <Section title="Summary" className="gap-0">
+      {figure !== undefined && (
+        <div className="mb-[var(--space-4)]">
+          <div className="type-micro text-muted-foreground">{figureLabel}</div>
+          <div className="mt-1 type-figure">{figure}</div>
+          {figureNote && <div className="mt-1 type-meta">{figureNote}</div>}
+        </div>
+      )}
+      {notice && <div className="mb-[var(--space-4)]">{notice}</div>}
+      {/* Wrapping row, not a stretched column. A column flex stretches its children,
+          which is what you want in a 320px rail and absurd at full width — the button
+          became a 1045px bar whose label sat alone in the middle of it. A control is
+          sized by its label; only a rail made that look otherwise. */}
+      <div className="flex flex-wrap items-center gap-[var(--space-2)]">{actions}</div>
+      {footer && (
+        <div className="mt-[var(--space-4)] border-t border-border pt-[var(--space-3)]">{footer}</div>
+      )}
+    </Section>
   );
 }
 
@@ -168,6 +216,16 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
   );
 }
 
+/* Each layer says what it is, once, where it governs. The layer model is the record's
+   whole argument and it was being carried by a badge reading "canonical" beside a
+   heading reading "Enable canonical" — a label repeating a label, explaining nothing.
+   A sentence explains it; a chip never could. */
+const layerLede: Record<Layer, string> = {
+  canonical: "Published by Enable. Shared by every agency, and not yours to edit.",
+  agency: "What your agency has decided, sitting over the canonical value beneath it.",
+  personal: "Yours. Scoped when you write it, and visible to no one you did not name.",
+};
+
 /* ═══════════════ Maison Léandre — the full anatomy ═══════════════ */
 function LeandreRecord() {
   const { s, d } = useDemo();
@@ -206,17 +264,9 @@ function LeandreRecord() {
         back="/records"
         crumb="Records / Hotel"
         title={<>Maison Léandre <Chip tone="neutral">Hotel · Paris 4e</Chip></>}
-        actions={
-          <>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/ask" onClick={() => d({ type: "askScope", scope: "Maison Léandre" })}>
-                <MessageSquareText className="size-3.5" aria-hidden /> Ask about this
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setNoteOpen(true)}>Add note…</Button>
-            <Button variant="outline" size="sm" onClick={() => setNoticeOpen(true)}>Add notice…</Button>
-          </>
-        }
+        /* The actions moved into the action column, beside the figure they act on.
+           In the header they sat three abreast above a picture, equally weighted and
+           attached to nothing. */
       >
         <RecordPlate p={p} />
       </PageHeader>
@@ -242,24 +292,67 @@ function LeandreRecord() {
         <ConfirmBanner show={s.noteSaved}>Note saved — {scopeLabel} · attributed and dated.</ConfirmBanner>
       </div>
 
-      <div className="mt-4 doc-layout">
-        {/* ── main: three layer groups ── */}
-        <div className="min-w-0 space-y-4">
-          {/* The layer is a property of the whole card, so it belongs to the card's
-              frame rather than to an item in its header. A left rule is read once and
-              governs everything inside it; the badge was read as one more chip among
-              chips — and it restated the title's operative word, three times on one
-              screen ("Enable canonical ● canonical").
+      {/* ── the record's groups, all peers ── */}
+      <div className="mt-4 bento">
+          {/* The summary and its actions lead, then the layers in their own order —
+              canonical, agency, personal — then the reference. It is the first cell of
+              the grid rather than a column of its own, because it is one of the
+              record's groups and not a commentary on them. */}
+          <ActionCard
+            figureLabel={money ? "Commission" : undefined}
+            /* Unresolved, the card shows the product's own absence mark rather than a
+               bare dash — a lone "—" at figure size reads as a failed render, where
+               "— pending" is the same statement the rest of the product makes about a
+               value it declines to guess. */
+            figure={money ? (s.conflictResolved ? keptSource(s.conflictChoice).value : <Absent reason="pending" />) : undefined}
+            figureNote={
+              money
+                ? s.conflictResolved
+                  ? <>agency layer · kept by {people.advisor} today</>
+                  : <Chip tone="crit">3 sources disagree</Chip>
+                : undefined
+            }
+            notice={
+              s.world === "v2" && spaNotice && !s.spaNoticeClosed
+                ? <Chip tone="warn">{spaNotice.severity} notice open · {spaNotice.ageDays}d</Chip>
+                : undefined
+            }
+            actions={
+              <>
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/ask" onClick={() => d({ type: "askScope", scope: "Maison Léandre" })}>
+                    <MessageSquareText className="size-3.5" aria-hidden /> Ask about this
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setNoteOpen(true)}>Add note…</Button>
+                <Button variant="outline" size="sm" onClick={() => setNoticeOpen(true)}>Add notice…</Button>
+              </>
+            }
+            footer={
+              money && promo ? (
+                <>
+                  <div className="type-micro text-muted-foreground">Active promotion</div>
+                  <div className="mt-1 type-data-strong">{promo.rate}</div>
+                  <p className="mt-1 type-meta">
+                    {promo.stacksWithBase ? "bonus — adds to base" : "override — replaces base"} · book by {promo.bookingWindowEnd} · travel by {promo.travelWindowEnd}
+                  </p>
+                  <Chip tone="warn" className="mt-2 tnum">{promo.daysLeft} days left</Chip>
+                </>
+              ) : undefined
+            }
+          />
 
-              The rule is neutral, not per-layer colour: colour in this product means
-              state, and three coloured left edges would read as a severity ramp for a
-              taxonomy that is not one. The title names the layer; the rule groups it. */}
+          {/* A layer IS a container — canonical, agency and personal are three
+              different answers to "who owns this value", and a box is the honest way
+              to say so. What was missing was never the box; it was a heading that
+              outranked its contents (13/590 against 13/400) and a line saying what the
+              layer means. Both now come from the primitive and the lede.
+
+              Keeping the card also keeps the group's actions with the group, which is
+              how every other surface in this product works.                          */}
           {groups.map((g) => (
-            <Section
-              key={g.layer}
-              title={g.title}
-              className="border-l-2 border-l-muted-foreground/40"
-            >
+            <Section key={g.layer} title={g.title}>
+              <p className="-mt-[var(--space-1)] mb-[var(--space-2)] type-meta">{layerLede[g.layer]}</p>
               <div className="divide-y divide-border">
                 {fieldsFor(g.layer).map((f) => (
                   <FieldRow key={f.key} f={f} resolved={s.conflictResolved} onResolve={() => setResolveOpen(true)} />
@@ -278,19 +371,15 @@ function LeandreRecord() {
               </div>
             </Section>
           ))}
-        </div>
 
-        {/* ── context rail ── */}
-        <aside className="doc-rail min-w-0 space-y-3" data-rail-label="About this record">
           <Section title="Amenities">
-            <div className="space-y-3 type-data">
-              <div>
-                <div className="type-code uppercase tracking-widest text-muted-foreground">Facility · freeform</div>
-                <p className="mt-1 text-muted-foreground italic">“View Hotel — experience refined luxury…”</p>
+            <p className="-mt-[var(--space-1)] mb-[var(--space-2)] type-meta">What the client gets, and what the agency earns on it.</p>
+            <div className="divide-y divide-border type-data">
+              <FieldGrid label="Facility copy">
+                <p className="text-muted-foreground italic">“View Hotel — experience refined luxury…”</p>
                 <Chip tone="warn" className="mt-1">template copy — needs editorial</Chip>
-              </div>
-              <div className="border-t border-border pt-3">
-                <div className="type-code uppercase tracking-widest text-muted-foreground">Client amenities · programme</div>
+              </FieldGrid>
+              <FieldGrid label="Client amenities">
                 <ul className="divide-y divide-border">
                   {leandreContext.clientAmenities.map((a) => (
                     <li key={a.slug} className="row-grid">
@@ -299,56 +388,47 @@ function LeandreRecord() {
                     </li>
                   ))}
                 </ul>
-              </div>
+              </FieldGrid>
               {money && (
-                <div className="border-t border-border pt-3">
-                  <div className="type-code uppercase tracking-widest text-muted-foreground">Agent terms</div>
+                <FieldGrid label="Agent terms">
                   {leandreContext.agentAmenities.map((a) => (
-                    <p key={a.category} className="mt-1"><Chip tone="primary">{a.category}</Chip> <span className="tnum">{a.text}</span></p>
+                    <p key={a.category} className="flex flex-wrap items-center gap-2">
+                      <Chip tone="primary">{a.category}</Chip> <span className="tnum">{a.text}</span>
+                    </p>
                   ))}
-                </div>
+                </FieldGrid>
               )}
             </div>
           </Section>
 
           <Section title="Contacts">
+            <p className="-mt-[var(--space-1)] mb-[var(--space-2)] type-meta">
+              Rep firm of record · Corvin &amp; Wells — Paris account. Booked last by {leandreContext.whoBookedLast}.
+            </p>
             <ul className="divide-y divide-border type-data">
               {leandreContext.contacts.map((c) => (
-                <li key={c.name}>
+                <li key={c.name} className="py-2 first:pt-0">
                   <div className="row-grid">
                     <span className="row-primary">
                       <span className="type-data-strong">{c.name}</span>
                       <span className="text-muted-foreground"> · {c.role}</span>
                     </span>
                   </div>
-                  {c.note && <div className="type-meta pb-2">{c.note}</div>}
+                  {c.note && <div className="type-meta">{c.note}</div>}
                 </li>
               ))}
             </ul>
-            <p className="mt-2 border-t border-border pt-2 type-data">
-              <span className="text-muted-foreground">Rep firm · </span>Corvin &amp; Wells — Paris account
-            </p>
-            <p className="mt-2 type-meta">Booked last by {leandreContext.whoBookedLast}</p>
           </Section>
-
-          {money && promo && (
-            <Section title="Active promotion">
-              <div className="type-data-strong">{promo.productName} — {promo.rate}</div>
-              <p className="mt-1 type-meta">
-                {promo.stacksWithBase ? "bonus — adds to base" : "override — replaces base"} · book by {promo.bookingWindowEnd} · travel by {promo.travelWindowEnd}
-              </p>
-              <Chip tone="warn" className="mt-2 tnum">{promo.daysLeft} days left</Chip>
-            </Section>
-          )}
 
           {/* client intelligence: gated — absent, not masked; lead sees the admin-note line only */}
           {s.role === "lead" && (
-            <p className="flex items-center gap-2 px-1 type-meta">
-              <EyeOff className="size-3.5 shrink-0" aria-hidden />
-              Client intelligence · {leandreContext.clientIntelligence.note}
-            </p>
+            <Section title="Client intelligence">
+              <p className="flex items-center gap-2 type-meta">
+                <EyeOff className="size-3.5 shrink-0" aria-hidden />
+                {leandreContext.clientIntelligence.note}
+              </p>
+            </Section>
           )}
-        </aside>
       </div>
 
       <ResolveSheet open={resolveOpen} onOpenChange={setResolveOpen} />
@@ -433,6 +513,11 @@ function FieldRow({ f, resolved, onResolve }: { f: Field; resolved: boolean; onR
                 </span>
               ))}
             </div>
+            {/* The one filled button on this screen, and it sits on the field it acts
+                on. It briefly lived in the action column too, which put the same filled
+                label twice on one screen — the cost of moving a FIELD-level action to a
+                page-level place. The column carries the value and its state; the row
+                carries the decision. */}
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <Chip tone="crit">3 sources disagree</Chip>
               <Button size="sm" onClick={onResolve}>Resolve 3 sources</Button>
@@ -502,7 +587,7 @@ function FieldGrid({
   label, provenance, children,
 }: { label: string; provenance?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="grid gap-x-4 gap-y-1 py-3 sm:grid-cols-[140px_minmax(0,1fr)_auto]">
+    <div className="field-row">
       <div className="type-data text-muted-foreground">{label}</div>
       <div className="min-w-0">{children}</div>
       {provenance && (
@@ -539,13 +624,6 @@ function VerlaineRecord() {
         back="/records"
         crumb="Records / Hotel"
         title={<>Hôtel Verlaine <Chip tone="neutral">Hotel · Paris 8e</Chip></>}
-        actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href="/ask" onClick={() => d({ type: "askScope", scope: p.name })}>
-              <MessageSquareText className="size-3.5" aria-hidden /> Ask about this
-            </Link>
-          </Button>
-        }
       >
         <RecordPlate p={p} />
       </PageHeader>
@@ -561,50 +639,71 @@ function VerlaineRecord() {
         <div className="mt-1 type-meta">Opened {crit.openedAt} · {crit.scope} scope · {crit.owner}</div>
       </SeverityBanner>
 
-      <div className="mt-4 doc-layout">
-        <div className="min-w-0 space-y-4">
+      <div className="mt-4 bento">
+          <Section title="Summary">
+            {money && (
+              <>
+                <div className="type-micro text-muted-foreground">Commission</div>
+                <div className="mt-1 type-figure">{p.rate}</div>
+                <p className="mt-1 type-meta">{p.repFirm} · rep firm of record</p>
+              </>
+            )}
+            <div className="mt-[var(--space-4)] flex flex-wrap items-center gap-[var(--space-2)]">
+              <Button asChild variant="outline" size="sm">
+                <Link href="/ask" onClick={() => d({ type: "askScope", scope: p.name })}>
+                  <MessageSquareText className="size-3.5" aria-hidden /> Ask about this
+                </Link>
+              </Button>
+            </div>
+          </Section>
+
           <Section title="The record">
-            <p className="mb-3 type-data text-muted-foreground">{p.blurb}</p>
-            <dl className="space-y-2 type-data">
-              <div className="flex items-baseline justify-between gap-3"><dt className="text-muted-foreground">City</dt><dd>{p.city}, {p.country}</dd></div>
-              <div className="flex items-baseline justify-between gap-3"><dt className="text-muted-foreground">Tier</dt><dd>{p.luxuryTier}</dd></div>
-              <div className="flex items-baseline justify-between gap-3"><dt className="text-muted-foreground">Rooms</dt><dd className="tnum">{p.rooms}</dd></div>
-              <div className="flex items-baseline justify-between gap-3"><dt className="text-muted-foreground">Programme</dt><dd>{p.programs.join(" · ")}</dd></div>
-              <div className="flex items-baseline justify-between gap-3"><dt className="text-muted-foreground">Rep firm</dt><dd>{p.repFirm}</dd></div>
-              {money && <div className="flex items-baseline justify-between gap-3"><dt className="text-muted-foreground">Commission</dt><dd className="tnum">{p.rate}</dd></div>}
-              <div className="flex items-baseline justify-between gap-3"><dt className="text-muted-foreground">Style</dt><dd>{p.tags?.join(" · ")}</dd></div>
+            {p.blurb && <p className="-mt-[var(--space-1)] mb-[var(--space-2)] type-meta">{p.blurb}</p>}
+            <dl className="divide-y divide-border type-data">
+              <Row k="City">{p.city}, {p.country}</Row>
+              <Row k="Tier">{p.luxuryTier}</Row>
+              <Row k="Rooms" tnum>{p.rooms}</Row>
+              <Row k="Programme">{p.programs.join(" · ")}</Row>
+              <Row k="Rep firm">{p.repFirm}</Row>
+              {money && <Row k="Commission" tnum>{p.rate}</Row>}
+              <Row k="Style">{p.tags?.join(" · ")}</Row>
             </dl>
-            <div className="mt-2 flex items-center gap-3 border-t border-border pt-2">
+            <div className="mt-3 flex items-center gap-3 border-t border-border pt-3">
               <EvidenceDot kind="verified" label={p.evidence.label} />
               <FreshnessDate>updated {p.updated}</FreshnessDate>
             </div>
           </Section>
 
+          <Section title="Open notices">
+            <p className="-mt-[var(--space-1)] mb-[var(--space-2)] type-meta">
+              A notice stays open until someone closes it. Nothing expires on a timer.
+            </p>
+            <div className="space-y-3">
+              {notices.filter((n) => n.productId === p.id).map((n) => (
+                <SeverityBanner key={n.id} severity={n.severity}>
+                  <div>{n.text}</div>
+                  <div className="mt-1 type-meta">
+                    Opened {n.openedAt} · {n.scope} scope · {n.owner} · <span className="tnum">{n.ageDays}d</span> open
+                  </div>
+                </SeverityBanner>
+              ))}
+            </div>
+          </Section>
+
+          {/* The rule, and the act it governs, in one box — which is the argument for
+              boxes: an action belongs with the group it acts on, and the group's header
+              is where a group-level action has somewhere to live. */}
           <Section title="Use in itineraries">
-            <p className="type-data text-muted-foreground">
+            <p className="-mt-[var(--space-1)] mb-[var(--space-3)] type-meta">
               A Critical notice blocks shortlist and proposal use until it is acknowledged. Dismissing the notice is not an acknowledgment.
             </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Button size="sm" onClick={onShortlist} disabled={added}>Add to itinerary shortlist</Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" onClick={onShortlist} disabled={added}>
+                Add to itinerary shortlist
+              </Button>
               {added && <Chip tone="ok">on the shortlist</Chip>}
             </div>
           </Section>
-        </div>
-
-        <aside className="doc-rail min-w-0 space-y-3" data-rail-label="About this record">
-          <Section title="Open notices">
-            {notices.filter((n) => n.productId === p.id).map((n) => (
-              <div key={n.id} className="type-data">
-                <Chip tone={n.severity === "Critical" ? "crit" : n.severity === "Important" ? "warn" : "neutral"}>{n.severity}</Chip>
-                <p className="mt-2">{n.text}</p>
-                <p className="mt-1 type-meta">Opened {n.openedAt} · {n.scope} scope · {n.owner} · <span className="tnum">{n.ageDays}d</span> open</p>
-              </div>
-            ))}
-            <p className="mt-2 border-t border-border pt-2 type-meta">
-              A notice stays open until someone closes it. Nothing expires on a timer.
-            </p>
-          </Section>
-        </aside>
       </div>
 
       <Dialog open={dlgOpen} onOpenChange={setDlgOpen}>
@@ -679,22 +778,46 @@ function GenericRecord({ id }: { id: string }) {
         back="/records"
         crumb={`Records / ${p.category}`}
         title={<>{p.name} <Chip tone="neutral">{p.category} · {p.city}</Chip></>}
-        actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href="/ask" onClick={() => d({ type: "askScope", scope: p.name })}>
-              <MessageSquareText className="size-3.5" aria-hidden /> Ask about this
-            </Link>
-          </Button>
-        }
       >
         <RecordPlate p={p} />
       </PageHeader>
 
-      <div className="doc-layout">
-        <div className="min-w-0 space-y-4">
+      <div className="bento">
+          <ActionCard
+            figureLabel={money && p.rate !== "—" ? "Commission" : undefined}
+            figure={money && p.rate !== "—" ? p.rate : undefined}
+            figureNote={p.repFirm ? <>{p.repFirm} · rep firm of record</> : undefined}
+            notice={
+              productNotices.length > 0 ? (
+                <Chip tone={productNotices[0].severity === "Critical" ? "crit" : "warn"}>
+                  {productNotices.length === 1 ? "1 notice open" : `${productNotices.length} notices open`}
+                </Chip>
+              ) : undefined
+            }
+            actions={
+              <Button asChild variant="outline" size="sm">
+                <Link href="/ask" onClick={() => d({ type: "askScope", scope: p.name })}>
+                  <MessageSquareText className="size-3.5" aria-hidden /> Ask about this
+                </Link>
+              </Button>
+            }
+            footer={
+              money && productPromo ? (
+                <>
+                  <div className="type-micro text-muted-foreground">Active promotion</div>
+                  <div className="mt-1 type-data-strong">{productPromo.rate}</div>
+                  <p className="mt-1 type-meta">
+                    {productPromo.stacksWithBase ? "bonus — adds to base" : "override — replaces base"} · book by {productPromo.bookingWindowEnd} · travel by {productPromo.travelWindowEnd}
+                  </p>
+                  <Chip tone="warn" className="mt-2 tnum">{productPromo.daysLeft} days left</Chip>
+                </>
+              ) : undefined
+            }
+          />
+
           <Section title="The record">
-            {p.blurb && <p className="mb-3 type-data text-muted-foreground">{p.blurb}</p>}
-            <dl className="space-y-2 type-data">
+            {p.blurb && <p className="-mt-[var(--space-1)] mb-[var(--space-2)] type-meta">{p.blurb}</p>}
+            <dl className="divide-y divide-border type-data">
               <Row k="Location">{p.city}{p.country !== "—" ? `, ${p.country}` : ""} · {p.region}</Row>
               <Row k="Tier">{p.luxuryTier}</Row>
               {p.brand && <Row k="Brand">{p.brand}</Row>}
@@ -710,7 +833,7 @@ function GenericRecord({ id }: { id: string }) {
           <Section title="Programmes and consortia">
             <div className="flex flex-wrap gap-2">
               {p.programs.map((pr) => <Chip key={pr} tone="primary">{pr}</Chip>)}
-              {p.consortia.map((c) => <Chip key={c} tone="neutral" className="border border-border bg-background">{c}</Chip>)}
+              {p.consortia.map((c) => <Chip key={c} tone="neutral" className="bg-background">{c}</Chip>)}
               {p.programs.length === 0 && p.consortia.length === 0 && (
                 <p className="type-data text-muted-foreground">
                   No programme or consortium membership on file. Nothing is inferred from the category.
@@ -718,7 +841,7 @@ function GenericRecord({ id }: { id: string }) {
               )}
             </div>
             {p.tags && p.tags.length > 0 && (
-              <p className="mt-3 border-t border-border pt-2 type-data">
+              <p className="mt-3 border-t border-border pt-3 type-data">
                 <span className="text-muted-foreground">Style · </span>{p.tags.join(" · ")}
               </p>
             )}
@@ -738,10 +861,13 @@ function GenericRecord({ id }: { id: string }) {
               </div>
             </Section>
           )}
-        </div>
 
-        <aside className="doc-rail min-w-0 space-y-3" data-rail-label="About this record">
           <Section title="Evidence">
+            {p.staleDays !== undefined && (
+              <p className="-mt-[var(--space-1)] mb-[var(--space-2)] type-meta">
+                It still answers — with its date and a freshness warning attached.
+              </p>
+            )}
             <div className="space-y-2 type-data">
               {p.evidence.kind === "unconfirmed"
                 ? <Chip tone="warn">{p.evidence.label}</Chip>
@@ -751,41 +877,20 @@ function GenericRecord({ id }: { id: string }) {
                   updated {p.updated} · last verified {p.lastVerified}
                 </FreshnessDate>
               </div>
-              {p.staleDays !== undefined && (
-                <p className="type-meta">
-                  It still answers — with its date and a freshness warning attached.
-                </p>
-              )}
             </div>
           </Section>
-
-          {p.repFirm && (
-            <Section title="Representation">
-              <p className="type-data-strong">{p.repFirm}</p>
-              <p className="mt-1 type-meta">Rep firm of record.</p>
-            </Section>
-          )}
-
-          {money && productPromo && (
-            <Section title="Active promotion">
-              <div className="type-data-strong">{productPromo.rate}</div>
-              <p className="mt-1 type-meta">
-                {productPromo.stacksWithBase ? "bonus — adds to base" : "override — replaces base"} · book by {productPromo.bookingWindowEnd} · travel by {productPromo.travelWindowEnd}
-              </p>
-              <Chip tone="warn" className="mt-2 tnum">{productPromo.daysLeft} days left</Chip>
-            </Section>
-          )}
-        </aside>
       </div>
     </Page>
   );
 }
 
+/* The same track as FieldGrid, in description-list markup. A record's fields are a
+   description list, so the `dl`/`dt`/`dd` stays; only the geometry is shared. */
 function Row({ k, children, tnum }: { k: string; children: ReactNode; tnum?: boolean }) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="shrink-0 text-muted-foreground">{k}</dt>
-      <dd className={cn("text-right", tnum && "tnum")}>{children}</dd>
+    <div className="field-row">
+      <dt className="type-data text-muted-foreground">{k}</dt>
+      <dd className={cn("min-w-0 type-data", tnum && "tnum")}>{children}</dd>
     </div>
   );
 }

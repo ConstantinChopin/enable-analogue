@@ -452,7 +452,7 @@ function RecordPanel({ p }: { p: Product }) {
       </div>
 
       <div>
-        <h2 className="type-data-strong">{p.name}</h2>
+        <h2 className="type-section">{p.name}</h2>
         <p className="type-meta">
           {p.category} · {p.city}, {p.country}
         </p>
@@ -513,15 +513,22 @@ function LayerSummary({ money, role }: { money: boolean; role: string }) {
       )
       .slice(0, 2);
 
+  /* The same three layers the record page renders, and now from the same primitive.
+     This was a hand-rolled `<section class="rounded-lg border p-4">` with an 11px mono
+     uppercase heading — a card that merely LOOKED like `Section` and inherited nothing
+     from it, so the inspector and the record disagreed about what a layer looks like.
+
+     The heading is the thing that was actually wrong. Mono uppercase at 11px is this
+     product's LABEL voice: it names a column, a slug, a unit. It cannot own the fields
+     under it, which is precisely what a layer has to do.                              */
   return (
-    <div className="space-y-3">
+    <div className="space-y-[var(--space-6)]">
       {groups.map((g) => {
         const fields = fieldsFor(g.layer);
         if (fields.length === 0) return null;
         return (
-          <section key={g.layer} className="rounded-lg border border-border p-4">
-            <h3 className="type-code uppercase tracking-widest text-muted-foreground">{g.title}</h3>
-            <dl className="mt-2 space-y-2">
+          <Section key={g.layer} title={g.title}>
+            <dl className="space-y-3">
               {fields.map((f) => (
                 <div key={f.key}>
                   <dt className="type-meta">{f.label}</dt>
@@ -537,10 +544,10 @@ function LayerSummary({ money, role }: { money: boolean; role: string }) {
                 </div>
               ))}
             </dl>
-          </section>
+          </Section>
         );
       })}
-      <p className="type-meta">
+      <p className="mt-[var(--space-4)] type-meta">
         Three layers, one record. The full anatomy — every field, every source — is on the record itself.
       </p>
     </div>
@@ -557,33 +564,38 @@ function PlainSummary({ p, money }: { p: Product; money: boolean }) {
     ["Rep firm", p.repFirm],
     ["Rate", money && p.rate !== "—" ? p.rate : undefined],
   ];
+  /* Same reconciliation as LayerSummary: this was a bordered `<dl>` that looked like a
+     card and inherited nothing from `Section` — so its heading, padding and radius were
+     all local decisions that could drift from every other card in the product. */
   return (
-    <div className="space-y-3">
-      {p.blurb && <p className="type-data text-muted-foreground">{p.blurb}</p>}
-      <dl className="rounded-lg border border-border p-4 type-data">
-        {rows.filter(([, v]) => !!v).map(([k, v]) => (
-          <div key={k} className="flex items-baseline justify-between gap-3 py-1">
-            <dt className="text-muted-foreground">{k}</dt>
-            <dd className={cn("text-right", (k === "Rooms" || k === "Rate") && "tnum")}>{v}</dd>
-          </div>
-        ))}
-      </dl>
-      <p>
-        <FreshnessDate stale={!!p.staleDays}>
-          updated {p.updated} · last verified {p.lastVerified}
-        </FreshnessDate>
-      </p>
-      {p.repFirm && (
-        <p className="type-meta">
-          Represented by {p.repFirm}. Contacts and terms live on the full record.
+    <div>
+      <Section title="The record">
+        {p.blurb && <p className="-mt-[var(--space-1)] mb-[var(--space-2)] type-meta">{p.blurb}</p>}
+        <dl className="type-data">
+          {rows.filter(([, v]) => !!v).map(([k, v]) => (
+            <div key={k} className="flex items-baseline justify-between gap-3 py-1">
+              <dt className="text-muted-foreground">{k}</dt>
+              <dd className={cn("text-right", (k === "Rooms" || k === "Rate") && "tnum")}>{v}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-[var(--space-3)]">
+          <FreshnessDate stale={!!p.staleDays}>
+            updated {p.updated} · last verified {p.lastVerified}
+          </FreshnessDate>
         </p>
-      )}
-      {p.id === "sereno-kyoto" && (
-        <p className="type-meta">
-          A candidate record. It does not answer questions, and it is not offered to a client, until a
-          reviewer confirms it field by field — {people.lead} or {people.ops} hold that queue.
-        </p>
-      )}
+        {p.repFirm && (
+          <p className="mt-[var(--space-2)] type-meta">
+            Represented by {p.repFirm}. Contacts and terms live on the full record.
+          </p>
+        )}
+        {p.id === "sereno-kyoto" && (
+          <p className="mt-[var(--space-2)] type-meta">
+            A candidate record. It does not answer questions, and it is not offered to a client, until a
+            reviewer confirms it field by field — {people.lead} or {people.ops} hold that queue.
+          </p>
+        )}
+      </Section>
     </div>
   );
 }
