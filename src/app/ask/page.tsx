@@ -15,7 +15,7 @@ import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useDemo, canViewCommissions } from "@/lib/store";
 import {
-  askThreads, commissionConflict, trace, connections, notices, people, conversations,
+  askThreads, commissionConflict, traceFor, keptSource, connections, notices, people, conversations,
   type Conversation,
 } from "@/data/seed";
 import { Page, PageHeader, DOCK_FOOTPRINT } from "@/components/layouts";
@@ -226,7 +226,11 @@ function ConversationList({
                   <span className="row-primary type-data-strong">{c.title}</span>
                   <span className="row-trailing t-micro text-muted-foreground">{c.when}</span>
                 </div>
-                <p className="line-clamp-2 t-meta">{c.preview}</p>
+                {/* The question names the restricted figure. Withheld with the outcome
+                    and the count, rather than shown to a reader who cannot have the answer. */}
+                {(!c.needsCommission || canViewCommissions(role)) && (
+                  <p className="line-clamp-2 t-meta">{c.preview}</p>
+                )}
                 {/* The outcome and the transcript length describe material this reader
                     may not be able to open. Absent for them, not greyed. */}
                 {(!c.needsCommission || canViewCommissions(role)) && (
@@ -501,7 +505,7 @@ function CommissionThread({
         <A>
           <div className="space-y-2">
             {askThreads.commission.resolved.lines.map((l) => (
-              <p key={l.cite}>{l.text}<Cite n={l.cite} /></p>
+              <p key={l.cite}>{l.text.replace("12%", keptSource(s.conflictChoice).value)}<Cite n={l.cite} /></p>
             ))}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3 t-meta">
@@ -688,7 +692,7 @@ function LoadingThread() {
           Building the answer
         </div>
         <div className="mt-3">
-          <TraceList pendingStage={2} />
+          <TraceList threadId="leandre-rate" pendingStage={2} />
         </div>
       </A>
       <SeverityBanner severity="Important">
@@ -729,12 +733,16 @@ function UnbuiltThread({ id }: { id: ThreadId }) {
 
 /* ── rails ────────────────────────────────────────────────────────────────── */
 
-function TraceList({ pendingStage }: { pendingStage?: number }) {
+function TraceList({ threadId, pendingStage }: { threadId?: string | null; pendingStage?: number }) {
   const { s } = useDemo();
+  /* The notice state at the moment of asking, so the stage reports what is true now. */
+  const noticeActive = s.world === "v2" && !s.spaNoticeClosed;
   /* Built from what this reader can see. A stage that only touched restricted
      material is absent, exactly as the field itself is absent on the record —
      never a caption saying a stage was hidden. */
-  const stages = trace.filter((t) => !t.needsCommission || canViewCommissions(s.role));
+  const stages = traceFor(threadId ?? null, noticeActive).filter(
+    (t) => !t.needsCommission || canViewCommissions(s.role),
+  );
   /* Clamped, so "the stage that timed out" is always the last visible one rather
      than an index into a list this reader does not have. */
   const pendingFrom = pendingStage === undefined ? undefined : Math.min(pendingStage, stages.length - 1);
@@ -801,7 +809,7 @@ function Rail({ active, money }: { active: ThreadId | null; money: boolean }) {
   if (active === "loading") {
     return (
       <Section title="How this answer was built">
-        <TraceList pendingStage={2} />
+        <TraceList threadId={active} pendingStage={2} />
         <p className="mt-3 border-t border-border pt-2 t-meta">
           Partial trace shown — no partial answer is rendered.
         </p>
@@ -814,7 +822,7 @@ function Rail({ active, money }: { active: ThreadId | null; money: boolean }) {
   return (
     <>
       <Section title="How this answer was built">
-        <TraceList />
+        <TraceList threadId={active} />
       </Section>
 
       {sources.length > 0 && (
@@ -844,7 +852,7 @@ function Rail({ active, money }: { active: ThreadId | null; money: boolean }) {
           </div>
           {active === "leandre-rate" && s.conflictResolved && (
             <p className="mt-3 flex items-center gap-2 border-t border-border pt-2 t-meta">
-              <LayerBadge layer="agency" /> resolution stored today · both other sources reachable
+              <LayerBadge layer="agency" /> {keptSource(s.conflictChoice).value} kept from {keptSource(s.conflictChoice).label} · stored today · both other sources reachable
             </p>
           )}
           <p className="mt-2 t-meta">

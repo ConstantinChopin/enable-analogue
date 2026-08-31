@@ -15,7 +15,7 @@ import { useDemo, canViewCommissions } from "@/lib/store";
 import {
   products, productById, leandreFields, leandreContext, commissionConflict,
   notices, promotions, people,
-  type Field, type Layer, type Product,
+  type Field, type Layer, type Product, keptSource,
 } from "@/data/seed";
 import { Page, PageHeader, PropertyImage } from "@/components/layouts";
 import {
@@ -61,7 +61,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
 
   const commit = () => {
     if (!picked || !reason.trim()) return;
-    d({ type: "resolveConflict" });
+    d({ type: "resolveConflict", choice: picked, reason: reason.trim() });
     onOpenChange(false);
     setPicked(null);
     setReason("");
@@ -144,7 +144,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
               {commissionConflict.impact.map((row) => (
                 <div key={row.surface} className="flex items-baseline justify-between gap-3">
                   <dt className="text-muted-foreground">{row.surface}</dt>
-                  <dd className="tnum font-medium">{row.value}</dd>
+                  <dd className="tnum font-medium">{chosen ? chosen.value : row.value}</dd>
                 </div>
               ))}
             </dl>
@@ -398,14 +398,18 @@ function LeandreRecord() {
 function FieldRow({ f, resolved, onResolve }: { f: Field; resolved: boolean; onResolve: () => void }) {
   // Stale-field one-tap verify (E6) — local to this row.
   const [verified, setVerified] = useState(false);
+  const { s } = useDemo();
+  const kept = keptSource(s.conflictChoice);
+  const reason = s.conflictReason;
   if (f.state === "conflict") {
     return (
       <FieldGrid label={f.label}>
         {resolved ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <ProvenancePopover source={f.source}><span className="t-body font-medium tnum">12%</span></ProvenancePopover>
+            <ProvenancePopover source={f.source}><span className="t-body font-medium tnum">{kept.value}</span></ProvenancePopover>
             <Chip tone="ok">resolved</Chip>
-            <span className="t-meta">agency layer · by {people.advisor} today · both sources reachable</span>
+            <span className="t-meta">agency layer · {kept.label} · by {people.advisor} today · both other sources reachable</span>
+            {reason && <span className="basis-full t-meta">Reason: “{reason}”</span>}
           </div>
         ) : (
           <>

@@ -24,6 +24,10 @@ export interface DemoState {
 
   /* the seeded day's mutations */
   conflictResolved: boolean;
+  /* Which value the advisor kept, and why. The screen exists to prove the advisor
+     decides; recording only that a decision happened threw the decision away. */
+  conflictChoice: string | null;
+  conflictReason: string | null;
   reminder: "idle" | "draft" | "sent";
   spaNoticeClosed: boolean;
   verlaineAcked: boolean;
@@ -43,6 +47,8 @@ const initial: DemoState = {
   world: "v2",
   narration: false,
   conflictResolved: false,
+  conflictChoice: null,
+  conflictReason: null,
   reminder: "idle",
   spaNoticeClosed: false,
   verlaineAcked: false,
@@ -62,7 +68,7 @@ export type Action =
   | { type: "signOut" }
   | { type: "world"; world: World }
   | { type: "narration"; on?: boolean }
-  | { type: "resolveConflict" }
+  | { type: "resolveConflict"; choice: string; reason: string }
   | { type: "reminder"; state: DemoState["reminder"] }
   | { type: "closeSpaNotice" }
   | { type: "ackVerlaine" }
@@ -83,7 +89,7 @@ function reducer(s: DemoState, a: Action): DemoState {
     case "signOut": return { ...initial, world: s.world, narration: s.narration };
     case "world": return { ...s, world: a.world };
     case "narration": return { ...s, narration: a.on ?? !s.narration };
-    case "resolveConflict": return { ...s, conflictResolved: true };
+    case "resolveConflict": return { ...s, conflictResolved: true, conflictChoice: a.choice, conflictReason: a.reason };
     case "reminder": return { ...s, reminder: a.state };
     case "closeSpaNotice": return { ...s, spaNoticeClosed: true };
     case "ackVerlaine": return { ...s, verlaineAcked: true };

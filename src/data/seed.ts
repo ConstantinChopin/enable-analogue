@@ -666,15 +666,57 @@ export const askThreads = {
  * a figure the answer has just declined to give, which is the contradiction the
  * whole product exists to avoid. `needsCommission` marks such a stage.
  */
-export const trace: { stage: string; detail: string; needsCommission?: boolean }[] = [
-  { stage: "Agency directory, vault, and notes", detail: "Read 3 documents in Partners / Atelier" },
-  {
-    stage: "Curated specialist layer",
-    detail: "Checked the rate against the agency overlay",
-    needsCommission: true,
-  },
-  { stage: "Vetted external sources", detail: "Found no active notice on this property" },
-];
+export interface TraceStage { stage: string; detail: string; needsCommission?: boolean }
+
+/**
+ * The trace is per answer, not per product. A single shared list said the same three
+ * things whatever was asked — including that it had found no active notice, on a
+ * property carrying one, directly beside an answer reporting that notice. A panel
+ * that describes work the answer did not do is the same defect as an answer that
+ * cites a source it did not read.
+ *
+ * `noticeActive` is the live notice state for the subject, so the stage reports what
+ * is true at the moment of asking rather than what was true when the seed was written.
+ */
+export function traceFor(threadId: string | null, noticeActive: boolean): TraceStage[] {
+  const notices: TraceStage = noticeActive
+    ? { stage: "Open notices", detail: "One active notice on this property, opened 12 Jun" }
+    : { stage: "Open notices", detail: "No active notice on this property" };
+
+  if (threadId === "spa-status") {
+    return [
+      { stage: "Agency directory, vault, and notes", detail: "Read the property record and its notices" },
+      notices,
+      { stage: "Vetted external sources", detail: "Property website capture — pool and spa hours" },
+    ];
+  }
+
+  if (threadId === "rep-paris") {
+    return [
+      { stage: "Agency directory, vault, and notes", detail: "Read the rep-firm record and the Paris account note" },
+      notices,
+    ];
+  }
+
+  return [
+    { stage: "Agency directory, vault, and notes", detail: "Read 3 documents in Partners / Atelier" },
+    {
+      stage: "Curated specialist layer",
+      detail: "Checked the rate against the agency overlay",
+      needsCommission: true,
+    },
+    notices,
+  ];
+}
+
+/**
+ * The value the advisor kept, once they have resolved the conflict. Before that there
+ * is no kept value — the record shows all three and the product shows none of them as
+ * the answer.
+ */
+export function keptSource(choice: string | null) {
+  return commissionConflict.sources.find((s) => s.id === choice) ?? commissionConflict.sources[0];
+}
 
 /* ── admin ────────────────────────────────────────────────── */
 
