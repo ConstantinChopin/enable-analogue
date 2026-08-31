@@ -7,6 +7,7 @@
  * every widening logged.
  */
 import React, { useMemo, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useDemo } from "@/lib/store";
 import { vaultDocs, vaultStats, connections, personName, type VaultDoc } from "@/data/seed";
@@ -20,7 +21,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import {
-  Building2, FileText, HardDrive, History, Lock, Mail, Upload, Users2,
+  ArrowRight, Building2, FileText, HardDrive, History, Lock, Mail, Upload, Users2,
 } from "lucide-react";
 
 const sourceIcon: Record<string, React.ElementType> = {
@@ -370,6 +371,9 @@ export default function KnowledgeVault() {
 
 /* ── the panel: the meter, the document, the history ────────────────────────── */
 function ProvenancePanel({ sel, onManageAccess }: { sel: VaultDoc | undefined; onManageAccess: (name: string) => void }) {
+  /* Read directly rather than threading the role down: the panel is the only part
+     of this page that offers the way through to review, and only some roles get it. */
+  const { s } = useDemo();
   return (
     <div className="space-y-4">
       {sel ? (
@@ -408,6 +412,23 @@ function ProvenancePanel({ sel, onManageAccess }: { sel: VaultDoc | undefined; o
             >
               <Lock className="size-3.5" aria-hidden /> Manage access
             </Button>
+
+            {/* A document that arrives here proposes records, and those records wait for
+                a person. The vault used to end at "manage access", so the path from a
+                file landing to a record existing was invisible — you had to already know
+                the review queue was there. Only a lead or ops can act on it, so only they
+                are offered the way through. */}
+            {(s.role === "lead" || s.role === "ops") && (
+              <Link
+                href="/admin/review"
+                className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 transition-colors hover:bg-muted"
+              >
+                <span className="type-meta">
+                  <span className="text-foreground">3 records</span> proposed from the vault, waiting to be confirmed
+                </span>
+                <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+              </Link>
+            )}
           </section>
 
           {sel.detail ? (
