@@ -21,7 +21,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import {
-  ArrowRight, Building2, FileText, HardDrive, History, Lock, Mail, Upload, Users2,
+  ArrowRight, Building2, FileText, HardDrive, History, Lock, Mail, Upload, Users2, Plug,
 } from "lucide-react";
 
 const sourceIcon: Record<string, React.ElementType> = {
@@ -66,6 +66,10 @@ const subscribeDesktop = (cb: () => void) => {
 
 export default function KnowledgeVault() {
   const { s } = useDemo();
+  /* Connecting a source is an administrative act — it decides what every answer in the
+     agency gets built from. The flow itself lives under /admin, which only these two
+     roles may enter. */
+  const canConnect = s.role === "lead" || s.role === "ops";
   const [tab, setTab] = useState<string>("All");
   const [selected, setSelected] = useState<string | null>("Atelier Collection terms.pdf");
   const [accessFor, setAccessFor] = useState<string | null>(null);
@@ -122,11 +126,29 @@ export default function KnowledgeVault() {
             </Chip>
           </>
         }
+        /* Two ways a document reaches the vault, and they are not the same act.
+           Uploading one is an advisor's daily work. Connecting a SOURCE — a drive, an
+           intranet, a mailbox — decides what the whole agency's answers get built from,
+           and it belongs to the people who administer the agency.
+
+           So the connection button is absent for an advisor rather than disabled, which
+           is the rule this product holds everywhere else: a surface a role cannot use
+           does not exist for them. It is also the honest option here, because the flow
+           it opens lives under /admin and would bounce an advisor to their briefing. */
         actions={
-          <Button variant="outline" size="sm">
-            <Upload className="size-3.5" aria-hidden /> Upload
-            <SchematicBadge />
-          </Button>
+          <>
+            {canConnect && (
+              <Button asChild variant="outline" size="sm">
+                <Link href="/admin/connections">
+                  <Plug className="size-3.5" aria-hidden /> New connection
+                </Link>
+              </Button>
+            )}
+            <Button variant="outline" size="sm">
+              <Upload className="size-3.5" aria-hidden /> Upload
+              <SchematicBadge />
+            </Button>
+          </>
         }
       >
         {/* ── segmented tabs, with the counts they filter by ── */}

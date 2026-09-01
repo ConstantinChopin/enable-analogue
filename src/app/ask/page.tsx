@@ -510,7 +510,10 @@ function CommissionThread({
       {!resolved && dismissed && (
         <SeverityBanner severity="Important">
           <div className="flex flex-wrap items-center gap-2">
-            <span>The commission field stays in conflict. Nothing is assumed.</span>
+            {/* The fact, without the boast. "Nothing is assumed" was the product
+                congratulating itself for the thing the sentence before it already
+                shows. */}
+            <span>The commission field stays in conflict.</span>
             <Button size="sm" variant="outline" className="ml-auto" onClick={onResolve}>Resolve…</Button>
           </div>
         </SeverityBanner>
@@ -986,9 +989,10 @@ function Rail({
               <LayerBadge layer="agency" /> {keptSource(s.conflictChoice).value} kept from {keptSource(s.conflictChoice).label} · stored today · both other sources reachable
             </p>
           )}
-          <p className="mt-2 type-meta">
-            A source you are not permitted to read never appears in this panel.
-          </p>
+          {/* The permission guarantee is not stated here. It answered a question the
+              advisor had not asked and, in asking it, planted the doubt: a panel that
+              says nothing is being hidden is a panel that has raised the possibility.
+              The rule holds in the code; the screen simply shows what it shows. */}
         </Section>
       )}
 
@@ -1029,9 +1033,6 @@ function HeldBackRail() {
             </div>
           ))}
         </div>
-        <p className="mt-2 type-meta">
-          A source you are not permitted to read never appears in this panel.
-        </p>
       </Section>
     </>
   );
@@ -1120,7 +1121,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
             </div>
             <p className="mt-2 type-meta">
               The value you keep is what the directory shows, what a quote uses, and what the chat
-              answers with. One decision, three places.
+              answers with.
             </p>
             <dl className="mt-2 space-y-1 type-data">
               {commissionConflict.impact.map((row) => (

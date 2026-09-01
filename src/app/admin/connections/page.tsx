@@ -61,10 +61,9 @@ export default function Connections() {
           </Button>
         }
       >
-        <p className="mt-2 max-w-[62ch] type-data text-muted-foreground">
-          A source needs attention when it is not connected — expired credentials and a sync
-          running behind both degrade an answer.
-        </p>
+        {/* No definition of "needs attention" here. The rows say which sources are
+            disconnected and why, and each one carries its own state — a page that opens
+            by defining its own terms is writing documentation, not showing a list. */}
       </PageHeader>
 
       <NarrationNote>

@@ -547,9 +547,10 @@ function LayerSummary({ money, role }: { money: boolean; role: string }) {
           </Section>
         );
       })}
-      <p className="mt-[var(--space-4)] type-meta">
-        Three layers, one record. The full anatomy — every field, every source — is on the record itself.
-      </p>
+      {/* No summary line here. "Three layers, one record" narrated the thing the reader
+          was already looking at, and the rest of it duplicated the Open full record
+          button a few inches above. Product copy earns its place by telling the advisor
+          something the screen does not already show them. */}
     </div>
   );
 }

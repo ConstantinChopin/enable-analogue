@@ -307,7 +307,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
           <div className="rounded-lg border border-border bg-subtle p-4">
             <div className="type-code uppercase tracking-widest text-muted-foreground">Where this value goes</div>
             <p className="mt-2 type-meta">
-              The value you keep is what the directory shows, what a quote uses, and what the chat answers with. One decision, three places.
+              The value you keep is what the directory shows, what a quote uses, and what the chat answers with.
             </p>
             <dl className="mt-2 space-y-1 type-data">
               {commissionConflict.impact.map((row) => (
@@ -817,9 +817,6 @@ function VerlaineRecord() {
           </Section>
 
           <Section title="Open notices">
-            <p className="-mt-[var(--space-1)] mb-[var(--space-2)] type-meta">
-              A notice stays open until someone closes it. Nothing expires on a timer.
-            </p>
             <div className="space-y-3">
               {notices.filter((n) => n.productId === p.id).map((n) => (
                 <SeverityBanner key={n.id} severity={n.severity}>
@@ -945,9 +942,12 @@ function GenericRecord({ id }: { id: string }) {
             <div className="flex flex-wrap gap-2">
               {p.programs.map((pr) => <Chip key={pr} tone="primary">{pr}</Chip>)}
               {p.consortia.map((c) => <Chip key={c} tone="neutral" className="bg-background">{c}</Chip>)}
+              {/* The empty state, without the sentence explaining the policy behind it.
+                  That an empty list is not a guess is the product's argument, and the
+                  product does not argue with the advisor on the screen. */}
               {p.programs.length === 0 && p.consortia.length === 0 && (
                 <p className="type-data text-muted-foreground">
-                  No programme or consortium membership on file. Nothing is inferred from the category.
+                  No programme or consortium membership on file.
                 </p>
               )}
             </div>
@@ -974,11 +974,9 @@ function GenericRecord({ id }: { id: string }) {
           )}
 
           <Section title="Evidence">
-            {p.staleDays !== undefined && (
-              <p className="-mt-[var(--space-1)] mb-[var(--space-2)] type-meta">
-                It still answers — with its date and a freshness warning attached.
-              </p>
-            )}
+            {/* The stale date and its warning chip are the statement. Narrating what
+                the product does with them was a line about the product, not about
+                this hotel. */}
             <div className="space-y-2 type-data">
               {p.evidence.kind === "unconfirmed"
                 ? <Chip tone="warn">{p.evidence.label}</Chip>

@@ -256,10 +256,11 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
           className="mt-4"
           chips={<Chip tone="warn">actual under projection</Chip>}
         >
-          <p className="type-meta">
-            A separate booking on this desk, shown with this one so the discrepancy is not lost —
-            flagged, never silently absorbed.
-          </p>
+          {/* The rationale is gone. Why the product surfaces this booking rather than
+              netting it off is a design decision; that it exists, and that its actual
+              is under projection, is the advisor's business. The chip says the second
+              part already. */}
+          <p className="type-meta">A separate booking on this desk.</p>
           <div className="mt-2 grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-border p-4">
               <div className="type-code uppercase tracking-widest text-muted-foreground">Expected</div>

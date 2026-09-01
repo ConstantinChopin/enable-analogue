@@ -300,7 +300,6 @@ function MarchettiProfile() {
                 <Sparkles className="size-3.5 text-primary" aria-hidden /> Suggestions
               </span>
             }
-            chips={<Chip tone="primary">labelled — never applied silently</Chip>}
           >
             {traveller.suggestions.map((sg) => (
               <div key={sg.id} className="flex flex-wrap items-center gap-2 type-data">
@@ -449,7 +448,6 @@ function MarchettiProfile() {
           <Section
             variant="list"
             title="Where these come from"
-            footer={<span className="type-meta">The product extracts signals. It does not decide that a signal is true.</span>}
           >
             <ul className="divide-y divide-border">
               {traveller.signalsBySource.map(([label, n]) => (
