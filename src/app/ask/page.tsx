@@ -152,9 +152,15 @@ function Ask() {
             )}
           </section>
 
-          {/* ── sources rail ── */}
+          {/* ── sources rail ──
+              `[&>*]:shrink-0` is what makes the `overflow-y-auto` mean anything. As
+              flex items the rail's cards defaulted to `flex-shrink: 1`, so when the
+              sources ran past the panel they compressed to fit instead of overflowing —
+              the aside's scrollHeight equalled its clientHeight, it never scrolled, and
+              `Section`'s own `overflow-hidden` quietly cut 228px of source material off
+              the bottom of three cards. Cards keep their height; the column scrolls. */}
           {showRail && (
-            <aside className="hidden w-[320px] shrink-0 flex-col gap-3 overflow-y-auto xl:flex">{rail}</aside>
+            <aside className="hidden w-[320px] shrink-0 flex-col gap-3 overflow-y-auto xl:flex [&>*]:shrink-0">{rail}</aside>
           )}
         </div>
       </div>
