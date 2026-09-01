@@ -86,16 +86,55 @@ async function probe(page, semantic) {
 
     /* Direct children of a card body should share one left edge. Two edges means
        something is outside the gutter its siblings are inside. */
+    /* Measuring this needs three distinctions, each of which produced a false positive
+       before it was made:
+
+       - An INLINE child aligns by its border, not its text. A chip sitting under a
+         paragraph is correctly aligned when their boxes agree; its own `px-2` is
+         decoration, and counting it flagged a card that was already right.
+       - A LIST holds no padding itself — its rows do. Measuring the `ul` box compares
+         the wrong edge against siblings that carry their own gutter.
+       - Everything else aligns by its CONTENT edge, box plus padding, which is what
+         catches a paragraph sitting outside the gutter its siblings are inside. */
+    /* The left edge a reader aligns a card's contents to, which is not the outermost
+       box. Descending until one of two things is true:
+
+         it is a visible OBJECT (border or fill) — a chip, a nested card, an input.
+           Aligns by its EDGE; its inner padding is its own business.
+         it carries TEXT directly — a paragraph, a heading, a row.
+           Aligns by its text, so a transparent wrapper, a list whose padding lives on
+           its rows, and a Figure whose padding is the gutter all report the same thing.
+
+       Every one of those distinctions came from a false positive: without them the
+       check flagged four cards that were correct, which is how a check gets ignored. */
+    const contentLeft = (el) => {
+      if (/^inline/.test(getComputedStyle(el).display)) return null;
+      const descend = (node) => {
+        const cs = getComputedStyle(node);
+        const bordered = parseFloat(cs.borderLeftWidth || 0) > 0;
+        const filled = cs.backgroundColor && cs.backgroundColor !== "rgba(0, 0, 0, 0)";
+        if (node !== el && (bordered || filled)) return Math.round(node.getBoundingClientRect().left);
+        for (const child of node.childNodes) {
+          if (child.nodeType === 3 && child.textContent.trim()) {
+            return Math.round(node.getBoundingClientRect().left + parseFloat(cs.paddingLeft || 0));
+          }
+        }
+        for (const child of node.children) {
+          if (!vis(child)) continue;
+          const found = descend(child);
+          if (found !== null) return found;
+        }
+        return null;
+      };
+      return descend(el);
+    };
+
     const edges = [];
-    for (const sec of document.querySelectorAll("section")) {
+    for (const sec of document.querySelectorAll("section[data-slot=card]")) {
       const body = sec.children.length > 1 ? sec.children[1] : null;
       if (!body || !vis(body)) continue;
-      const kids = [...body.children].filter(vis);
-      if (kids.length < 2) continue;
-      const lefts = kids.map((k) => {
-        const cs = getComputedStyle(k);
-        return Math.round(k.getBoundingClientRect().left + parseFloat(cs.paddingLeft || 0));
-      });
+      const lefts = [...body.children].filter(vis).map(contentLeft).filter((n) => n !== null);
+      if (lefts.length < 2) continue;
       const uniq = [...new Set(lefts)];
       if (uniq.length > 1) {
         edges.push({ title: sec.querySelector("h3")?.textContent.trim() ?? "(untitled)", lefts: uniq });
@@ -162,9 +201,15 @@ try {
     record("card has one left edge", path, role, p.edges.length === 0,
       p.edges.map((e) => `${e.title}: ${e.lefts.join(" / ")}`).join("; "));
 
-    const budget = contract.taxonomies.length;
-    record("within taxonomy budget", path, role, p.distinctMarkColours.length <= Math.max(budget, 1) + 1,
-      `${p.distinctMarkColours.length} distinct mark colours, contract allows ${budget}`);
+    /* The taxonomy budget is NOT checked here, and the attempt is worth recording.
+       Counting distinct mark colours conflates a taxonomy with its values: /ask has one
+       taxonomy — answer state — whose three values are conflict, refusal and answered,
+       so it read as three taxonomies against a budget of one and failed a screen that
+       was right. Nothing in the DOM distinguishes "three meanings" from "one meaning
+       with three values"; that is a question about semantics, not structure.
+
+       Tier 3 owns it. Its rubric already asks a model to list every distinct thing
+       colour signals on the screen, which is the count the budget is about. */
 
     record("no horizontal overflow", path, role, !p.overflowX, p.overflowX ? "page scrolls sideways" : "");
 

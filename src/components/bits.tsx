@@ -354,6 +354,11 @@ export function Section({
   const list = variant === "list";
   return (
     <section
+      /* `<section>` is used for page regions as well as cards, so the eval harness had
+         no way to tell a card from a layout wrapper and measured the alignment of a
+         two-column grid as though it were one card's contents. A card says so. */
+      data-slot="card"
+      data-variant={variant}
       className={cn(
         "flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-border bg-card",
         !list && "p-[var(--space-4)]",

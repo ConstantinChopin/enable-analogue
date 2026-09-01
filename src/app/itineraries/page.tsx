@@ -197,12 +197,17 @@ function Itineraries() {
               />
             ) : (
               <Section variant="list" className="mt-4">
-                <ul>
-                <li className="row-grid px-4 type-micro uppercase tracking-widest text-muted-foreground">
+                {/* The header sits outside the list, as it does on every other ledger.
+                    It was an <li>, which made a column header a member of the list of
+                    trips — wrong semantically, and it left the trailing column reading
+                    "text, then eight pills" to anything checking that a column keeps one
+                    shape. A header is not a row. */}
+                <div className="row-grid px-4 type-micro uppercase tracking-widest text-muted-foreground">
                   <span className="row-primary">Trip</span>
                   <span className="row-meta">Dates</span>
                   <span className="row-trailing">Departs</span>
-                </li>
+                </div>
+                <ul>
                 {rows.map((t) => (
                   <li key={t.id} className="border-t border-border">
                     <button

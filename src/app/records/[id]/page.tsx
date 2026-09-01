@@ -391,7 +391,12 @@ function LeandreRecord() {
            Edit is filled: it is the one that changes what other people see. */
         actions={
           <>
-            <Button size="sm" onClick={() => setEditing((v) => !v)}>
+            {/* Outline. This was filled, which put two filled buttons on a screen that
+                already has one: "Resolve 3 sources" is the decision this record exists
+                to force, and Edit is a mode toggle. A rule I wrote in a comment hours
+                earlier, broken by me, and caught by the harness rather than by a
+                person — which is the entire argument for the harness. */}
+            <Button variant="outline" size="sm" onClick={() => setEditing((v) => !v)}>
               {editing ? "Done editing" : "Edit…"}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setNoteOpen(true)}>Add note…</Button>

@@ -139,8 +139,12 @@ export default function AdminPublish() {
             <ul className="divide-y divide-border">
               {adminPolicy.breakGlass.map((row) => (
                 <li key={row.when} className="row-grid px-4">
+                  {/* The amber dot is gone. Every row in this log carried one, so it
+                      distinguished nothing — and being unlabelled it made a colour claim
+                      it never explained. It also pushed every row title 20px right of
+                      the paragraph above, giving the card two left edges for the sake of
+                      a mark that said nothing. The rows say what happened. */}
                   <span className="row-primary flex items-start gap-3">
-                    <span className="mt-2 size-2 shrink-0 rounded-full bg-warn" aria-hidden />
                     <span className="min-w-0">
                       <span className="block truncate type-data-strong">
                         {row.actor} {row.action}

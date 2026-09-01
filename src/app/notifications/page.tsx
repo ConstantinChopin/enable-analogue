@@ -56,11 +56,17 @@ function SeverityMark({ severity }: { severity: Notification["severity"] }) {
   );
 }
 
+/* Four states, one shape. "seen" used to render as bare text while the other three
+   were chips, so the column changed shape on its most common value — the same defect
+   as the vault's access column, where the one row awaiting a decision was the one that
+   looked like nothing. Quietness is a job for the tone, not for a different element:
+   `neutral` is already border-only with muted text, so "seen" still recedes without
+   leaving the column. The words distinguish it from "deferred"; the tone need not. */
 function StateMark({ state }: { state: NoticeState }) {
   if (state === "actioned") return <Chip tone="ok">actioned</Chip>;
   if (state === "deferred") return <Chip tone="neutral">deferred</Chip>;
   if (state === "new") return <Chip tone="primary">new</Chip>;
-  return <span className="type-micro text-muted-foreground">seen</span>;
+  return <Chip tone="neutral">seen</Chip>;
 }
 
 /* ── page ───────────────────────────────────────────────────────────────────── */

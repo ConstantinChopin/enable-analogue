@@ -112,11 +112,9 @@ export const CONTRACTS = {
     taxonomies: ["readiness"],
   },
 
-  "/notices": {
-    job: { advisor: "see what changed at a property and act on it" },
-    primaryAction: "acknowledge or action a notice",
-    taxonomies: ["severity"],
-  },
+  /* No contract for /notices. The surface was retired and folded into /notifications;
+     the address survives only as a redirect. A contract there described a screen that
+     does not exist, which is the harness catching a stale spec rather than a defect. */
 
   "/notifications": {
     job: { advisor: "clear what is waiting on me" },
