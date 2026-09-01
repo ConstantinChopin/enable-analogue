@@ -7,14 +7,13 @@
 import { useState } from "react";
 import { connectionHealth, connections } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
-import { Chip, Section, NarrationNote, SchematicBadge } from "@/components/bits";
+import { Chip, Section, NarrationNote } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
 } from "@/components/ui/sheet";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import { KeyRound, Plus, RefreshCw } from "lucide-react";
+import { AddConnection } from "./add-connection";
 
 function StateChip({ state }: { state: (typeof connections)[number]["state"] }) {
   if (state === "ok") return <Chip tone="ok">connected</Chip>;
@@ -35,7 +34,7 @@ function StateChip({ state }: { state: (typeof connections)[number]["state"] }) 
 
 export default function Connections() {
   const [addOpen, setAddOpen] = useState(false);
-  const [connector, setConnector] = useState<"mcp" | "self">("mcp");
+
   const [reconnect, setReconnect] = useState<string | null>(null);
   const [reconnectSent, setReconnectSent] = useState(false);
 
@@ -146,50 +145,7 @@ export default function Connections() {
         </SheetContent>
       </Sheet>
 
-      {/* Add connection — schematic */}
-      <Sheet open={addOpen} onOpenChange={setAddOpen}>
-        <SheetContent side="right">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              Add connection <SchematicBadge />
-            </SheetTitle>
-            <SheetDescription>Connector posture is MCP-first.</SheetDescription>
-          </SheetHeader>
-          <div className="px-4">
-            <RadioGroup
-              value={connector}
-              onValueChange={(v) => setConnector(v as "mcp" | "self")}
-              className="gap-3"
-            >
-              <div className="flex items-start gap-3">
-                <RadioGroupItem value="mcp" id="conn-mcp" className="mt-1" />
-                <Label htmlFor="conn-mcp" className="flex flex-col items-start gap-1 font-normal">
-                  <span className="type-data-strong">MCP upstream</span>
-                  <span className="type-meta">
-                    Consume the source&rsquo;s own MCP server where one exists.
-                  </span>
-                </Label>
-              </div>
-              <div className="flex items-start gap-3">
-                <RadioGroupItem value="self" id="conn-self" className="mt-1" />
-                <Label htmlFor="conn-self" className="flex flex-col items-start gap-1 font-normal">
-                  <span className="type-data-strong">Self-hosted connector</span>
-                  <span className="type-meta">Fallback where no upstream MCP exists.</span>
-                </Label>
-              </div>
-            </RadioGroup>
-            <p className="mt-4 border-t border-border pt-4 type-meta">
-              Scoped credentials, a sync cadence, and read-only where the source system is ground
-              truth — the booking system stays authoritative for money.
-            </p>
-          </div>
-          <SheetFooter>
-            <Button variant="outline" onClick={() => setAddOpen(false)}>
-              Continue
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+      <AddConnection open={addOpen} onOpenChange={setAddOpen} />
     </Page>
   );
 }
