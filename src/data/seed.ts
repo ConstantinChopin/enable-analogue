@@ -643,9 +643,9 @@ export const askThreads = {
       meta: { sources: 3, oldest: "12 Mar 2026", corroborated: 3, resolutionCited: true },
     },
     sources: [
-      { n: 1, label: "Partner portal", detail: "Atelier Collection terms · 12 Mar 2026 · p.4", quote: "“…participating agencies receive twelve percent (12%) on the Atelier Collection rate, paid within 45 days of departure…”" },
-      { n: 2, label: "Agency intranet", detail: "Preferred partners · 04 Jun 2026" },
-      { n: 3, label: "Email extract", detail: "Corvin & Wells · 21 Jun 2026" },
+      { n: 1, label: "Partner portal", detail: "Atelier Collection terms · 12 Mar 2026 · p.4", doc: "atelier-terms", quote: "“…participating agencies receive twelve percent (12%) on the Atelier Collection rate, paid within 45 days of departure…”" },
+      { n: 2, label: "Agency intranet", detail: "Preferred partners · 04 Jun 2026", doc: "preferred-partners" },
+      { n: 3, label: "Email extract", detail: "Corvin & Wells · 21 Jun 2026", doc: "cw-rate-note" },
     ],
   },
   refusal: {
@@ -674,6 +674,92 @@ export const askThreads = {
     v2: "The spa is closed to 15 September. An agency notice was opened on 12 June and is still active.",
     v1: "The spa is open, 07:00–21:00 daily.",
     v1Note: "The v1 build let the notice expire on 1 August. The spa is still closed. This answer is confidently wrong, and nothing on the screen says so.",
+  },
+};
+
+/* ── the documents behind the citations ─────────────────────────────────────────
+   A citation that cannot be opened is a footnote, and a footnote is a promise the
+   product asks you to take on trust — which is the one thing this product refuses to
+   ask anywhere else. Opening the source is the last step of the provenance claim: the
+   passage the answer rests on, in the document it came from, with everything around it
+   still visible so the reader can judge whether it was quoted fairly.
+
+   Each source opens as the KIND of document it is. Terms are a page of a signed PDF,
+   a rate note is an email with its headers, an intranet entry is a page. Forcing all
+   three into one "PDF viewer" would flatten the thing an advisor uses to weigh them:
+   a countersigned contract and a rep's email are not equally binding, and they should
+   not look alike.                                                                    */
+export type DocumentKind = "pdf" | "email" | "page";
+
+export interface SourceDocument {
+  kind: DocumentKind;
+  title: string;
+  /** The document's own subtitle — what it is, not where it was found. */
+  subtitle?: string;
+  /** Rendered as a page counter for a PDF. */
+  page?: { n: number; of: number };
+  /** From/To/Subject for an email; URL and captured-on for a page. */
+  header?: { label: string; value: string }[];
+  blocks: { text: string; heading?: boolean; cited?: boolean }[];
+  /** Shown in the viewer's footer, where a real viewer shows a file path. */
+  locator: string;
+}
+
+export const sourceDocuments: Record<string, SourceDocument> = {
+  "atelier-terms": {
+    kind: "pdf",
+    title: "Atelier Collection — Partner Terms",
+    subtitle: "Effective 1 January 2026 · countersigned 12 March 2026",
+    page: { n: 4, of: 9 },
+    blocks: [
+      { text: "4. Commission and settlement", heading: true },
+      { text: "4.1 Participating agencies receive twelve percent (12%) on the Atelier Collection rate, paid within 45 days of departure. Commission is calculated on the room charge exclusive of taxes and resort fees.", cited: true },
+      { text: "4.2 Where a property participates in more than one programme, the Atelier Collection rate takes precedence over any consortium rate for the same room type and date." },
+      { text: "4.3 Cancelled or amended bookings are settled at the rate in force on the date of the original booking, not the date of amendment." },
+      { text: "5. Amenities", heading: true },
+      { text: "5.1 The Atelier Collection rate includes daily breakfast for two persons and a property credit of EUR 100 per stay, applied at check-out." },
+      { text: "5.2 Room upgrades are offered subject to availability at check-in and are not guaranteed by the property or by the programme." },
+    ],
+    locator: "claromentis://partners/atelier-terms.pdf · p.4 of 9",
+  },
+
+  "preferred-partners": {
+    kind: "page",
+    title: "Preferred partners — Paris",
+    subtitle: "Agency intranet · Partnerships desk",
+    header: [
+      { label: "URL", value: "claromentis://programs/atelier" },
+      { label: "Updated", value: "4 June 2026 by M. Keller" },
+    ],
+    blocks: [
+      { text: "Atelier Collection — participating properties", heading: true },
+      { text: "Maison Léandre, Paris 4e. Atelier Collection since March 2026. Rep firm: Corvin & Wells (Paris account).", cited: true },
+      { text: "Hôtel Verlaine, Paris 8e. Atelier Collection since November 2025. Rep firm: Corvin & Wells (Paris account)." },
+      { text: "Amenities on the Atelier rate are set by the programme, not by the property. Where a property offers something further, it is recorded on the record as an agency overlay and does not change the programme terms." },
+    ],
+    locator: "claromentis://programs/atelier",
+  },
+
+  "cw-rate-note": {
+    kind: "email",
+    title: "Maison Léandre — 2026 rate note",
+    /* L. Berger is the commission contact already named on the record's Contacts card.
+       Reusing that person rather than inventing a sender keeps one cast: the name the
+       advisor reads in the rail is the name that signed the note the answer cites.
+       No first name, because no persona in this world has one. */
+    header: [
+      { label: "From", value: "L. Berger <l.berger@corvinwells.example>" },
+      { label: "To", value: "R. Devane <r.devane@enable.example>" },
+      { label: "Date", value: "21 June 2026, 11:04" },
+      { label: "Subject", value: "Maison Léandre — 2026 rate note" },
+    ],
+    blocks: [
+      { text: "Confirming for your file: Maison Léandre sits on the Atelier Collection rate for 2026 and we hold the Paris account. Commission is the programme's twelve percent — the ten percent your booking platform is showing is a 2025 figure that should have been retired in February.", cited: true },
+      { text: "Breakfast for two and the EUR 100 credit are included on that rate. An upgrade at check-in is availability-only; the property has been clear that it will not guarantee it in writing." },
+      { text: "The spa remains closed to 15 September. I will write again when they confirm reopening." },
+      { text: "L. Berger — Corvin & Wells, Paris account" },
+    ],
+    locator: "email://msg-2026-06-21 · Corvin & Wells",
   },
 };
 

@@ -15,7 +15,7 @@ import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useDemo, canViewCommissions } from "@/lib/store";
 import {
-  askThreads, commissionConflict, traceFor, keptSource, connections, notices, people, conversations,
+  askThreads, commissionConflict, traceFor, keptSource, connections, notices, people, conversations, sourceDocuments,
   type Conversation,
 } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   ArrowRight, CheckCircle2, XCircle, CircleDashed, Scale, Copy, Loader2, MessagesSquare,
-  Plus, SendHorizontal, ArrowUpRight, X,
+  Plus, SendHorizontal, ArrowUpRight, X, FileText,
 } from "lucide-react";
 
 /** Threads reachable in this build: the four saved conversations plus two demo branches. */
@@ -71,6 +71,7 @@ function Ask() {
   const [listOpen, setListOpen] = useState(false);
   const [resolveOpen, setResolveOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [openDoc, setOpenDoc] = useState<string | null>(null);
 
   const choose = (id: ThreadId | null) => {
     setPicked({ under: stateParam, id });
@@ -78,7 +79,7 @@ function Ask() {
     setListOpen(false);
   };
 
-  const rail = <Rail active={active} money={money} />;
+  const rail = <Rail active={active} money={money} onOpenDoc={setOpenDoc} />;
   const showRail = active !== null;
 
   return (
@@ -179,6 +180,7 @@ function Ask() {
       </Sheet>
 
       <ResolveSheet open={resolveOpen} onOpenChange={setResolveOpen} />
+      <DocumentSheet doc={openDoc} open={!!openDoc} onOpenChange={(v) => !v && setOpenDoc(null)} />
     </Page>
   );
 }
@@ -797,7 +799,7 @@ function TraceList({ threadId, pendingStage }: { threadId?: string | null; pendi
   );
 }
 
-interface RailSource { n: number; label: string; detail: string; quote?: string }
+interface RailSource { n: number; label: string; detail: string; quote?: string; doc?: string }
 
 function sourcesFor(active: ThreadId, world: string, money: boolean): RailSource[] {
   const cs = askThreads.commission.sources;
@@ -820,7 +822,82 @@ function sourcesFor(active: ThreadId, world: string, money: boolean): RailSource
 /** The threads whose retrieval is reconstructed in this build. */
 const BUILT: ThreadId[] = ["leandre-rate", "spa-status", "rep-paris", "stale"];
 
-function Rail({ active, money }: { active: ThreadId | null; money: boolean }) {
+/* ── the document behind a citation ─────────────────────────────────────────────
+   The cited passage is marked in place rather than extracted, so the reader sees what
+   surrounds it. An extract can be quoted fairly or unfairly and there is no way to
+   tell from the extract; the paragraph before it is how you tell.
+
+   Paper, not product: a serif measure on a light ground, the app's own chrome kept to
+   the header and the footer. The kinds differ because the documents differ — a
+   countersigned contract and a rep's email carry different weight, and an advisor
+   deciding what to trust should see which one they are looking at before they read a
+   word of it.                                                                        */
+function DocumentSheet({
+  doc, open, onOpenChange,
+}: { doc: string | null; open: boolean; onOpenChange: (v: boolean) => void }) {
+  const d = doc ? sourceDocuments[doc] : null;
+  if (!d) return null;
+
+  const kindLabel = { pdf: "PDF document", email: "Email", page: "Intranet page" }[d.kind];
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-[680px]">
+        <SheetHeader className="shrink-0 border-b border-border">
+          <SheetTitle className="flex flex-wrap items-center gap-[var(--space-2)]">
+            {d.title}
+            <Chip tone="neutral">{kindLabel}</Chip>
+            {d.page && <Chip tone="neutral" className="tnum">p.{d.page.n} of {d.page.of}</Chip>}
+          </SheetTitle>
+          {d.subtitle && <SheetDescription>{d.subtitle}</SheetDescription>}
+        </SheetHeader>
+
+        <div className="min-h-0 flex-1 overflow-y-auto bg-subtle p-[var(--space-4)]">
+          <article className="mx-auto max-w-[62ch] rounded-[var(--radius-card)] border border-border bg-background p-[var(--space-6)] shadow-sm">
+            {d.header && (
+              <dl className="mb-[var(--space-4)] space-y-1 border-b border-border pb-[var(--space-4)]">
+                {d.header.map((h) => (
+                  <div key={h.label} className="grid grid-cols-[72px_minmax(0,1fr)] gap-[var(--space-3)]">
+                    <dt className="type-micro text-muted-foreground">{h.label}</dt>
+                    <dd className="type-data">{h.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+
+            <div className="space-y-[var(--space-3)]">
+              {d.blocks.map((b, i) =>
+                b.heading ? (
+                  <h4 key={i} className="type-data-strong pt-[var(--space-2)]">{b.text}</h4>
+                ) : (
+                  <p
+                    key={i}
+                    className={cn(
+                      "type-prose",
+                      /* The passage the answer rests on, marked where it sits. */
+                      b.cited && "-mx-2 rounded border-l-2 border-primary bg-primary-soft/60 px-2 py-1",
+                    )}
+                  >
+                    {b.text}
+                  </p>
+                ),
+              )}
+            </div>
+          </article>
+        </div>
+
+        <div className="flex shrink-0 flex-wrap items-center gap-[var(--space-2)] border-t border-border px-[var(--space-4)] py-[var(--space-3)]">
+          <span className="type-code text-muted-foreground">{d.locator}</span>
+          <span className="ml-auto type-meta">Highlighted passage is the one this answer cites.</span>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function Rail({
+  active, money, onOpenDoc,
+}: { active: ThreadId | null; money: boolean; onOpenDoc: (doc: string) => void }) {
   const { s } = useDemo();
   if (active === null) return null;
 
@@ -858,27 +935,51 @@ function Rail({ active, money }: { active: ThreadId | null; money: boolean }) {
       {sources.length > 0 && (
         <Section title="Sources">
           <div className="space-y-3">
-            {sources.map((src) => (
-              <div
-                key={src.n}
-                className={cn("rounded-lg border p-3", src.n === 1 ? "border-primary/50" : "border-border")}
-              >
-                <div className="flex items-center gap-2 type-data-strong">
-                  <span className="inline-grid size-[17px] shrink-0 place-items-center rounded-full border border-border type-micro tnum">
-                    {src.n}
-                  </span>
-                  {src.label}
-                </div>
-                <div className="mt-1 type-meta">{src.detail}</div>
-                {/* Someone else's words, quoted verbatim from a contract — prose, and
-                    the one place the italic quote role belongs. */}
-                {src.n === 1 && src.quote && (
-                  <blockquote className="mt-2 rounded-lg border-l-2 border-primary/60 bg-muted px-3 py-2 type-prose-quote">
-                    {src.quote}
-                  </blockquote>
-                )}
-              </div>
-            ))}
+            {/* A citation you cannot open is a footnote, and a footnote asks to be
+                taken on trust — the one thing this product refuses to ask anywhere
+                else. The whole card opens the document, so the target is the size of
+                the thing you were already reading. */}
+            {sources.map((src) => {
+              const openable = !!src.doc && !!sourceDocuments[src.doc];
+              const inner = (
+                <>
+                  <div className="flex items-center gap-2 type-data-strong">
+                    <span className="inline-grid size-[17px] shrink-0 place-items-center rounded-full border border-border type-micro tnum">
+                      {src.n}
+                    </span>
+                    {src.label}
+                    {openable && (
+                      <FileText className="ml-auto size-[var(--icon-md)] shrink-0 text-muted-foreground" aria-hidden />
+                    )}
+                  </div>
+                  <div className="mt-1 type-meta">{src.detail}</div>
+                  {/* Someone else's words, quoted verbatim from a contract — prose, and
+                      the one place the italic quote role belongs. */}
+                  {src.n === 1 && src.quote && (
+                    <blockquote className="mt-2 rounded-lg border-l-2 border-primary/60 bg-muted px-3 py-2 type-prose-quote">
+                      {src.quote}
+                    </blockquote>
+                  )}
+                </>
+              );
+              const box = cn(
+                "w-full rounded-lg border p-3 text-left",
+                src.n === 1 ? "border-primary/50" : "border-border",
+              );
+              return openable ? (
+                <button
+                  key={src.n}
+                  type="button"
+                  onClick={() => onOpenDoc(src.doc!)}
+                  aria-label={`Open ${src.label} — ${src.detail}`}
+                  className={cn(box, "cursor-pointer transition-colors hover:bg-muted")}
+                >
+                  {inner}
+                </button>
+              ) : (
+                <div key={src.n} className={box}>{inner}</div>
+              );
+            })}
           </div>
           {active === "leandre-rate" && s.conflictResolved && (
             <p className="mt-3 flex items-center gap-2 border-t border-border pt-2 type-meta">
