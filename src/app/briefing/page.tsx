@@ -329,15 +329,23 @@ export default function Briefing() {
                 </Row>
               ))}
             </Rows>
-            <p className="mt-2 type-meta tnum">
-              {adminPolicy.governed.advisors} advisors · {adminPolicy.governed.admins} admins ·{" "}
-              {adminPolicy.governed.desks} desks · {adminPolicy.governed.records} records
-            </p>
-            {adminPolicy.breakGlass.length > 0 && (
-              <p className="mt-1 type-meta">
-                {adminPolicy.breakGlass.length} break-glass openings logged, owners notified.
+            {/* Inside `Figure`, because the `list` card gives its body no horizontal
+                inset and its children own their gutter — that is what lets a row bleed
+                edge to edge for hover. These two lines were the only content in the
+                card not obeying it, so they hung a full gutter left of every row above
+                them and the card had two left edges. */}
+            <Figure>
+              <p className="mt-2 type-meta tnum">
+                {adminPolicy.governed.advisors} advisors · {adminPolicy.governed.admins} admins ·{" "}
+                {adminPolicy.governed.desks} desks ·{" "}
+                {adminPolicy.governed.records.toLocaleString("en-GB")} records
               </p>
-            )}
+              {adminPolicy.breakGlass.length > 0 && (
+                <p className="mt-1 type-meta">
+                  {adminPolicy.breakGlass.length} break-glass openings logged, owners notified.
+                </p>
+              )}
+            </Figure>
           </>
         );
 
@@ -377,8 +385,11 @@ export default function Briefing() {
         const paid = commissions.filter((c) => c.state === "paid");
         const collected = paid.reduce((n, c) => n + c.amount, 0);
         return (
-          <>
-            <div className="grid grid-cols-2 gap-3 px-[var(--space-4)]">
+          /* One `Figure` around the whole widget rather than a gutter on the grid
+             alone: the progress bar and the note under it were outdented by a gutter,
+             so the bar started left of the figures it measures. */
+          <Figure>
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <div className="type-code uppercase tracking-widest text-muted-foreground">Collected</div>
                 <div className="mt-1 type-figure">{eur(collected)}</div>
@@ -399,7 +410,7 @@ export default function Briefing() {
             <p className="mt-2 type-meta">
               Actuals arrive read-only from the booking system. Ground truth stays in the source.
             </p>
-          </>
+          </Figure>
         );
       }
 
