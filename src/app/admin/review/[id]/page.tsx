@@ -8,7 +8,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useDemo } from "@/lib/store";
-import { candidates, products, people } from "@/data/seed";
+import { candidates, products, people, filterOptions } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
 import {
   Chip, Section, NarrationNote, ConfirmBanner, ConfidenceMeter, MoneyValue, SeverityBanner,
@@ -20,7 +20,24 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { ArrowRight, Check, CircleDashed, CopyPlus, FileSearch, Pencil } from "lucide-react";
+
+/* Which extracted fields are ENTITIES, and what they may be.
+   Anything absent from this table is genuinely free text — a rate, a description, an
+   address — and keeps its input box. */
+function entityOptions(label: string): string[] | null {
+  const key = label.toLowerCase();
+  if (key.startsWith("programme")) return filterOptions.programme;
+  if (key.startsWith("consorti")) return filterOptions.consortia;
+  if (key.startsWith("tier")) return filterOptions.luxuryTier;
+  if (key.startsWith("categor")) return filterOptions.category;
+  if (key.startsWith("status")) return filterOptions.status;
+  if (key.startsWith("region")) return filterOptions.region as string[];
+  return null;
+}
 
 export default function CandidateDetail() {
   const params = useParams<{ id: string }>();
@@ -69,14 +86,21 @@ export default function CandidateDetail() {
     : {};
 
   const confirmedAlready = candidate.id === "sereno" && s.candidateConfirmed;
+  /* A field a person has keyed is no longer held, so it stops being counted as one.
+     The count drove the confirmation banner, so supplying a value and then being told
+     the same number of fields were still held would have contradicted the work just
+     done on screen. */
   const heldCount = candidate.fields.filter(
-    (f) => ("held" in f && f.held) || ("template" in f && f.template),
+    (f) =>
+      (("held" in f && f.held) || ("template" in f && f.template)) && !corrected[f.label],
   ).length;
 
   function confirmRecord() {
     d({ type: "confirmCandidate" });
     setBanner(
-      `Confirmed with ${heldCount} fields still held (rate, description) — they stay in review, excluded from answers. The rest is live at the agency layer: answerable in Ask, visible in Records.`,
+      heldCount === 0
+        ? "Confirmed. Every field is either extracted and checked or keyed by hand, and the record is live at the agency layer: answerable in Ask, visible in Records."
+        : `Confirmed with ${heldCount} ${heldCount === 1 ? "field" : "fields"} still held — they stay in review, excluded from answers. The rest is live at the agency layer: answerable in Ask, visible in Records.`,
     );
   }
 
@@ -215,7 +239,7 @@ export default function CandidateDetail() {
                     <span className="w-24 shrink-0 type-meta">{f.label}</span>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        {held ? (
+                        {held && !corrected[f.label] ? (
                           /* Each hold has its own reason. Rendering the rate’s reason on every
                              held row said a blank cell was a converted figure. */
                           <Chip tone="crit">{f.value}</Chip>
@@ -224,17 +248,29 @@ export default function CandidateDetail() {
                             {corrected[f.label] ?? f.value}
                           </span>
                         )}
-                        {!held && corrected[f.label] && (
-                          <Chip tone="ok">corrected · {people.lead}</Chip>
+                        {/* A supplied value is marked as keyed, not as extracted. The
+                            two are not the same evidence and the record has to be able
+                            to tell them apart afterwards — which is the whole reason
+                            every other value here carries where it came from. */}
+                        {corrected[f.label] && (
+                          <Chip tone={held ? "primary" : "ok"}>
+                            {held ? "keyed" : "corrected"} · {people.lead}
+                          </Chip>
                         )}
                         {template && <Chip tone="warn">template copy</Chip>}
                       </div>
                       <div className="mt-1 type-code text-muted-foreground">{f.snippet}</div>
-                      {held && (
+                      {held && !corrected[f.label] && (
                         <p className="mt-2 type-meta">
                           {"heldReason" in f && f.heldReason
                             ? String(f.heldReason)
                             : "Held here, and excluded from answers, until a person supplies what is missing."}
+                        </p>
+                      )}
+                      {held && corrected[f.label] && (
+                        <p className="mt-2 type-meta">
+                          Hold cleared. Keyed by {people.lead} today, and carried as a manual entry
+                          rather than as an extraction.
                         </p>
                       )}
                       {template && (
@@ -252,9 +288,14 @@ export default function CandidateDetail() {
                         total={100}
                         label="extraction confidence"
                       />
-                      {!held &&
-                        !template &&
-                        (editField === f.label ? (
+                      {/* Held and template rows are editable — they are the rows that
+                          MOST need to be. The affordance used to be gated on
+                          `!held && !template`, so the two states the extractor could
+                          not resolve were the two a person could not fix, and the hold
+                          text promised a person would supply what was missing while
+                          offering them no way to do it. Where the machine stops is
+                          exactly where the human takes over. */}
+                      {editField === f.label ? (
                           <form
                             className="flex items-center gap-2"
                             onSubmit={(e) => {
@@ -264,17 +305,57 @@ export default function CandidateDetail() {
                               setEditField(null);
                             }}
                           >
-                            <Input
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              aria-label={`Corrected value for ${f.label}`}
-                              className="h-8 w-40 type-data"
-                              autoFocus
-                            />
-                            <Button type="submit" variant="outline" size="sm">
-                              Save
-                            </Button>
+                            {/* Some of these fields are ENTITIES, not text. A programme
+                                is one of the agency's partner programmes or it is not a
+                                programme — and a free-text box invites "Atelier
+                                collection", which becomes a second entity that matches
+                                nothing and quietly splits the directory this product
+                                exists to keep single. Typed fields get a list; the rest
+                                get a box. */}
+                            {entityOptions(f.label) ? (
+                              <Select
+                                value={editValue}
+                                onValueChange={(v) => {
+                                  setCorrected((m) => ({ ...m, [f.label]: v }));
+                                  setEditField(null);
+                                }}
+                              >
+                                <SelectTrigger size="sm" className="w-44" aria-label={`${f.label} value`}>
+                                  <SelectValue placeholder={`Choose ${f.label.toLowerCase()}…`} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {entityOptions(f.label)!.map((o) => (
+                                    <SelectItem key={o} value={o}>{o}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <>
+                                <Input
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  aria-label={`Corrected value for ${f.label}`}
+                                  className="h-8 w-40 type-data"
+                                  autoFocus
+                                />
+                                <Button type="submit" variant="outline" size="sm">
+                                  Save
+                                </Button>
+                              </>
+                            )}
                           </form>
+                        ) : held && !corrected[f.label] ? (
+                          /* A held row starts empty. Prefilling it with `f.value` would
+                             seed the box with the hold's own reason — "held — converted
+                             figure without source currency" — as though that were a
+                             first draft of the number. */
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { setEditField(f.label); setEditValue(""); }}
+                          >
+                            <Pencil className="size-3.5" aria-hidden /> Enter value
+                          </Button>
                         ) : (
                           <Button
                             variant="ghost"
@@ -288,9 +369,11 @@ export default function CandidateDetail() {
                           >
                             <Pencil className="size-3.5" aria-hidden />
                           </Button>
-                        ))}
-                      {!held &&
-                        !template &&
+                        )}
+                      {/* A keyed value is confirmable like any other. Leaving confirm
+                          gated on `!held` would have let a person supply the number and
+                          then not be able to sign it off. */}
+                      {(( !held && !template) || corrected[f.label]) &&
                         editField !== f.label &&
                         (fieldOk[f.label] || confirmedAlready ? (
                           <Chip tone="ok">

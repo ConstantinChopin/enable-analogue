@@ -567,6 +567,95 @@ export const connections = [
  */
 export const connectionsNeedingAttention = connections.filter((c) => c.state !== "ok");
 
+/* ── connecting a source ────────────────────────────────────────────────────────
+   What an agency is actually deciding when it connects a drive or a mailbox.
+
+   Note what the flow does NOT contain: a password field. Authorisation is a redirect
+   to the provider, and the whole point of that redirect is that the third-party
+   application never sees the credential. A connector that asked for the password in
+   its own form would be teaching an administrator to do the one thing every security
+   team tells them not to — and it would be an inaccurate drawing of OAuth besides.
+
+   The two steps after authorisation are the ones that matter here and are usually an
+   afterthought elsewhere: WHAT gets ingested, and WHO can read it afterwards. A drive
+   connected whole pulls in the managing partner's mailbox folder along with the rate
+   notes; a source connected agency-wide makes every document in it answerable to every
+   advisor. Both are decided once, at connection, by someone who understands the
+   consequence — which is why this surface is not an advisor's.                       */
+export interface Connector {
+  id: string;
+  name: string;
+  /** What the connection reads, in the provider's own words. */
+  subtitle: string;
+  posture: "MCP upstream" | "Self-hosted connector";
+  /** The provider's consent screen, summarised. Read-only in every case. */
+  grants: string[];
+  /** The unit an administrator picks from — folders, labels, spaces. */
+  scopeLabel: string;
+  scopeOptions: { id: string; label: string; detail: string; recommended?: boolean }[];
+  /** Shown on the review step as the thing the connection cannot do. */
+  cannot: string;
+}
+
+export const connectors: Connector[] = [
+  {
+    id: "gdrive",
+    name: "Google Drive",
+    subtitle: "Shared drives and folders",
+    posture: "MCP upstream",
+    grants: [
+      "See and download files in the folders you select",
+      "See the name and email of the account that authorised this",
+    ],
+    scopeLabel: "Folders to index",
+    scopeOptions: [
+      { id: "partner-terms", label: "Partner terms", detail: "142 documents · shared drive", recommended: true },
+      { id: "rate-notes", label: "Rate notes 2026", detail: "238 documents · shared drive", recommended: true },
+      { id: "contracts", label: "Contracts — signed", detail: "61 documents · restricted" },
+      { id: "everything", label: "Everything in My Drive", detail: "personal files included — not recommended" },
+    ],
+    cannot: "Edit, move or delete anything in Drive. The connection is read-only.",
+  },
+  {
+    id: "mailbox",
+    name: "Mailbox",
+    subtitle: "Microsoft 365 or Google Workspace",
+    posture: "Self-hosted connector",
+    grants: [
+      "Read messages and attachments in the labels you select",
+      "See the address of the mailbox that authorised this",
+    ],
+    scopeLabel: "Labels to index",
+    scopeOptions: [
+      { id: "rates", label: "Rates", detail: "rate notes from rep firms", recommended: true },
+      { id: "rep-firms", label: "Rep firms", detail: "account correspondence", recommended: true },
+      { id: "bookings", label: "Bookings", detail: "confirmations and amendments" },
+      { id: "inbox", label: "The whole inbox", detail: "personal correspondence included — not recommended" },
+    ],
+    cannot: "Send, reply to, or delete mail. The connection reads and never writes.",
+  },
+  {
+    id: "intranet",
+    name: "Agency intranet",
+    subtitle: "Published pages and policies",
+    posture: "Self-hosted connector",
+    grants: ["Read published pages in the spaces you select"],
+    scopeLabel: "Spaces to index",
+    scopeOptions: [
+      { id: "programmes", label: "Programmes", detail: "consortium and programme terms", recommended: true },
+      { id: "policies", label: "Desk policies", detail: "booking and service policy" },
+    ],
+    cannot: "Read draft or restricted pages, or publish anything.",
+  },
+];
+
+/** Who may read documents that arrive through a connection. Decided once, at connection. */
+export const connectorAudiences = [
+  { id: "agency", label: "Every advisor", detail: "Documents answer questions for the whole agency." },
+  { id: "desk", label: "Paris desk", detail: "Only advisors on the desk that owns this source." },
+  { id: "admins", label: "Administrators only", detail: "Indexed, but answerable to nobody until widened." },
+];
+
 export const connectionHealth = {
   sources: connections.length,
   needAttention: connectionsNeedingAttention.length,
