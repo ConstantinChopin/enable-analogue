@@ -649,12 +649,11 @@ export const connectors: Connector[] = [
   },
 ];
 
-/** Who may read documents that arrive through a connection. Decided once, at connection. */
-export const connectorAudiences = [
-  { id: "agency", label: "Every advisor", detail: "Documents answer questions for the whole agency." },
-  { id: "desk", label: "Paris desk", detail: "Only advisors on the desk that owns this source." },
-  { id: "admins", label: "Administrators only", detail: "Indexed, but answerable to nobody until widened." },
-];
+/* There is deliberately no audience list here. Documents that arrive through a
+   connection are closed — administrators only — and are opened one at a time in the
+   knowledge vault, where the access sheet records who opened what, to whom, and when.
+   A connection-level audience would have been a bulk share, and would have contradicted
+   the rule the publish queue states outright: every kind of record arrives closed. */
 
 export const connectionHealth = {
   sources: connections.length,

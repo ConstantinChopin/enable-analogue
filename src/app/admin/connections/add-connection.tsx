@@ -2,11 +2,14 @@
 /**
  * Adding a connection — the path an administrator actually walks.
  *
- * The two steps that matter here are the ones a generic OAuth wizard treats as an
- * afterthought: WHAT gets indexed, and WHO can read it once it is. Connecting a drive
- * whole pulls in the managing partner's folder along with the rate notes; connecting a
- * source agency-wide makes every document in it answerable to every advisor. Both are
- * decided once, at connection, by someone who understands the consequence.
+ * The step a generic OAuth wizard treats as an afterthought is the one that matters:
+ * WHAT gets indexed. A drive connected whole pulls in the managing partner's folder
+ * along with the rate notes, so an administrator picks folders and "Everything in My
+ * Drive" is marked as the bad idea it is.
+ *
+ * What this flow deliberately does NOT decide is who can read any of it. Connecting a
+ * source indexes it; sharing is a separate, per-document, logged act in the knowledge
+ * vault. See the note above STEPS.
  *
  * There is no password field anywhere in this flow, and that is not an omission. The
  * whole point of an authorisation redirect is that the third-party application never
@@ -16,7 +19,7 @@
  * belongs to the provider; this flow shows the handoff and the grant that comes back.
  */
 import { useState } from "react";
-import { connectors, connectorAudiences, type Connector } from "@/data/seed";
+import { connectors, type Connector } from "@/data/seed";
 import { Chip, DataList } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +30,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Check, ExternalLink } from "lucide-react";
 
-const STEPS = ["Source", "Authorise", "What to index", "Who can read it", "Review"] as const;
+/* There is no "who can read it" step, and its absence is the policy.
+   Connecting a source INDEXES it; it does not share anything. Everything arrives
+   closed — administrators only — and is opened one document at a time in the vault,
+   by a named person, on the record. An audience picker here would have been a bulk
+   share performed at the moment an administrator is thinking about folders and OAuth
+   scopes, which is exactly when nobody is thinking about who should read what. It
+   also contradicted the governance page a click away, which states that every kind of
+   record arrives closed and that opening one is an act somebody performs. */
+const STEPS = ["Source", "Authorise", "What to index", "Review"] as const;
 
 export function AddConnection({
   open, onOpenChange,
@@ -36,11 +47,10 @@ export function AddConnection({
   const [pick, setPick] = useState<Connector | null>(null);
   const [account, setAccount] = useState<string | null>(null);
   const [scopes, setScopes] = useState<string[]>([]);
-  const [audience, setAudience] = useState("desk");
   const [done, setDone] = useState(false);
 
   const reset = () => {
-    setStep(0); setPick(null); setAccount(null); setScopes([]); setAudience("desk"); setDone(false);
+    setStep(0); setPick(null); setAccount(null); setScopes([]); setDone(false);
   };
   const close = () => { onOpenChange(false); window.setTimeout(reset, 250); };
 
@@ -54,14 +64,13 @@ export function AddConnection({
     : true;
 
   const chosen = pick?.scopeOptions.filter((o) => scopes.includes(o.id)) ?? [];
-  const audienceRow = connectorAudiences.find((a) => a.id === audience)!;
 
   const summary = pick && account
     ? [
         { label: "Source", value: pick.name },
         { label: "Account", value: account },
         { label: "Indexing", value: chosen.map((c) => c.label).join(", ") },
-        { label: "Readable by", value: audienceRow.label },
+        { label: "Arrives as", value: "Closed — administrators only" },
         { label: "Posture", value: pick.posture },
       ]
     : [];
@@ -168,30 +177,21 @@ export function AddConnection({
                 </label>
               ))}
             </div>
-          ) : step === 3 ? (
-            <div className="space-y-[var(--space-3)]">
-              <p className="type-meta">
-                Documents from this source inherit this. It decides whose questions they are
-                allowed to answer, and it is easier to widen later than to take back.
-              </p>
-              <RadioGroup value={audience} onValueChange={setAudience} className="gap-3">
-                {connectorAudiences.map((a) => (
-                  <div key={a.id} className="flex items-start gap-3 rounded-lg border border-border p-3">
-                    <RadioGroupItem value={a.id} id={`aud-${a.id}`} className="mt-1" />
-                    <Label htmlFor={`aud-${a.id}`} className="flex flex-1 flex-col items-start gap-1 font-normal">
-                      <span className="type-data-strong">{a.label}</span>
-                      <span className="type-meta">{a.detail}</span>
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
-            </div>
           ) : pick ? (
             <div className="space-y-[var(--space-4)]">
               <DataList rows={summary} />
               <div className="rounded-[var(--radius-card)] border border-border p-[var(--space-3)]">
                 <div className="type-micro text-muted-foreground">This connection cannot</div>
                 <p className="mt-1 type-data">{pick.cannot}</p>
+              </div>
+              {/* Stated at the moment of connecting, because this is the moment an
+                  administrator assumes the opposite. */}
+              <div className="rounded-[var(--radius-card)] border border-border bg-subtle p-[var(--space-3)]">
+                <div className="type-micro text-muted-foreground">Connecting does not share anything</div>
+                <p className="mt-1 type-data">
+                  Documents arrive closed and answer nobody. Each one is opened in the knowledge
+                  vault, to a named audience, by a person — and the log records who.
+                </p>
               </div>
             </div>
           ) : null}
