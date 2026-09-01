@@ -618,8 +618,13 @@ export interface Conversation {
 export const conversations: Conversation[] = [
   { id: "leandre-rate", title: "Maison Léandre — Atelier rate", preview: "What is our commission, and does the rate include breakfast?", when: "Today 09:14", messages: 4, state: "conflict", needsCommission: true },
   { id: "third-night", title: "Third night free on suites", preview: "Does Maison Léandre still give a third night free?", when: "Today 08:31", messages: 2, state: "refusal" },
-  { id: "kaiseki", title: "Kaiseki near Gion", preview: "Counter seats for two, mid-October, walkable from the ryokan.", when: "Yesterday 17:02", messages: 6, state: "answered" },
-  { id: "patagonia-mobility", title: "Patagonia — mobility-friendly cabins", preview: "Which operators have step-free cabins on the fjord sailings?", when: "Yesterday 11:20", messages: 5, state: "answered" },
+  /* "Kaiseki near Gion" and "Patagonia — mobility-friendly cabins" were listed here to
+     make the history feel lived-in, but neither had a transcript, so both opened onto a
+     placeholder that answered the advisor with a note about the build. Every thread in
+     this list now opens onto a real exchange. A demo that lists more than it can show
+     is worse than a shorter one — and on the Ask screen specifically, whose argument is
+     that the assistant says only what it can support, scaffolding in the assistant's
+     own voice contradicts the thing being demonstrated. */
   { id: "spa-status", title: "Is the spa at Maison Léandre open?", preview: "Client asked directly. Checking before I answer.", when: "26 Aug", messages: 2, state: "answered" },
   { id: "rep-paris", title: "Who represents Maison Léandre?", preview: "Rep firm and the current Paris contact.", when: "24 Aug", messages: 2, state: "answered" },
 ];

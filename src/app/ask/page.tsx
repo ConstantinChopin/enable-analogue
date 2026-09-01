@@ -36,7 +36,7 @@ import {
   Plus, SendHorizontal, ArrowUpRight, X,
 } from "lucide-react";
 
-/** Threads reachable in this build: the six saved conversations plus two demo branches. */
+/** Threads reachable in this build: the four saved conversations plus two demo branches. */
 type ThreadId = Conversation["id"] | "stale" | "loading";
 
 const COMPOSER_PLACEHOLDER = "Ask about a rate, a property, a traveller…";
