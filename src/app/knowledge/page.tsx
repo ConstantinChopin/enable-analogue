@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { useDemo } from "@/lib/store";
 import { vaultDocs, vaultStats, connections, personName, type VaultDoc } from "@/data/seed";
 import { PageHeader, SplitPage } from "@/components/layouts";
-import { Absent, Chip, DataList, Section, NarrationNote, SchematicBadge } from "@/components/bits";
+import { Chip, DataList, Section, NarrationNote, SchematicBadge, StatusDot } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -21,7 +21,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import {
-  ArrowRight, Building2, FileText, HardDrive, History, Lock, Mail, Upload, Users2, Plug,
+  ArrowRight, Building2, FileText, HardDrive, History, Lock, Mail, Upload, Users2, Plug, Loader2,
 } from "lucide-react";
 
 const sourceIcon: Record<string, React.ElementType> = {
@@ -40,19 +40,27 @@ const tabSource: Record<string, string | null> = {
   Uploads: "Upload",
 };
 
+/* Every access value is a chip, including the one that is waiting.
+   "Processing" used to render as `Absent` — bare "— pending" text in a column of pills
+   — so the single row awaiting a decision was the one that looked like nothing. That
+   is also a misuse of the primitive: `Absent` is for a value that does not exist, and
+   "indexing" is a value that does. The tone branch below was unreachable for the same
+   reason, since the call site intercepted `processing` before it ever arrived. */
 function AccessChip({ access }: { access: string }) {
-  const icon =
-    access === "private" || access === "admin only" ? (
-      <Lock className="size-3" aria-hidden />
-    ) : access.startsWith("team") ? (
-      <Users2 className="size-3" aria-hidden />
-    ) : access === "agency" ? (
-      <Building2 className="size-3" aria-hidden />
-    ) : null;
+  const indexing = access === "processing";
+  const icon = indexing ? (
+    <Loader2 className="size-3 animate-spin" aria-hidden />
+  ) : access === "private" || access === "admin only" ? (
+    <Lock className="size-3" aria-hidden />
+  ) : access.startsWith("team") ? (
+    <Users2 className="size-3" aria-hidden />
+  ) : access === "agency" ? (
+    <Building2 className="size-3" aria-hidden />
+  ) : null;
   return (
-    <Chip tone={access === "processing" ? "warn" : "neutral"}>
+    <Chip tone={indexing ? "warn" : "neutral"}>
       {icon}
-      {access}
+      {indexing ? "indexing" : access}
     </Chip>
   );
 }
@@ -70,6 +78,7 @@ export default function KnowledgeVault() {
      agency gets built from. The flow itself lives under /admin, which only these two
      roles may enter. */
   const canConnect = s.role === "lead" || s.role === "ops";
+  const indexingCount = vaultDocs.filter((doc) => doc.access === "processing").length;
   const [tab, setTab] = useState<string>("All");
   const [selected, setSelected] = useState<string | null>("Atelier Collection terms.pdf");
   const [accessFor, setAccessFor] = useState<string | null>(null);
@@ -139,7 +148,7 @@ export default function KnowledgeVault() {
           <>
             {canConnect && (
               <Button asChild variant="outline" size="sm">
-                <Link href="/admin/connections">
+                <Link href="/admin/connections?add=1">
                   <Plug className="size-3.5" aria-hidden /> New connection
                 </Link>
               </Button>
@@ -204,42 +213,67 @@ export default function KnowledgeVault() {
     >
       {
           <div className="min-w-0">
-            {/* ── applied filters and connector state ── */}
-            {/* "Owner: anyone ×" is gone — it dressed the default state as an applied
-                filter you could remove, and removing it changed nothing. */}
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="ml-auto flex items-center gap-4 type-meta">
-                <span className="flex items-center gap-2">
-                  <span className="size-2 rounded-full bg-ok" aria-hidden /> drive · live
-                </span>
-                {/* The error count now goes somewhere: it filters to the source it counts. */}
-                <button
-                  type="button"
-                  onClick={() => setTab("Intranet")}
-                  className="flex cursor-pointer items-center gap-2 rounded-md px-1 transition-colors hover:bg-muted"
-                >
-                  <span className="size-2 rounded-full bg-crit" aria-hidden />
-                  <span className="tnum">3</span> intranet errors
-                </button>
-              </span>
-            </div>
+            {/* ── what needs a decision ──────────────────────────────────────────
+                The screen used to open on a statistic. 71% carrying a verified source
+                is a report — true, unactionable, and the largest thing on the page —
+                while the two items that actually wanted a person were the smallest
+                text in the corner. That is why the screen could not answer "what am I
+                meant to do here".
 
-            {/* The vault's one number, on the page it describes rather than pinned above
-                whichever document happened to be selected. */}
+                An administrator's job in the vault is to decide what the assistant is
+                allowed to answer from. So the decisions lead, each one a way in to the
+                thing it counts, and the statistic follows as the context it always
+                was. An advisor sees none of this: they cannot assign access or repair
+                a source, and a queue of other people's work is noise on the screen
+                where they came to find a document. */}
+            {canConnect && (
+              <Section className="mt-4" title="Needs you">
+                <ul className="divide-y divide-border">
+                  {indexingCount > 0 && (
+                    <li className="row-grid">
+                      <span className="row-primary">
+                        <StatusDot tone="warn" className="type-data">
+                          <span className="tnum">{indexingCount}</span>&nbsp;
+                          {indexingCount === 1 ? "document" : "documents"} indexing, no access set
+                        </StatusDot>
+                      </span>
+                      <span className="row-trailing">
+                        <Button variant="outline" size="sm" onClick={() => setTab("Uploads")}>
+                          Review
+                        </Button>
+                      </span>
+                    </li>
+                  )}
+                  <li className="row-grid">
+                    <span className="row-primary">
+                      <StatusDot tone="crit" className="type-data">
+                        <span className="tnum">3</span>&nbsp;intranet documents failing to sync
+                      </StatusDot>
+                    </span>
+                    <span className="row-trailing">
+                      <Button asChild variant="outline" size="sm">
+                        <Link href="/admin/connections">Open connections</Link>
+                      </Button>
+                    </span>
+                  </li>
+                </ul>
+              </Section>
+            )}
+
+            {/* Context, not a task — so it sits below the decisions and states its own
+                consequence rather than a bare percentage. */}
             <Section className="mt-4" title="Carrying a verified source">
               <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-                <span className="tnum type-data-strong">{vaultStats.verifiedSourcePct}%</span>
+                <span className="tnum type-figure">{vaultStats.verifiedSourcePct}%</span>
                 <span className="flex min-w-[180px] flex-1 flex-col gap-2">
-                  <Progress value={vaultStats.verifiedSourcePct} className="h-1" />
+                  <Progress tone="ok" value={vaultStats.verifiedSourcePct} className="h-1" />
                   <span className="flex flex-wrap items-center gap-x-4 type-meta">
-                    <span className="flex items-center gap-2">
-                      <span className="size-2 rounded-full bg-ok" aria-hidden /> verified ·{" "}
-                      <span className="tnum">{vaultStats.verified}</span>
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span className="size-2 rounded-full bg-muted-foreground/40" aria-hidden /> no
-                      source yet · <span className="tnum">{vaultStats.noSource}</span>
-                    </span>
+                    <StatusDot tone="ok">
+                      verified · <span className="tnum">{vaultStats.verified}</span>
+                    </StatusDot>
+                    <StatusDot tone="muted">
+                      no source yet · <span className="tnum">{vaultStats.noSource}</span>
+                    </StatusDot>
                   </span>
                 </span>
               </div>
@@ -307,27 +341,15 @@ export default function KnowledgeVault() {
                             {doc.name}
                           </span>
                         </span>
-                        <span className="row-meta flex items-center gap-2 type-meta">
-                          <span
-                            className={cn(
-                              "size-2 rounded-full",
-                              doc.state === "processing"
-                                ? "bg-warn"
-                                : doc.state === "archived"
-                                  ? "bg-muted-foreground/40"
-                                  : "bg-ok",
-                            )}
-                            aria-hidden
-                          />
-                          {/* The word "processing" used to fill both this column and the
-                              access column, so one state read as two different facts.
-                              Updated keeps its date; access says it is not yet assigned. */}
-                          {doc.updated}
-                        </span>
+                        {/* The date, and only the date. A status dot used to sit here
+                            carrying `doc.state` — unlabelled, beside an unrelated value,
+                            and green on twelve of fourteen rows. Worse, `state` and
+                            `access` both read "processing" for the same document, so one
+                            fact was drawn twice in two visual languages in two columns.
+                            It is one fact, and it belongs in the column that owns it. */}
+                        <span className="row-meta type-meta">{doc.updated}</span>
                         <span className="row-trailing">
-                          {doc.access === "processing"
-                            ? <Absent reason="pending" />
-                            : <AccessChip access={doc.access} />}
+                          <AccessChip access={doc.access} />
                         </span>
                       </button>
                     </li>

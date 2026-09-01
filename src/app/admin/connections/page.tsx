@@ -4,7 +4,8 @@
  * without a detail panel: every connector shows its last success, and a failed
  * source degrades answers visibly instead of silently.
  */
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { connectionHealth, connections } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
 import { Chip, Section, NarrationNote } from "@/components/bits";
@@ -32,8 +33,21 @@ function StateChip({ state }: { state: (typeof connections)[number]["state"] }) 
   );
 }
 
-export default function Connections() {
-  const [addOpen, setAddOpen] = useState(false);
+/* `?add=1` opens the new-connection flow on arrival, so a button labelled "New
+   connection" on another surface can start the flow rather than land on a list of the
+   ones that already exist. The flow keeps one owner: this page. The same pattern the
+   record uses for `?compose=notice`. */
+export default function ConnectionsPage() {
+  return (
+    <Suspense fallback={null}>
+      <Connections />
+    </Suspense>
+  );
+}
+
+function Connections() {
+  const wantsAdd = useSearchParams()?.get("add") === "1";
+  const [addOpen, setAddOpen] = useState(wantsAdd);
 
   const [reconnect, setReconnect] = useState<string | null>(null);
   const [reconnectSent, setReconnectSent] = useState(false);

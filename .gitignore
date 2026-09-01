@@ -51,3 +51,7 @@ public/records/_log.txt
 public/records/_gen.txt
 public/records/_gen-variants.txt
 public/_contact-sheet.html
+
+# eval screenshots are build output, not source
+evals/shots/
+evals/tier3-report.json

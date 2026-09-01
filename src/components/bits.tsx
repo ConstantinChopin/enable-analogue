@@ -148,6 +148,40 @@ export function Chip({ tone = "neutral", className, title, children }: { tone?: 
   return <span title={title} className={cn("inline-flex h-5 items-center gap-1 rounded-full border px-2 type-micro whitespace-nowrap", tones[tone], className)}>{children}</span>;
 }
 
+/* ── StatusDot ────────────────────────────────────────────────────────────────
+   A state, in a word, with a dot beside it. The label is a REQUIRED child, which is
+   the whole point of the component: you cannot render a naked coloured circle through
+   it, so the rule "never colour alone" is enforced by the type rather than by everyone
+   remembering it.
+
+   Thirteen call sites had hand-rolled this markup at two different diameters, each
+   choosing its own colour semantics locally. Most kept the word; one did not, and that
+   one shipped — a column of dots beside a date, green on twelve of fourteen rows,
+   telling the reader nothing and breaking pattern exactly twice.
+
+   Colour never carries the meaning on its own here. It is redundant with the word,
+   which is also what makes the whole set legible to anyone who cannot separate the
+   green from the amber.                                                              */
+export function StatusDot({
+  tone, children, className,
+}: {
+  tone: "ok" | "warn" | "crit" | "muted" | "primary";
+  /** Required. A dot with no word is not a status, it is decoration. */
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const color = {
+    ok: "bg-ok", warn: "bg-warn", crit: "bg-crit",
+    primary: "bg-primary", muted: "border border-muted-foreground/60",
+  }[tone];
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap", className)}>
+      <span className={cn("size-2 shrink-0 rounded-full", color)} aria-hidden />
+      {children}
+    </span>
+  );
+}
+
 /* ── EvidenceDot: state in words + dot, never color alone ── */
 export function EvidenceDot({ kind, label }: { kind: "verified" | "stale" | "disagree" | "incentive" | "unconfirmed"; label: string }) {
   /* `unconfirmed` is the absence of a trust state rather than one of them — hollow, not filled. */
