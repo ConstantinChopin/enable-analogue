@@ -1,0 +1,36 @@
+{
+  "_meta": {
+    "surface": "search results (list + map)",
+    "url": "https://www.airbnb.com/s/Lisbon--Portugal/homes?checkin=2026-11-13&checkout=2026-11-15&adults=2",
+    "viewport": "1440x900 @2x (card internals measured at 1024 single-column; geometry re-measured at 1440)",
+    "captured": "2026-09-10",
+    "method": "computed styles + getBoundingClientRect; logged out",
+    "confidence": "computed (exact) unless noted"
+  },
+  "layout_1440": {
+    "split": {"list": {"x": 48, "w": 630, "note": "2 columns of 303 + 24 gap; list column padding-left 48"}, "map": {"x": 727, "w": 650, "sticky_top": 192, "h": 684}},
+    "header": {"h": 152, "position": "sticky", "shadow": "none", "rows": ["nav 80 with search pill 48 (segments: 40px outer radius, 4px inner)", "filter row: chips 34h at y=84..100"]},
+    "results_h1": {"font": "14/20 400", "y": 176, "text": "Over 1,000 homes in Lisbon"},
+    "grid": {"columns": 2, "card_w": 303, "card_h": 377, "column_gap": 24, "row_gap": 40, "first_y": 224}
+  },
+  "card": {
+    "image": {"w": 303, "h": 228, "ratio": "4:3 (1.329)", "radius": "20px on wrapper", "object_fit": "cover", "at_1024_single_col": {"w": 440, "h": 330}},
+    "text_block": {"padding_top": "≈12 (estimate: title y 547 vs image bottom 538 at 1024)", "title": {"font": "15/19 500", "color": "#222"}, "meta_lines": {"font": "15/19 400", "color": "#6C6C6C", "separator": "· in rgb(193,193,193)"}, "price": {"font": "15 500", "pattern": "€125 total (underlined, opens breakdown)"}, "rating": {"font": "15/19 400", "pattern": "★ 4.79 (135)", "aligned_right_of_title": true}},
+    "overlays": {"superhost_pill": {"h": 28, "radius": 40, "bg": "rgba(96,96,96,0.6)", "border": "1px rgba(255,255,255,0.16)", "font": "14/18 500 #fff", "padding": "4px 10px", "gap": 6, "inset": "12 from image edge (44-32)"}, "wishlist": {"size": 32, "radius": "50%", "inset_right": 12}, "carousel_arrows": {"size": 32, "bg": "rgba(255,255,255,0.9)", "border": "1px rgba(0,0,0,0.08)", "shadow": "0 2px 4px rgba(0,0,0,0.18)"}},
+    "tags_row": {"examples": ["Pay €0 today", "Free cancellation"], "font": "11/15 500 #6C6C6C", "padding": "2.5px 4px", "radius": 6, "bg": "rgba(242,242,242,0.75)", "h": 20, "gap": 4},
+    "states_seen": ["default", "guest favourite label variant", "superhost overlay"], "states_not_yet_measured": ["hover (image zoom / title underline)", "focus"]
+  },
+  "filter_chip": {"h": 34, "radius": 24, "border": "1px #DDDDDD", "bg": "#fff", "font": "12/16 400 #222", "padding": "8px 12px", "gap_between": 8, "leading_chip": "Filters with icon, same geometry"},
+  "map_pin": {"size": 40, "radius": "50%", "shadow": "0 0 0 1px rgba(0,0,0,0.02), 0 8px 24px rgba(0,0,0,0.10)", "note": "price pins not captured as text; the 40px circle is the cluster/marker control"},
+  "type_census_main_1024": [
+    ["15/19 400 #6C6C6C (meta)", 195],
+    ["15 500 #222 (price)", 54],
+    ["15/19 400 #222", 42],
+    ["11/15 500 #6C6C6C (tags)", 34],
+    ["15/19 400 rgb(193,193,193) (separators)", 31],
+    ["15/19 500 #222 (titles)", 18],
+    ["14/18 500 #fff (overlay pills)", 6],
+    ["20/24 600 -0.18px #222 (one heading)", 1],
+    ["11/15 500 rgb(3,128,38) (green tag — one)", 1]
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "_meta": {
+    "surface": "listing detail at mobile width",
+    "url": "https://www.airbnb.com/rooms/1371082442716798709",
+    "viewport": "375x812 (mobile emulation, touch UA)",
+    "captured": "2026-09-10",
+    "page_height": 7781,
+    "confidence": "computed (exact)"
+  },
+  "layout": {
+    "gutter": 24,
+    "content_w": 327,
+    "top_nav": {"id": "NAV_MOBILE", "h": 73, "note": "back / share / save over the hero; hero starts at y=73"},
+    "hero": {"w": 375, "h": 357, "image_ratio": "≈1.05 (near-square), full-bleed, radius 0", "note": "single image carousel with a counter; the 5-tile grid collapses to one full-bleed tile"},
+    "bottom_bar": {"position": "fixed", "y": 715, "h": 97, "contents": "price + dates on the left, Reserve pill (h 48, w 173, radius 999, 14/24 padding, 16/20 500 white) on the right", "note": "the Reserve action moves from the sticky sidebar card to a fixed bottom bar; the 'Rare find' line rides in the same bar"},
+    "bottom_tab_nav": {"position": "fixed", "y": 872, "h": 125, "border_top": "1px #EBEBEB", "items": ["Explore", "Wishlists", "Log in"], "item_h": 44, "font": "14/20 400", "note": "reported below the viewport (y 872 > 812) — hidden behind the bottom bar on this page; on search it is the visible tab bar"}
+  },
+  "type_at_mobile": {
+    "page_title": "26/30 500 — same as desktop, wraps to 2–3 lines",
+    "overview_h2": "14/18 400 #6C6C6C — the 22px desktop overview title DEMOTES to meta at mobile",
+    "section_title": "22/26 600 -0.44px — same size as desktop but weight 600 instead of 500",
+    "quiet_h2": "16/20 400 (Listing highlights, Things to know) — unchanged",
+    "reviews_title": "26/30 500 -0.52px — unchanged",
+    "secondary_button": "16/20 500, h 48, 14/24 padding, radius 12, #F2F2F2 — unchanged but full-width (327)",
+    "text_link_show_more": "16/20 500, no fill, radius 4 — inline variant used inside Meet your host"
+  },
+  "section_rhythm_mobile": {
+    "note": "pt/pb = section padding at 375. Desktop 48/48 sections become 32/24; desktop 32/32 become 24/24 or 20/20. Bottom padding is smaller than top: the section title carries its own space above, the content ends tighter.",
+    "sections": [
+      {"id": "TITLE", "y": 406, "pt": 24, "pb": 16},
+      {"id": "OVERVIEW", "y": 506, "pt": 0, "pb": 24},
+      {"id": "HOST_OVERVIEW", "y": 607, "pt": 20, "pb": 20},
+      {"id": "HIGHLIGHTS", "y": 690, "pt": 24, "pb": 24},
+      {"id": "UGC_TRANSLATION", "y": 945, "pt": 32, "pb": 0},
+      {"id": "DESCRIPTION", "y": 1045, "pt": 32, "pb": 32},
+      {"id": "SLEEPING_ARRANGEMENT", "y": 1350, "pt": 32, "pb": 24},
+      {"id": "AMENITIES", "y": 1619, "pt": 32, "pb": 24},
+      {"id": "LOCATION", "y": 2110, "pt": 32, "pb": 24, "note": "moves UP above the calendar and reviews at mobile"},
+      {"id": "AVAILABILITY_CALENDAR", "y": 2809, "pt": 24, "pb": 24},
+      {"id": "REVIEWS", "y": 3262, "pt": 32, "pb": 32, "note": "reviews become a horizontal carousel (h 563 vs 1205 desktop)"},
+      {"id": "MEET_YOUR_HOST", "y": 3826, "pt": 0, "pb": 0, "h": 1219, "note": "stacks: identity card, then details"},
+      {"id": "HOST_LEGAL", "y": 4947},
+      {"id": "POLICIES", "y": 5046, "pt": 24, "pb": 24, "note": "three columns become an accordion-like stack"},
+      {"id": "REPORT_TO_AIRBNB", "y": 5439, "pt": 24, "pb": 24},
+      {"id": "SIMILAR_LISTINGS", "y": 5508, "pt": 32, "pb": 40},
+      {"id": "SEO_LINKS", "y": 5901, "pt": 32, "pb": 32, "full_bleed": true}
+    ],
+    "order_change": "desktop: …amenities → calendar → [sidebar] → reviews → location → host; mobile: …amenities → location → calendar → reviews → host. Location is promoted on the phone."
+  },
+  "what_disappears_or_moves": ["the sticky booking card (→ fixed bottom bar)", "Share/Save text buttons (→ icon buttons over the hero)", "the 2-column amenities list (→ 1 column)", "the reviews 2×3 grid (→ carousel)", "the 3-column policies (→ stack)", "hero grid radius 12 (→ 0, full bleed)"]
+}

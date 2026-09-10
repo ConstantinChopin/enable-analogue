@@ -1,0 +1,94 @@
+{
+  "_meta": {
+    "surface": "listing detail, full page (all lazy sections loaded)",
+    "url": "https://www.airbnb.com/rooms/1371082442716798709",
+    "viewport": "1440x900 @2x",
+    "captured": "2026-09-10",
+    "method": "computed styles + getBoundingClientRect; logged out",
+    "page_height": 7324,
+    "confidence": "computed (exact) unless noted"
+  },
+  "section_order_and_rhythm": {
+    "note": "y = top of section box, pt/pb = section padding. Sections are separated by a 1px #DDDDDD rule at the section's own width (653 in the main column, 1120 full-width). The rule sits between sections, not inside them.",
+    "main_column_653": [
+      {"id": "TITLE", "y": 96, "h": 54, "pt": 24, "pb": 0, "heading": "26/30 500"},
+      {"id": "HERO", "y": 150, "h": 500, "pt": 24, "pb": 0},
+      {"id": "OVERVIEW", "y": 650, "h": 142, "pt": 32, "pb": 32, "heading": "22/26 500 -0.44px", "sub": "16/20 400 (beds · baths), rating row"},
+      {"id": "GUEST_FAVORITE_BANNER", "y": 792, "pb": 12, "note": "trust banner (laurel · reason · rating · reviews); rendered as a bordered row inside OVERVIEW in DOM"},
+      {"id": "HOST_OVERVIEW", "y": 805, "h": 90, "pt": 24, "pb": 24, "texts": ["Hosted by Eduardo · 16/20 500", "meta · 14/18 400 #6C6C6C"]},
+      {"id": "HIGHLIGHTS", "y": 896, "h": 238, "pt": 32, "pb": 32, "heading": "16/20 400 (NB: a quiet h2, not the 22px section title)", "rows": {"count": 3, "row_h": 42, "title": "14/20 500 #222", "sub": "14/20 400 #6C6C6C", "icon": "24 (estimate from screenshot)", "pattern": "icon | title / one-line reason"}},
+      {"id": "UGC_TRANSLATION", "y": 1135, "h": 82, "pt": 32, "pb": 0},
+      {"id": "DESCRIPTION", "y": 1217, "h": 320, "pt": 32, "pb": 48, "body": "16/24 400 #222 (the only 1.5 leading on the page — reading text)", "show_more": {"font": "16/20 500", "h": 48, "padding": "14px 24px", "radius": 12, "bg": "#F2F2F2", "note": "the secondary button: grey fill, no border, 12px radius"}},
+      {"id": "SLEEPING_ARRANGEMENT", "y": 1538, "h": 416, "pt": 48, "pb": 48, "heading": "22/26 500 -0.44px", "card_title": "16/20 500"},
+      {"id": "AMENITIES", "y": 1955, "h": 434, "pt": 48, "pb": 48, "heading": "22/26 500 -0.44px", "heading_to_first_row": 26, "row": {"h": 48, "font": "16/20 400 #222", "icon": 24, "pb": 24, "columns": 2, "note": "two-column list, 5 rows shown, then Show all 30 amenities"}, "show_all": {"font": "16/20 500", "h": 48, "padding": "14px 24px", "radius": 12, "bg": "#F2F2F2"}},
+      {"id": "AVAILABILITY_CALENDAR", "y": 2390, "h": 483, "pt": 48, "pb": 48, "heading": "22/26 500 -0.44px"}
+    ],
+    "sidebar_372": [
+      {"id": "BOOK_IT_SIDEBAR", "x": 899, "y": 682, "h": 391, "card": {"radius": 12, "border": "1px rgba(0,0,0,0.04)", "shadow": "0 6px 16px rgba(0,0,0,0.12)", "bg": "#fff", "note": "measured card is the 52h 'Rare find' row; the booking card shares the treatment (screenshot). Sticky offset not resolved by script (position reads static) — estimate top ≈ 80 (header height)"}},
+      {"id": "REPORT_TO_AIRBNB", "y": 1097, "h": 18, "font": "14/18 400 underlined link, centred"}
+    ],
+    "full_width_1120": [
+      {"id": "REVIEWS", "y": 2874, "h": 1205, "pt": 48, "pb": 48, "heading": "26/30 500 -0.52px (rating number + count as the title)", "sub_row": "How reviews work · 14/18 400 #6C6C6C, 9px below heading", "rating_bars": {"label": "10/12 400 #6C6C6C", "category_h3": "12/16 500", "overall": "16/20 400"}, "review_card": {"name": "14/18 500", "avatar": 20, "body": "16/24 400 (estimate)", "layout": "2 columns × 3 rows of review cards (screenshot)"}, "show_all": {"font": "16/20 500", "h": 48, "padding": "14px 24px", "radius": 12, "bg": "#F2F2F2"}},
+      {"id": "LOCATION", "y": 4080, "h": 802, "pt": 48, "pb": 48, "heading": "22/26 500 -0.44px", "map_h": "≈480 (estimate)", "place_name": "16/20 500"},
+      {"id": "MEET_YOUR_HOST", "y": 4883, "h": 754, "pt": 40, "pb": 40, "heading": "22/26 500 -1%", "host_card": {"w": 395, "h": 212, "radius": 24, "padding": "24px 16px", "gap": 16, "shadow": "0 0 0 1px rgba(0,0,0,0.02), 0 8px 24px rgba(0,0,0,0.10)", "bg": "#fff", "note": "the one card with a 24px radius and the big soft shadow — an identity card, distinct from the 12px booking card"}, "meta": "12/16 400 #6C6C6C (Superhost)"},
+      {"id": "HOST_LEGAL_DETAILS", "y": 5298, "x": 612, "w": 661},
+      {"id": "POLICIES", "y": 5638, "h": 308, "pt": 48, "pb": 48, "heading": "16/20 400 ('Things to know' — quiet h2 again)", "columns": 3, "column_title": "14/18 500 (Cancellation policy / House rules / Safety)", "column_body": "14/18 400"},
+      {"id": "SIMILAR_LISTINGS", "y": 5947, "h": 408, "pt": 32, "pb": 40, "heading": "22/26 500"},
+      {"id": "SEO_LINKS", "y": 6356, "w": 1425, "pt": 48, "pb": 48, "note": "breaks the container: full-bleed grey"}
+    ]
+  },
+  "spacing_scale_observed": {
+    "section_padding": [24, 32, 40, 48],
+    "section_padding_rule": "content-column sections above the fold use 32/32; below-fold sections use 48/48; Meet your host 40/40; carousels 32 top / 40 bottom",
+    "row_heights": [42, 48],
+    "hero_gap": 8,
+    "card_padding": [16, 24],
+    "button_padding": ["8/8 (text)", "8/16 (small)", "14/24 (medium+primary)"],
+    "heading_to_content": [9, 19, 26]
+  },
+  "type_scale_census_main": [
+    ["14/18 400 #6C6C6C", 66, "meta"],
+    ["14/18 500 #222", 66, "label / row title"],
+    ["12/16 400 #6C6C6C", 33, "small meta"],
+    ["16/20 400 #222", 21, "list row / body-short"],
+    ["12/16 500 #222", 20, "small label"],
+    ["16/20 500 #222", 11, "card title / subsection"],
+    ["10/12 400 #6C6C6C", 10, "micro (bar labels)"],
+    ["14/18 400 #8C8C8C", 10, "placeholder / tertiary"],
+    ["14/18 400 #222", 9],
+    ["14/20 500 #222", 8, "highlight title"],
+    ["14/18 600 #222", 8, "emphasis label"],
+    ["22/26 500 -0.44px #222", 7, "section title"],
+    ["16/22 500 #222", 5],
+    ["16/24 400 #222", 5, "reading body (description, reviews)"],
+    ["16/24 500 #222", 4],
+    ["22 500 #222", 3, "price"],
+    ["10/12 700 #222", 3, "input micro caps"],
+    ["26/30 600 -0.52px #222", 3, "reviews rating title"],
+    ["22/26 600 -0.44px #222", 3],
+    ["26/30 500 #222", 1, "page title"]
+  ],
+  "type_scale_derived": {
+    "sizes": [10, 12, 14, 15, 16, 22, 26],
+    "leading": {"10": 12, "12": 16, "14": 18, "14-highlight": 20, "15": 19, "16": 20, "16-reading": 24, "22": 26, "26": 30},
+    "leading_ratio": "≈1.25–1.29 for UI text; 1.5 only for reading text (description, reviews)",
+    "weights": [400, 500, 600, 700],
+    "tracking": "negative only at 22 (−0.44 = −2%) and 26 (−0.52 = −2%); none below",
+    "emphasis_rule": "weight 500 at the same size, never size, for row titles; colour #6C6C6C for meta at the same size"
+  },
+  "colour_census_main": {
+    "backgrounds": [["#FFFFFF", 125], ["#DDDDDD (rules / bars)", 20], ["#F2F2F2 (secondary buttons, icon buttons)", 9], ["#F7F7F7", 6], ["rgba(34,34,34,0.10)", 5], ["#222222 (primary fills)", 5], ["#EBEBEB", 1]],
+    "text": ["#222222 primary", "#6C6C6C secondary", "#8C8C8C tertiary/placeholder", "#000 rare", "#FFF on fills"],
+    "strokes": ["1px #DDDDDD section rule (653w ×6, 1120w ×5)", "1px #8C8C8C input stroke (324w ×4)", "1px rgba(0,0,0,0.04) card hairline (372w ×2)", "1px #222 selected/pressed outline (42w ×4)"],
+    "brand": "#FF385C rausch; used only on the search button, wishlist heart, and primary CTA gradient — nowhere in the content layer"
+  },
+  "radius_census_main": [["100% / 50% (avatars, icon buttons)", 147], ["12px (cards, medium buttons)", 24], ["8px (small buttons, text-button hover)", 13], ["4px (segments, inputs)", 13], ["16px (image tiles)", 11], ["24px (host identity card)", 1], ["20px (search card image)", "from search"]],
+  "shadow_census_main": [["0 4px 20px rgba(0,0,0,0.07)", 10, "soft resting card (sleeping-arrangement tiles)"], ["0 6px 16px rgba(0,0,0,0.12)", 2, "booking card"], ["0 0 0 1px rgba(0,0,0,0.02), 0 8px 24px rgba(0,0,0,0.10)", 1, "host card / map marker"], ["0 2px 8px rgba(0,0,0,0.16)", 1, "floating control"], ["0 1px 0 rgba(0,0,0,0.10)", 1, "sticky header hairline"]],
+  "buttons_derived": {
+    "primary": {"h": 48, "radius": "999 (pill) on Reserve", "padding": "14px 24px", "font": "16/20 500 #fff", "fill": "brand gradient"},
+    "secondary": {"h": 48, "radius": 12, "padding": "14px 24px", "font": "16/20 500 #222", "fill": "#F2F2F2", "border": "none", "examples": ["Show more", "Show all 30 amenities", "Show all 76 reviews"]},
+    "small_secondary": {"h": 32, "radius": 8, "padding": "8px 16px", "font": "12/16 500", "fill": "#F2F2F2", "border": "1px #222", "example": "Show all photos"},
+    "text": {"h": 34, "radius": 8, "padding": 8, "font": "14/18 500 underlined", "examples": ["Share", "Save", "Report this listing", "Show price breakdown"]},
+    "icon": {"size": [32, 40], "radius": "50%", "fill": "#F2F2F2 or rgba(255,255,255,0.9) over imagery"}
+  }
+}

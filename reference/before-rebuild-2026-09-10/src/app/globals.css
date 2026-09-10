@@ -1,0 +1,446 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════════
+   Enable — design language
+   Tech humanist. Two voices: Inter for the machine, Newsreader for the
+   person. Flat by decision (Apple's own rule: no glass in the content
+   layer, and this product is almost entirely content layer).
+
+   Three token tiers, the tier written into the name:
+     ref-*   primitives. Never referenced by a component.
+     sys-*   semantic aliases. What components consume.
+     comp-*  component tokens. Never leave their component.
+   Precedence: alias by default; primitives only where no alias exists.
+   Name for use, never for value.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── ref: primitives ─────────────────────────────────────────────
+     Warm throughout. There is no neutral grey in this product; every
+     neutral carries a warm hue bias so the interface reads warm
+     continuously rather than at a few accent points. */
+  --ref-paper-00: #ffffff;
+  --ref-paper-05: #fdfcfa;
+  --ref-paper-10: #f7f5f2;
+  --ref-paper-20: #efebe6;
+  --ref-paper-30: #e7e3de;
+  --ref-clay-40:  #b8b0a7;
+  --ref-clay-60:  #8a827a;
+  --ref-clay-75:  #57514b;
+  --ref-ink-90:   #2a2320;
+  --ref-ink-95:   #1c1917;
+
+  /* earth semantics — the trust states leave the primary-colour register */
+  --ref-moss:        #4c6a44;
+  --ref-moss-soft:   #edf1ea;
+  --ref-ochre:       #8a6212;
+  --ref-ochre-soft:  #f7f0df;
+  --ref-claret:      #8f3a34;
+  --ref-claret-soft: #f6eae8;
+
+  /* ── sys: backgrounds — three levels, Apple's hierarchy ───────── */
+  --sys-bg-base:    var(--ref-paper-10);
+  --sys-bg-raised:  var(--ref-paper-05);
+  --sys-bg-overlay: var(--ref-paper-00);
+  --sys-bg-sunken:  var(--ref-paper-20);
+
+  /* ── sys: labels — four levels, Apple's hierarchy ──────────────
+     Tertiary sits at 3.7:1 and is restricted to non-essential text. */
+  --sys-label-primary:    var(--ref-ink-95);
+  --sys-label-secondary:  var(--ref-clay-75);
+  --sys-label-tertiary:   var(--ref-clay-60);
+  --sys-label-quaternary: var(--ref-clay-40);
+
+  /* ── sys: strokes — two weights, no more ───────────────────────
+     The frame separates the application from the page; the divider
+     separates content from content. */
+  --sys-stroke-frame:   rgba(28, 25, 23, 0.16);
+  --sys-stroke-divider: var(--ref-paper-30);
+  --sys-stroke-subtle:  var(--ref-paper-20);
+
+  /* ── sys: accent — ink. Emphasis is fill and weight, not hue. ── */
+  --sys-accent:       var(--ref-ink-90);
+  --sys-accent-hover: #3a322d;
+  --sys-accent-on:    var(--ref-paper-05);
+  --sys-accent-soft:  var(--ref-paper-20);
+
+  /* ── sys: trust states — the only real chroma in the product ─── */
+  --sys-ok:          var(--ref-moss);
+  --sys-ok-soft:     var(--ref-moss-soft);
+  --sys-warn:        var(--ref-ochre);
+  --sys-warn-soft:   var(--ref-ochre-soft);
+  --sys-crit:        var(--ref-claret);
+  --sys-crit-soft:   var(--ref-claret-soft);
+
+  --sys-focus: var(--ref-ink-90);
+
+  /* ── sys: geometry ───────────────────────────────────────────────
+     Radii carry meaning, not just softness:
+       control — anything you press or type into
+       card    — anything that contains other things
+       panel   — the application frame, once
+       pill    — status only. A pill is never an action.               */
+  --radius: 10px;
+  --radius-panel: 12px;
+  --radius-card: 10px;
+  --radius-control: 6px;
+
+  --frame-inset: 12px;
+  --frame-stroke: var(--sys-stroke-frame);
+  --panel-pad: 32px;
+
+  /* ── sys: control geometry ───────────────────────────────────────
+     Previously absent, which is why controls rendered at 23 · 26 · 29 ·
+     34 · 36 · 44px — not six decisions but zero decisions, six times.
+
+     Two sizes, both derived from the 36px row module so a control
+     dropped into a row does not change the row's height. 44px belongs
+     to the dock alone, where the element is a touch target rather than
+     a control.
+
+     Rule: controls OF THE SAME CLASS on one line take the same size —
+     a filter row is uniformly sm, an action row uniformly md. Chips are
+     exempt: a chip is a status carrier that may take an affordance, and
+     forcing it to 28px would make every filter row heavier.            */
+  --control-h-sm: 28px;
+  --control-h-md: 36px;
+  --control-px-sm: 10px;
+  --control-px-md: 12px;
+
+  /* ── sys: icon sizes ─────────────────────────────────────────────
+     Bound to type roles, and tuned by eye rather than by matching px:
+     a 13px icon beside 13px text reads undersized, so `md` is 14.
+       sm 12 ↔ type-micro     inside chips and micro labels
+       md 14 ↔ type-data      inline with text, inside controls
+       lg 16 ↔ severity only  where the icon IS the information        */
+  --icon-sm: 12px;
+  --icon-md: 14px;
+  --icon-lg: 16px;
+
+  /* ── sys: spacing ────────────────────────────────────────────────
+     A 4px base. Numeric on purpose: semantic spacing names are a trap,
+     because one value serves many functions.
+
+     The rule that does the work: padding INSIDE a container is one step
+     smaller than the gap BETWEEN containers — 16 inside, 24 between.
+     That relationship is what makes grouping legible without borders.  */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* shadcn compatibility — mapped onto the semantic tier */
+  --background: var(--sys-bg-raised);
+  --foreground: var(--sys-label-primary);
+  --sidebar: var(--sys-bg-base);
+  --card: var(--sys-bg-raised);
+  --card-foreground: var(--sys-label-primary);
+  --popover: var(--sys-bg-overlay);
+  --popover-foreground: var(--sys-label-primary);
+  --muted: var(--ref-paper-20);
+  --muted-foreground: var(--sys-label-secondary);
+  --subtle: var(--sys-bg-base);
+  --border: var(--sys-stroke-divider);
+  --input: var(--sys-stroke-divider);
+  --primary: var(--sys-accent);
+  --primary-foreground: var(--sys-accent-on);
+  --primary-soft: var(--sys-accent-soft);
+  --secondary: var(--ref-paper-20);
+  --secondary-foreground: var(--sys-label-primary);
+  --accent: var(--ref-paper-20);
+  --accent-foreground: var(--sys-label-primary);
+  --destructive: var(--sys-crit);
+  --destructive-foreground: var(--ref-paper-05);
+  --ok: var(--sys-ok);
+  --ok-soft: var(--sys-ok-soft);
+  --warn: var(--sys-warn);
+  --warn-soft: var(--sys-warn-soft);
+  --crit: var(--sys-crit);
+  --crit-soft: var(--sys-crit-soft);
+  --ring: var(--sys-focus);
+}
+
+@media (max-width: 640px) {
+  :root { --frame-inset: 8px; --panel-pad: 16px; --radius-panel: 10px; }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-sidebar: var(--sidebar);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle: var(--subtle);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-crit: var(--crit);
+  --color-crit-soft: var(--crit-soft);
+  --color-ring: var(--ring);
+  --radius-sm: 4px;
+  --radius-md: var(--radius-control);
+  --radius-lg: var(--radius-card);
+  --radius-xl: var(--radius-panel);
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--font-mono-stack), ui-monospace, monospace;
+
+  /* Optical weight stops, not mechanical ones. At 11–13px the 500/600 pair
+     reads as either invisible or heavy; 510/590 is the usable contrast.
+     Re-pointed here so every `font-medium` / `font-semibold` in the app
+     inherits the rule rather than each call site being corrected. */
+  --font-weight-medium: 510;
+  --font-weight-semibold: 590;
+  --font-weight-bold: 680;
+}
+
+/* `body` is the data role, not the browser's 16px. Anything that omits a
+   type class now degrades to a size the system contains, instead of
+   failing silently into one it does not. */
+body {
+  background: var(--sys-bg-base);
+  color: var(--sys-label-primary);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 16px;
+  font-feature-settings: "cv11";
+}
+
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* `<b>` and `<strong>` default to 700 — a weight the system does not declare, and one
+   that reads heavy at 13px. Emphasis inside running text is the same stop as the
+   data-strong role, so inline emphasis and a row's subject agree. */
+b, strong { font-weight: 590; }
+
+*:focus-visible { outline: 2px solid var(--sys-focus); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+/* ═══ Type roles ══════════════════════════════════════════════════
+   Composite tokens, not sizes. Each bundles family, size, weight,
+   leading and tracking, so the sans/serif split is carried by the ROLE
+   — a table cell cannot be set in serif by accident.
+
+   Data sizes and leading follow Apple's macOS table, not the iOS one:
+   body is 13/16, a ratio of 1.23 rather than the web's habitual 1.5.
+   That is what buys density honestly — the rows tighten because the
+   type is set correctly, not because the padding was squeezed.
+
+   Emphasis is weight before size or colour. Apple's macOS Headline is
+   13pt Bold against 13pt Regular Body: identical size, identical
+   leading. Weight stops are optical (510/590) rather than mechanical
+   (500/600), which at 11–13px read as invisible or heavy.
+
+   The serif never appears below 15px.
+   ═══════════════════════════════════════════════════════════════════ */
+@layer components {
+  /* ── the machine ────────────────────────────────────────────────
+     `type-data` is the default: `body` is set to it, and every control
+     inherits it. A rendered sans size that is not a role below is a bug. */
+  .type-data        { font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 400; }
+  .type-data-strong { font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 590; }
+  .type-meta        { font-family: var(--font-sans); font-size: 12px; line-height: 15px; font-weight: 400; color: var(--sys-label-secondary); }
+  .type-micro       { font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 510; letter-spacing: 0.01em; }
+  /* `--font-mono-stack` is the Next font variable set on `body`. `--font-mono` is
+     declared in `@theme inline`, which Tailwind inlines into utilities rather than
+     emitting as a custom property — so referencing it here silently yields nothing
+     and the text falls back to the sans. `--font-sans` and `--font-serif` are real
+     because Next sets those two names directly. */
+  .type-code        { font-family: var(--font-mono-stack), ui-monospace, monospace; font-size: 11px; line-height: 14px; font-weight: 510; }
+
+  /* A summary figure — a total, a score, the number a card is about. One step above
+     the row values beneath it, because `EUR 12,532` (the total) and `EUR 2,240` (one
+     commission) were both 13px and separated only by weight, so a card's headline did
+     not read as a headline. Deliberately still sans and still tabular: it is machine
+     output, not a title, and 17/20 keeps it inside the data rhythm rather than
+     competing with the serif page name. */
+  .type-figure      { font-family: var(--font-sans); font-size: 17px; line-height: 20px; font-weight: 510; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+  /* A heading that OWNS what follows it — the rung between the page's name and its
+     data. The scale ran 24px serif, then nothing until 13px, so a section heading and
+     the field values beneath it were the same size and differed only in weight. A
+     border can enclose things at that ratio but it cannot subordinate them: the card
+     said "these are in a box", never "this layer owns these fields". At 15/590 against
+     13/400 the heading reads as a parent without a box being needed at all, which is
+     what lets the record become a document instead of a stack of tiles. */
+  .type-section     { font-family: var(--font-sans); font-size: 15px; line-height: 20px; font-weight: 590; letter-spacing: -0.005em; }
+
+  /* ── the person ─────────────────────────────────────────────────
+     `prose-quote` is a size step below `prose`, not merely an italic:
+     a quotation should sit under the sentence that introduces it. */
+  .type-prose-lead  { font-family: var(--font-serif); font-size: 18px; line-height: 27px; font-weight: 400; }
+  .type-prose       { font-family: var(--font-serif); font-size: 16px; line-height: 25px; font-weight: 400; }
+  .type-prose-quote { font-family: var(--font-serif); font-size: 15px; line-height: 24px; font-weight: 400; font-style: italic; }
+
+  /* ── the page's name, once per screen ─────────────────────────── */
+  .type-title-page  { font-family: var(--font-serif); font-size: 24px; line-height: 28px; font-weight: 500; letter-spacing: -0.01em; }
+}
+
+/* ── control geometry, as classes ──────────────────────────────────
+   So a control's height, padding, radius and type arrive together and
+   cannot drift apart at a call site.
+
+   One declared distinction inside the control layer:
+     a FIELD's text is what the user typed  → weight 400 (below)
+     a LABEL on a control is the product's  → weight 510 (Button)
+   A 400-weight button label reads weak at 13px, and 590 reads as a
+   heading. 510 is the stop between them — the same optical reasoning
+   that produced the weight ramp itself.                               */
+@layer components {
+  .control-sm {
+    height: var(--control-h-sm);
+    padding-inline: var(--control-px-sm);
+    border-radius: var(--radius-control);
+    font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 400;
+  }
+  .control-md {
+    height: var(--control-h-md);
+    padding-inline: var(--control-px-md);
+    border-radius: var(--radius-control);
+    font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 400;
+  }
+}
+
+/* ── document layout ───────────────────────────────────────────────
+   A record, a profile, a commission: a body with a margin.
+
+   The archetype was documented but had no owner, so three surfaces hand-rolled the
+   same two-column grid inline — which made the breakpoint a per-page accident and
+   left the collapsed state undesigned. Below 1024px the rail's cards simply queued
+   under the body's: six identical cards, with nothing saying which three were the
+   record and which three were commentary. The archetype vanished at the width the
+   product is most often seen at.
+
+   Here the collapse is a decision. Above `lg` the margin is a column. Below it the
+   margin becomes an appendix — a labelled rule, then its sections stripped of card
+   treatment — so it reads as marginalia rather than as a peer. The body keeps its
+   cards, and that alone restores the distinction without spending colour on it.   */
+.doc-layout { display: grid; align-items: start; gap: var(--space-6); }
+@media (min-width: 1024px) {
+  .doc-layout { grid-template-columns: minmax(0, 1fr) 320px; }
+}
+@media (max-width: 1023px) {
+  .doc-layout > .doc-rail {
+    border-top: 1px solid var(--sys-stroke-divider);
+    padding-top: var(--space-4);
+  }
+  .doc-layout > .doc-rail::before {
+    content: attr(data-rail-label);
+    display: block;
+    margin-bottom: var(--space-3);
+    font-family: var(--font-mono-stack), ui-monospace, monospace;
+    font-size: 11px; line-height: 14px; font-weight: 510;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--sys-label-tertiary);
+  }
+  /* The margin stops being cards. */
+  .doc-layout > .doc-rail section {
+    border: 0; background: transparent; border-radius: 0;
+    padding-left: 0; padding-right: 0;
+  }
+}
+
+/* ── the record's groups ───────────────────────────────────────────
+   One column. Every group is a peer of every other, at the same width.
+
+   This replaced a body-plus-margin split, where commission sat alone in a 320px rail
+   beside a 731px body. That geometry belongs to the Document archetype and encodes a
+   claim: the narrow side is commentary on the wide side. Commission is not commentary
+   on the record — it is one of the things the record is FOR, and at 320px against 731
+   it read as chrome parked beside the content rather than as content.
+
+   Width is the tell. Equal width says the groups rank equally; unequal width ranks
+   them whatever the headings do. A single column also keeps the layers in their own
+   order — canonical, then agency, then personal — as one reading sequence rather than
+   a shape the eye has to reassemble, which two columns cannot promise once the groups
+   are of unequal height.                                                            */
+.bento { display: grid; gap: var(--space-6); }
+
+/* ── the field row's track ─────────────────────────────────────────
+   label · value · provenance, on one shared axis.
+
+   The record rendered its fields two ways. The three layers used a real grid — a
+   140px label column, values on a common left edge, provenance in a track of its own.
+   Everything else used `justify-between`, which pins the label left and flings the
+   value to the far right, so at 730px a two-character value sits 600px from the word
+   naming it and the eye has to cross the column to pair them. Two geometries for one
+   semantic role, on the same screen.
+
+   The track lives here rather than in either component because BOTH need it and a
+   copied `grid-template-columns` is a drift waiting to happen: `FieldGrid` composes it
+   from divs, `Row` from `dt`/`dd`, and they now differ only in markup.              */
+.field-row {
+  display: grid;
+  gap: var(--space-1) var(--space-4);
+  padding-block: var(--space-3);
+}
+@media (min-width: 640px) {
+  .field-row { grid-template-columns: 140px minmax(0, 1fr) auto; }
+}
+
+/* A note on the scale, because it cost time once: it runs 4·8·12·16·24·32 and has NO
+   5th or 7th stop. `var(--space-5)` resolves to nothing and computes to 0 without
+   warning — which is how a rule meant to sit 20px clear of a heading ended up pressed
+   flat against it. Between cards, reach for `--space-6`. */
+
+/* ── row primitive ─────────────────────────────────────────────────
+   The rule is "exactly one element truncates", and the element that gives
+   way is the subject. That is the right principle applied backwards:
+   trailing chips are `flex-shrink: 0` and therefore incompressible, so the
+   row protects its metadata and sacrifices the thing it is about. Measured
+   before this change: a traveller's name reduced to 13% of the row, and a
+   Critical advisory losing two thirds of its message — the actionable half.
+
+   The contract is now: the subject keeps at least half its natural width.
+   When metadata will not fit inside that budget, the row becomes two lines
+   (`.row-stack`) rather than truncating further. `/notifications` already
+   proved the two-line shape works — it is the one list in the product with
+   no truncation at all — so this promotes that shape into the primitive
+   rather than inventing one.
+
+   Tabular rows are exempt: their columns are tracks, so the subject has a
+   guaranteed share and cannot be squeezed by its neighbours.            */
+.row-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding-block: 10px;
+}
+
+/* Two-line: subject and its most consequential mark on the first line, the
+   message and age on the second. Nothing truncates. */
+.row-stack { padding-block: 10px; min-height: 52px; }
+.row-stack > .row-stack-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+.row-stack > .row-stack-body { margin-top: 2px; }
+.row-grid > .row-primary { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-grid > .row-meta,
+.row-grid > .row-trailing { white-space: nowrap; flex-shrink: 0; }
+@media (max-width: 640px) { .row-grid > .row-meta { display: none; } }

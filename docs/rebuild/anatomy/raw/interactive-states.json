@@ -1,0 +1,43 @@
+{
+  "_meta": {
+    "source": "CSSOM :hover / :focus-visible / :active / :disabled rules matched against live elements (listing detail + search results), 2026-09-10",
+    "confidence": "computed rules, exact. Values are Airbnb DLS custom properties; resolved values are in tokens.json where captured.",
+    "observation": "Every state is expressed through a small set of named properties (--dls-button_background_hover etc.). The state grammar is uniform across button kinds; only the property values differ per kind."
+  },
+  "primary_and_secondary_button": {
+    "hover": ["background: var(--dls-button_background_hover)", "color: var(--dls-button_color_hover)", "border-color: var(--dls-button_border-color_hover)"],
+    "active": ["background: var(--dls-button_background_active)", "color: var(--dls-button_color_active)", "transform: scaleX((w-2)/w) scaleY((h-2)/h)  — the button shrinks by exactly 2px on press, not by a percentage", "a ripple element: transform: scale(5); opacity: 0; transition: transform 2s, opacity 2s"],
+    "focus_visible": ["outline: none", "box-shadow: 0 0 0 2px var(--palette-border-primary-inverse), 0 0 0 4px var(--palette-border-primary)  — a 2px white gap then a 2px dark ring", "transition: box-shadow 0.2s var(--motion-standard-curve-animation-timing-function)"],
+    "disabled": ["cursor: not-allowed", "background: var(--dls-button_background_disabled)", "color: var(--dls-button_color_disabled)", "transform: none", "background-image: none (kills the gradient)"]
+  },
+  "text_button (Share / Save)": {
+    "hover": ["color: var(--palette-text-primary-hover)", "text-decoration: underline (already underlined at rest)", "background: var(--palette-bg-primary-hover)  — the 8px-radius grey hover pad behind the text"],
+    "active": ["transform: scale(0.96)", "background: var(--palette-bg-primary-hover)"],
+    "focus_visible": ["box-shadow: 0 0 0 2px var(--palette-text-primary), 0 0 0 4px rgba(255,255,255,0.8)"],
+    "disabled": ["color: var(--palette-text-primary-disabled)", "background: transparent"]
+  },
+  "listing_card": {
+    "hover": ["title: color var(--palette-grey1000) + text-decoration underline (grey1000 underline)", "image / tile: transform scale(1.04) with box-shadow var(--elevation-secondary-box-shadow)", "small round controls inside: transform scale(1.08)", "border-color: var(--palette-shadow100)"],
+    "active": ["controls: transform scale(0.92)", "tile: transform scale(1), box-shadow none"],
+    "focus_visible": ["box-shadow: 0 0 0 1px var(--palette-border-primary), 0 0 0 4px var(--palette-bg-primary), var(--elevation-tertiary-box-shadow)", "tile: transform scale(1.04)"],
+    "note": "Scale on hover is reserved for imagery and round icon buttons; text never scales. Press always scales DOWN (0.92 / 0.96 / minus 2px)."
+  },
+  "filter_chip": {
+    "hover": ["border-color: var(--palette-grey500)  — the #DDD border darkens to mid grey; no fill change"],
+    "active": ["transform: scaleX((w-2)/w) scaleY((h-2)/h)"],
+    "focus_visible": ["box-shadow: 0 0 0 2px var(--palette-grey0), 0 0 0 4px var(--palette-grey1000)"],
+    "selected": "not captured (no chip was selected on the page); needs a click-through"
+  },
+  "wishlist_heart": {
+    "hover": ["transform: scale(1.08)"],
+    "active": ["transform: scale(0.92)"],
+    "focus_visible": ["box-shadow: 0 0 0 2px var(--palette-text-primary), 0 0 0 4px rgba(255,255,255,0.8)", "transform: scale(1.08)"]
+  },
+  "cross_cutting_rules": [
+    "Focus is always a double ring: 2px gap colour + 2px ring colour, via box-shadow, never outline.",
+    "Hover on a text control is colour + underline + a soft grey pad; hover on a filled control is a darker fill; hover on imagery is scale 1.04 + elevation.",
+    "Press is a uniform shrink: minus 2px for rectangular controls, 0.92–0.96 for round/text ones.",
+    "Motion: one named easing (--motion-standard-curve-animation-timing-function), 0.2s for state changes; the press ripple is the only long transition (2s) and it is opacity-only.",
+    "Disabled never dims with opacity; it swaps to named disabled colours and removes transforms and gradients."
+  ]
+}

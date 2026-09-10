@@ -1,0 +1,52 @@
+{
+  "_meta": {
+    "surface": "listing detail (top: title, hero, overview, host overview, book-it sidebar)",
+    "url": "https://www.airbnb.com/rooms/10726781",
+    "viewport": "1440x900 @2x",
+    "captured": "2026-09-10",
+    "method": "computed styles + getBoundingClientRect via in-app browser; logged out",
+    "confidence": "computed (exact) unless noted"
+  },
+  "layout": {
+    "content_container": {"x": 153, "w": 1120, "note": "main is 1425 wide (15px scrollbar); gutters ~152/153 each side; 1120 max content width"},
+    "columns": {"main": {"x": 153, "w": 653}, "gap": 93, "sidebar": {"x": 899, "w": 372}, "note": "653 + 93 + 372 = 1118; ratio ≈ 7 : 1 : 4 of 12"},
+    "header": {"h": 80, "y": 0, "search_pill": {"h": 48, "y": 24, "radius": "40px pill, inner segments 4px", "border": "1px"}, "icon_buttons": {"size": 40, "radius": "50%", "bg": "rgb(242,242,242)"}, "become_host": {"h": 40, "font": "14/18 500", "padding": "11px 12px", "radius": "20px"}}
+  },
+  "sections": [
+    {"id": "TITLE_DEFAULT", "y": 96, "h": 54, "w": 1120, "paddingTop": 24, "heading": {"font": "26/30 500", "color": "rgb(34,34,34)"}},
+    {"id": "HERO_DEFAULT", "y": 150, "h": 500, "w": 1120, "paddingTop": 24, "images": [{"x": 153, "y": 174, "w": 560, "h": 476}, {"x": 721, "y": 174, "w": 272, "h": 238}, {"x": 721, "y": 420, "w": 272, "h": 230}, {"x": 1001, "y": 174, "w": 272, "h": 238}, {"x": 1001, "y": 420, "w": 272, "h": 230}], "gap": 8, "image_radius_on_img": 0, "note": "outer radius carried by the grid wrapper (not captured by script; reads ~12px in screenshot — estimate)", "show_all_photos": {"font": "12/16 500", "padding": "8px 16px", "h": 32, "radius": 8, "bg": "rgb(242,242,242)", "border": "1px solid rgb(34,34,34)", "position": "bottom-right of hero, inset 16 (estimate)"}},
+    {"id": "OVERVIEW_DEFAULT_V2", "y": 650, "h": 114, "w": 653, "paddingTop": 32, "paddingBottom": 32, "heading": {"font": "22/26 500", "letterSpacing": "-0.44px"}, "sub": {"font": "16/20 400 (estimate: '1 single bed · Shared bathroom')"}},
+    {"id": "GUEST_FAVORITE_BANNER", "y": 764, "paddingBottom": 12, "note": "trust banner: laurel + 'Guest favorite' + one-line reason + rating 4.9 + 470 reviews, in a bordered row (measure later)"},
+    {"id": "HOST_OVERVIEW_DEFAULT", "y": 776, "h": 48, "w": 653, "paddingTop": 24, "paddingBottom": 24},
+    {"id": "BOOK_IT_SIDEBAR", "x": 899, "y": 682, "w": 372, "h": 391, "card": {"radius": 12, "border": "1px rgba(0,0,0,0.04)", "shadow": "0 6px 16px rgba(0,0,0,0.12)", "bg": "#fff", "note": "the card containing the price, dates, guests and Reserve; sticky offset not captured (position static in this scroll-locked state)"}, "price": {"font": "22 500", "underline_on_total": true, "strike_original": "€119 → €104 total"}, "date_inputs": {"h": 56, "w": 324, "labels": "10/12 700 uppercase (CHECK-IN / CHECKOUT)", "border": "1px rgb(140,140,140) — the mid-grey input stroke"}, "reserve": {"h": 48, "w": 324, "radius": "999px", "padding": "14px 24px", "font": "16/20 500", "color": "#fff", "bg": "brand gradient (estimate; solid reads rgb(218,18,73)/rgb(255,56,92))"}, "rare_find": {"font": "14/18 400", "note": "'Rare find! This place is usually booked' with diamond icon in a bordered pill-row above price"}},
+    {"id": "SIMILAR_LISTINGS_CAROUSEL", "y": 1122, "w": 1120, "paddingTop": 32, "paddingBottom": 40}
+  ],
+  "buttons": {
+    "text_link_button": {"examples": ["Share", "Save"], "font": "14/18 500", "underline": true, "padding": 8, "radius": 8, "h": 34},
+    "secondary_small": {"example": "Show all photos", "font": "12/16 500", "padding": "8px 16px", "h": 32, "radius": 8, "bg": "rgb(242,242,242)", "border": "1px solid rgb(34,34,34)"},
+    "primary_pill": {"example": "Reserve", "h": 48, "radius": 999, "padding": "14px 24px", "font": "16/20 500"},
+    "header_pill_outline": {"example": "Become a host", "h": 40, "radius": 20, "padding": "11px 12px", "font": "14/18 500"}
+  },
+  "type_scale_observed": [
+    {"role": "page title", "font": "26/30 500", "count": 1},
+    {"role": "section title", "font": "22/26 500 -0.44px", "count": 1},
+    {"role": "price / figure", "font": "22 500", "count": 3},
+    {"role": "body", "font": "16/20 400", "count": 8},
+    {"role": "label (most common)", "font": "14/18 500", "count": 36},
+    {"role": "meta", "font": "14/18 400", "count": 5},
+    {"role": "dense label", "font": "14/22 500", "count": 3},
+    {"role": "micro caps", "font": "10/12 700", "count": 3}
+  ],
+  "colour_observed": {
+    "text_primary": "rgb(34,34,34) #222222 (56 of 62 text nodes)",
+    "text_secondary": "rgb(108,108,108) #6C6C6C",
+    "surface": "#FFFFFF",
+    "surface_secondary": "rgb(242,242,242) #F2F2F2",
+    "divider": "rgb(221,221,221) #DDDDDD 1px",
+    "input_stroke": "rgb(140,140,140) #8C8C8C 1px",
+    "card_hairline": "rgba(0,0,0,0.04) 1px",
+    "overlay_scrim_ish": "rgba(34,34,34,0.10)",
+    "brand": "rgb(255,56,92) #FF385C; search button rgb(218,18,73) #DA1249",
+    "font": "Airbnb Cereal VF, fallback Circular"
+  }
+}

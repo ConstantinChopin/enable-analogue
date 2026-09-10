@@ -1,0 +1,83 @@
+{
+  "_meta": {
+    "source": "CSS custom properties resolved from Airbnb's DLS stylesheets on airbnb.com (listing detail page), read via CSSOM + getComputedStyle, 2026-09-10",
+    "totals": {"custom_properties_defined": 540, "kept_after_filter": 532, "groups": {"palette": 352, "typography": 104, "motion": 34, "elevation": 15, "spacing": 14, "material": 10, "corner": 8}},
+    "confidence": "exact — these are the values the site ships, not estimates",
+    "use": "Evidence for the constitution. We take the STRUCTURE (which scales exist, how many steps, how roles are named), never the values or the brand colours."
+  },
+  "corner_radius_scale": {"tiny": 4, "small": 8, "medium": 12, "large": 16, "xlarge": 20, "xxlarge": 24, "xxlarge28": 28, "xxxlarge": 32, "note": "eight named steps; observed use: 4 inputs/segments · 8 small buttons and text-button hover pads · 12 cards, medium buttons, sheets · 16 image tiles · 20 search-card image · 24 host identity card · 999 pill for the primary CTA and chips"},
+  "spacing_scale": {"micro": [2, 4, 8, 12, 16, 24, 32], "macro": [16, 24, 32, 40, 48, 64, 80], "note": "two ladders with different jobs: micro = inside a component, macro = between sections. They overlap at 16/24/32, which is where a component's outer padding meets a section's inner gap."},
+  "typography": {
+    "family": "'Airbnb Cereal VF', 'Circular', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif",
+    "weights": {"book": 400, "medium": 500, "semibold": 600, "bold": 700},
+    "tracking": {"normal": "normal", "wide": "0.04em"},
+    "roles": {
+      "base-extra-small": "10/12",
+      "body-text": ["11/15", "12/16", "14/18", "16/20", "18/24"],
+      "body-paragraphs (reading)": ["14/20", "16/22", "16/24", "18/28"],
+      "caption": "12/16",
+      "subtitles-book (400)": ["14/18", "16/22", "18/24"],
+      "titles-medium (500)": ["14/18", "16/20", "18/24"],
+      "titles-semibold (600)": ["14/18", "16/20", "18/24", "22/26", "26/30", "32/36"],
+      "special-display-medium (600)": ["40/44", "48/54", "60/68", "72/74"]
+    },
+    "structure_notes": [
+      "Same size, two leadings: 14/18 (UI text) vs 14/20 (paragraph); 16/20 (UI) vs 16/22 and 16/24 (paragraph). The role encodes whether the text is scanned or read.",
+      "Titles come in two weights at the same sizes (medium 500, semibold 600) — emphasis is a weight step, never a size step.",
+      "Leading ratio ≈1.25–1.29 for UI text, 1.375–1.56 for reading text.",
+      "Display sizes exist (40–72) but do not appear on product surfaces; the largest product title is 26/30.",
+      "Observed on-page: 22px and 26px titles carry −2% tracking even though the token says 'normal' — applied at the component, not the token."
+    ]
+  },
+  "elevation": {
+    "numbered": {
+      "0": "0 0 0 1px #DDDDDD inset (a border, not a shadow)",
+      "1": "0 0 0 1px rgba(0,0,0,.02), 0 2px 4px rgba(0,0,0,.16)",
+      "2": "0 0 0 1px rgba(0,0,0,.02), 0 2px 6px rgba(0,0,0,.04), 0 4px 8px rgba(0,0,0,.10)",
+      "3": "0 0 0 1px rgba(0,0,0,.02), 0 8px 24px rgba(0,0,0,.10)",
+      "4": "0 0 0 1px rgba(0,0,0,.02), 0 4px 8px rgba(0,0,0,.08), 0 12px 30px rgba(0,0,0,.18)",
+      "5": "0 0 0 1px rgba(0,0,0,.02), 0 6px 8px rgba(0,0,0,.08), 0 16px 56px rgba(0,0,0,.18)"
+    },
+    "named": {
+      "tertiary": {"shadow": "0 2px 4px rgba(0,0,0,.18)", "border": "1px solid rgba(0,0,0,.08)", "use": "floating controls over imagery (carousel arrows)"},
+      "secondary": {"shadow": "0 6px 16px rgba(0,0,0,.12)", "border": "1px solid rgba(0,0,0,.04)", "use": "the booking card; card hover"},
+      "primary": {"shadow": "0 6px 20px rgba(0,0,0,.20)", "border": "1px solid rgba(0,0,0,.04)", "use": "popovers"},
+      "high": {"shadow": "0 8px 28px rgba(0,0,0,.28)", "border": "1px solid rgba(0,0,0,.04)", "use": "modals / sheets"},
+      "sharp-edge": "rgba(0,0,0,.08) background"
+    },
+    "structure_notes": ["Every shadow starts with a 1px 2% ring — a hairline that survives on white — then adds blur. The hairline is the constant; the blur is the variable.", "Numbered scale for authors; named aliases for roles. Same two-tier idea as ref/sys."]
+  },
+  "materials": {"extra-thin": "rgba(218,218,218,.40)", "thin": "rgba(240,240,240,.50)", "regular": "rgba(250,250,250,.72)", "thick": "rgba(240,240,240,.86)", "extra-thick": "rgba(255,255,255,.925)", "note": "five translucency steps for overlays over imagery (the Superhost pill uses a darker cousin: rgba(96,96,96,.6))"},
+  "motion": {
+    "curves": {"standard": "cubic-bezier(0.2,0,0,1)", "enter": "cubic-bezier(0.1,0.9,0.2,1)", "exit": "cubic-bezier(0.4,0,1,1)", "linear": "cubic-bezier(0,0,1,1)"},
+    "springs": {
+      "fast": {"duration_ms": 452, "stiffness": 300, "damping": 35},
+      "fast-bounce": {"duration_ms": 449, "stiffness": 250, "damping": 22},
+      "standard": {"duration_ms": 584, "stiffness": 175, "damping": 26},
+      "medium-bounce": {"duration_ms": 574, "stiffness": 175, "damping": 18.5},
+      "slow": {"duration_ms": 746, "stiffness": 100, "damping": 20},
+      "slow-bounce": {"duration_ms": 762, "stiffness": 100, "damping": 14},
+      "note": "mass 1 throughout; each spring is also shipped as a pre-sampled linear() easing so CSS can play it"
+    },
+    "observed_state_transition": "box-shadow 0.2s standard-curve for focus rings"
+  },
+  "palette_structure": {
+    "primitive_ramps": {"grey": "0 · 100 · 200 · 300 · 400 · 500 · 600 · 700 · 800 · 900 · 1000 · 1100 (#FFF · #F7F7F7 · #F2F2F2 · #EBEBEB · #DDDDDD · #C1C1C1 · #8C8C8C · #6C6C6C · #515151 · #3F3F3F · #222222 · #000)", "beige": "100–1000 (#F7F6F2 … #232221) — a warm neutral ramp that exists alongside grey", "rausch (brand)": "100–1000, 600 = #FF385C, 700 = #DA1249", "red": "100–1000, 700 = #D7251C", "orange": "600 = #EB6100", "green": "700 = #038026", "blue": "600 = #318CF7, 800 = #0D4DAA", "purple": "600 = #8C78FF", "magenta": "600 = #E54EC1", "shadow": "50 · 100 · 150 · 200 · 250 · 300 · 350 · 600 (4% … 60% black)"},
+    "semantic_roles": {
+      "text": {"primary": "#222222", "secondary": "#6C6C6C", "tertiary": "#8C8C8C", "quaternary": "#515151", "placeholder": "#8C8C8C", "primary-disabled": "#C1C1C1", "primary-hover": "#000000", "on-media / on-brand / inverse": "#FFFFFF", "success": "#038026", "primary-error": "#C13515", "primary-invalid": "#D7251C", "link / legal": "#0D4DAA"},
+      "bg": {"primary": "#FFFFFF", "secondary": "#F7F7F7", "tertiary": "#8C8C8C", "quaternary": "#F2F2F2", "primary-hover": "#F7F7F7", "quaternary-hover": "#EBEBEB", "primary-inverse": "#222222", "primary-inverse-hover": "#000000", "interactive": "#F2F2F2", "interactive-selected": "#222222", "divider": "#EBEBEB", "input": "#FFFFFF", "input-disabled": "#F2F2F2", "primary-disabled": "#F2F2F2", "primary-inverse-disabled": "#DDDDDD", "success": "#E6F6E9", "discount": "#E6F6E9", "primary-error": "#FFF5F3", "invalid-filled": "#D7251C", "tooltip": "#111111", "surface-beige": "#F4F2EC", "primary-core (brand)": "#FF385C", "secondary-core (CTA gradient)": "linear-gradient(to right,#E61E4D,#E31C5F 50%,#D70466)"},
+      "border": {"primary": "#222222", "secondary": "#8C8C8C", "tertiary": "#DDDDDD", "quaternary": "#8C8C8C", "focus": "#222222", "primary-inverse": "#FFFFFF", "primary-disabled": "#DDDDDD", "secondary-outline-hover": "#C1C1C1", "invalid": "#D7251C", "brand": "#D80669"},
+      "icon": {"primary": "#222222", "secondary": "#6C6C6C", "tertiary": "#8C8C8C", "disabled": "#C1C1C1", "success": "#038026", "warning": "#EB6100", "error": "#C13515", "info / location": "#318CF7", "core": "#DA1249", "core-selected": "#FF385C"},
+      "status": {"alert": "#D7251C", "warning": "#EB6100", "success": "#038026", "neutral": "#C1C1C1", "brand": "#DA1249"},
+      "overlay": {"scrim": "rgba(26,26,26,.40)", "scrim-dense": "rgba(26,26,26,.60)"}
+    },
+    "structure_notes": [
+      "Four text levels (primary/secondary/tertiary/quaternary) — same count as Apple's label hierarchy and as Enable's current sys-label set.",
+      "Four background levels plus 'interactive' and 'divider' as separate roles. A grey fill that can be pressed (#F2F2F2 interactive) is a different token from a grey fill that cannot (#F7F7F7 secondary).",
+      "Every interactive role has -hover, -pressed/-selected, -disabled siblings named, not derived. Disabled is a colour swap, not opacity.",
+      "State colours have a filled form (#D7251C) and a tint form (#FFE6E2) — ink on tint, never tint alone.",
+      "Brand chroma is confined to: logo, primary CTA gradient, search button, selected heart. The content layer is grey-scale plus status.",
+      "A warm 'beige' ramp exists as a parallel neutral (bg-surface-beige #F4F2EC, text-beige-primary #232221) — evidence that a warm neutral register coexists with the grey one inside the same system."
+    ]
+  }
+}
