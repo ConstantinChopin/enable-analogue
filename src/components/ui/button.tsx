@@ -4,44 +4,40 @@ import { Slot } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
+/* ── Button — the action ladder made visible (VIS-041) ───────────────────────
+   default   the ONE primary action per surface: an ink pill. The only pill that acts.
+   secondary a grey fill, radius-2, under the content it extends.
+   outline   a hairline box on raised paper — a secondary that must sit on a fill.
+   ghost     no surface at rest; fill on hover. For icon buttons in chrome.
+   link      a text action: underlined, in the title row.
+   destructive the one filled action that removes something; claret, radius-2, never a pill.
+
+   Sizes: md 40 (the row module) and sm 32; icon variants are square.
+   States (VIS-060): hover is a fill step, press is scale 0.96 (`.pressable`),
+   focus is the double ring (global), disabled is a colour swap.               */
 const buttonVariants = cva(
-  /* `font-sans` is explicit, not inherited. A control is the machine's voice in every
-     context, including inside a serif answer — a button that picks up the prose face
-     from its container stops reading as something you can press. */
-  /* Type comes from the system, not from shadcn's `text-sm`. Every button rendered at
-     14px/20 while the largest sans role is 13px — a parallel scale underneath the
-     declared one. Default icon size is `--icon-md` (14px), which pairs with 13px type
-     optically; 16px is reserved for severity marks, where the icon is the information. */
-  "font-sans inline-flex shrink-0 items-center justify-center gap-2 rounded-md type-data font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[var(--icon-md)]",
+  "pressable font-sans inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap type-data font-medium select-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[var(--icon-md)]",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40",
-        outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+        default:
+          "rounded-full bg-ink text-on-ink hover:bg-ink-hover active:bg-ink-pressed disabled:bg-ink-disabled disabled:text-on-ink-disabled",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "rounded-md bg-interactive text-label hover:bg-interactive-hover active:bg-interactive-pressed disabled:bg-disabled disabled:text-label-disabled",
+        outline:
+          "rounded-md border border-hairline bg-raised text-label hover:border-stroke-hover disabled:border-hairline disabled:text-label-disabled",
         ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
+          "rounded-md text-label-secondary hover:bg-interactive hover:text-label disabled:text-label-disabled",
+        link:
+          "h-auto rounded-sm px-0 text-label underline underline-offset-4 decoration-hairline hover:decoration-ink disabled:text-label-disabled",
+        destructive:
+          "rounded-md bg-crit text-on-ink hover:brightness-95 disabled:bg-disabled disabled:text-label-disabled",
       },
-      /* Two heights, from the control geometry system, and a rule for choosing:
-
-           md (36) — the action a surface exists for. At most ONE filled `md` per
-                     screen, because a second one cancels the first.
-           sm (28) — everything else: filters, inline actions, sheet controls,
-                     anything sitting in a dense row.
-
-         Without the rule the sizes split 42/45 across 87 call sites by habit, and the
-         page header's routine action carried the same weight as the one action a
-         refusal exists to offer. */
       size: {
-        default: "h-[var(--control-h-md)] px-[var(--control-px-md)] has-[>svg]:pl-[10px]",
-        sm: "h-[var(--control-h-sm)] gap-1.5 px-[var(--control-px-sm)] has-[>svg]:pl-2",
-        icon: "size-[var(--control-h-md)]",
-        "icon-sm": "size-[var(--control-h-sm)]",
+        default: "h-[var(--control-h-md)] px-[var(--control-px-md)] data-[variant=default]:px-[var(--control-px-pill)]",
+        sm: "h-[var(--control-h-sm)] gap-1.5 px-[var(--control-px-sm)]",
+        icon: "size-[var(--control-h-md)] rounded-full",
+        "icon-sm": "size-[var(--control-h-sm)] rounded-full",
       },
     },
     defaultVariants: {

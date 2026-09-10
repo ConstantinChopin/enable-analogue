@@ -66,17 +66,17 @@ function FrameBar() {
   const { s } = useDemo();
   const crumbs = crumbFor(pathname);
   const btn =
-    "grid size-6 place-items-center rounded-[var(--radius-control)] text-muted-foreground " +
-    "hover:bg-muted hover:text-foreground disabled:opacity-40 cursor-pointer";
+    "pressable grid size-7 cursor-pointer place-items-center rounded-md text-label-secondary " +
+    "hover:bg-interactive hover:text-label disabled:text-label-disabled";
   return (
-    <div className="flex h-7 shrink-0 items-center gap-1 px-1">
+    <div className="flex h-8 shrink-0 items-center gap-1 px-1">
       <button onClick={() => router.back()} className={btn} aria-label="Back"><ArrowLeft className="size-3.5" /></button>
       <button onClick={() => router.forward()} className={btn} aria-label="Forward"><ArrowRight className="size-3.5" /></button>
       <nav aria-label="Breadcrumb" className="ml-1 flex min-w-0 items-center gap-1.5 type-meta">
         {crumbs.map((c, i) => (
           <span key={`${c}-${i}`} className="flex min-w-0 items-center gap-1.5">
-            {i > 0 && <span className="text-border">/</span>}
-            <span className={i === crumbs.length - 1 ? "truncate text-foreground" : "truncate"}>{c}</span>
+            {i > 0 && <span className="text-label-quaternary">/</span>}
+            <span className={i === crumbs.length - 1 ? "truncate text-label" : "truncate"}>{c}</span>
           </span>
         ))}
       </nav>
@@ -87,7 +87,7 @@ function FrameBar() {
           is true everywhere at once, and no screen has to caption its own failure. */}
       {s.world === "v1" && (
         <span
-          className="ml-auto mr-1 flex shrink-0 items-center gap-1.5 rounded-full border border-crit/40 bg-crit/10 px-2 py-0.5 type-micro text-crit"
+          className="ml-auto mr-1 flex h-[var(--chip-h)] shrink-0 items-center gap-1.5 rounded-full bg-crit-soft px-2.5 type-micro text-crit"
           role="status"
         >
           <History className="size-3" aria-hidden />
@@ -207,12 +207,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
      for a product whose argument is that nothing is hidden. */
   if (!settled || !s.signedIn) {
     return (
-      <div className="h-dvh overflow-hidden bg-subtle p-[var(--frame-inset)]">
+      <div className="h-dvh overflow-hidden bg-base p-[var(--frame-inset)]">
         <div className="flex h-full flex-col gap-[var(--frame-inset)]">
           <div className="h-7 shrink-0" aria-hidden />
           <div
-            className="min-h-0 flex-1 overflow-hidden bg-background"
-            style={{ border: "1px solid var(--frame-stroke)", borderRadius: "var(--radius-panel)" }}
+            className="min-h-0 flex-1 overflow-hidden rounded-xl border border-frame bg-raised"
           >
             <QuietLoading note="Restoring the session. The workspace draws once who you are is settled." />
           </div>
@@ -223,7 +222,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="h-dvh overflow-hidden bg-subtle p-[var(--frame-inset)]">
+    <div className="h-dvh overflow-hidden bg-base p-[var(--frame-inset)]">
       {/* The frame: a breadcrumb strip outside the border, a panel that owns its own
           scroll, and the dock floating over the inset below. The page never scrolls. */}
       <div className="flex h-full flex-col gap-[var(--frame-inset)]">
@@ -231,11 +230,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <main
           /* The frame does not scroll — each page owns its scroll, so an inspector can
              be a genuinely full-height column beside content that scrolls independently. */
-          className="min-h-0 flex-1 overflow-hidden bg-background"
-          style={{
-            border: "1px solid var(--frame-stroke)",
-            borderRadius: "var(--radius-panel)",
-          }}
+          className="min-h-0 flex-1 overflow-hidden rounded-xl border border-frame bg-raised"
         >
           {children}
         </main>
@@ -248,7 +243,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div
           /* Above the dock, not beside it. At 375px the dock fills the width and the
              badge sat on top of the first tile. */
-          className="pointer-events-none fixed bottom-[84px] left-4 z-50 rounded-full border border-border bg-card/90 px-2.5 py-1 type-code uppercase tracking-widest text-muted-foreground sm:bottom-6"
+          className="pointer-events-none fixed bottom-[84px] left-4 z-50 rounded-full bg-overlay px-2.5 py-1 type-code uppercase tracking-widest text-label-secondary shadow-elev-1 sm:bottom-6"
           role="status"
         >
           narration

@@ -106,32 +106,28 @@ function Tile({ tile, active, badge, index }: {
               and the indicator dot, and every label is one hover away. */}
           <span
             className={cn(
-              "relative flex size-11 items-center justify-center rounded-xl transition-colors",
+              "pressable relative flex size-11 items-center justify-center rounded-lg",
               active
-                ? "bg-muted text-foreground"
-                : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                ? "bg-selected text-on-selected"
+                : "text-label-secondary hover:bg-interactive hover:text-label",
             )}
           >
             <Icon className="size-[18px] shrink-0" aria-hidden />
             {badge ? (
               <span
-                className="absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-crit px-1 type-micro text-white tnum"
+                className="absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-crit px-1 type-micro text-on-ink tnum ring-2 ring-overlay"
                 aria-hidden
               >
                 {badge > 99 ? "99+" : badge}
               </span>
             ) : null}
           </span>
-          <span
-            className={cn("mt-1 size-1 rounded-full", active ? "bg-foreground/60" : "bg-transparent")}
-            aria-hidden
-          />
         </Link>
       </TooltipTrigger>
       <TooltipContent side="top" sideOffset={10}>
         {tile.label}
         {badge ? ` · ${badge} new` : ""}
-        <span className="ml-2 opacity-60">⌘{index + 1}</span>
+        <span className="ml-2 text-on-selected/60">⌘{index + 1}</span>
       </TooltipContent>
     </Tooltip>
   );
@@ -147,7 +143,7 @@ function UtilityButton({
           type="button"
           onClick={onClick}
           aria-label={label}
-          className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+          className="pressable grid size-9 shrink-0 cursor-pointer place-items-center rounded-md text-label-secondary hover:bg-interactive hover:text-label"
         >
           {children}
         </button>
@@ -220,7 +216,7 @@ export function Dock() {
              would drop below the 44pt touch minimum the iOS thesis rests on. So the
              dock scrolls — and the edge fade says so. Without it the row simply ended
              mid-tile and read as clipped chrome rather than a scrollable one. */
-          className="pointer-events-auto flex max-w-full items-center gap-1.5 overflow-x-auto rounded-2xl border border-border bg-card px-2 py-2 shadow-[0_8px_30px_rgba(28,29,34,0.12)] [scrollbar-width:none] [mask-image:linear-gradient(to_right,transparent_0,#000_12px,#000_calc(100%-12px),transparent_100%)] sm:[mask-image:none] [&::-webkit-scrollbar]:hidden"
+          className="pointer-events-auto flex max-w-full items-center gap-1.5 overflow-x-auto rounded-xl bg-overlay px-2 py-2 shadow-elev-2 [scrollbar-width:none] [mask-image:linear-gradient(to_right,transparent_0,#000_12px,#000_calc(100%-12px),transparent_100%)] sm:[mask-image:none] [&::-webkit-scrollbar]:hidden"
         >
           {tiles.map((t, i) => (
             <Tile
@@ -232,7 +228,7 @@ export function Dock() {
             />
           ))}
 
-          <span className="mx-1 h-8 w-px shrink-0 self-center bg-border" aria-hidden />
+          <span className="mx-1 h-8 w-px shrink-0 self-center bg-hairline" aria-hidden />
 
           <div className="flex shrink-0 items-center gap-0.5 self-center">
             {/* Search and the sync indicator drop below `sm`. Seven tiles plus three
@@ -257,7 +253,7 @@ export function Dock() {
                     <button
                       type="button"
                       aria-label="Account"
-                      className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-full bg-primary-soft type-micro text-primary transition-colors hover:bg-primary/15"
+                      className="pressable grid size-9 shrink-0 cursor-pointer place-items-center rounded-full bg-sunken type-micro text-label hover:bg-interactive-hover"
                     >
                       {personInitials[s.role]}
                     </button>
@@ -268,7 +264,7 @@ export function Dock() {
               <DropdownMenuContent align="end" side="top" sideOffset={10} className="w-56">
                 <DropdownMenuLabel className="pb-2">
                   <div className="type-data-strong">{personName[s.role]}</div>
-                  <div className="type-meta text-muted-foreground">{roleLabel[s.role]}</div>
+                  <div className="type-meta">{roleLabel[s.role]}</div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => router.push("/settings")}>Settings</DropdownMenuItem>

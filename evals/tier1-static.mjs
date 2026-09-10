@@ -130,6 +130,70 @@ for (const f of files) {
   }
 }
 
+/* ── 7. deprecated aliases (the shadcn-era names) ───────────────────────────────
+   globals.css keeps the old utility names in a block marked DEPRECATED so the build
+   stays green while surfaces are recomposed. This count may only fall; the block is
+   deleted when it reaches zero (docs/rebuild/02-sequence.md §1.2). */
+const DEPRECATED = /\b(bg|text|border|ring|fill|stroke|divide|decoration|placeholder:text|hover:bg|hover:text|focus:bg)-(background|foreground|sidebar|card|card-foreground|popover|popover-foreground|muted|muted-foreground|subtle|border|input|primary|primary-foreground|primary-soft|secondary|secondary-foreground|accent|accent-foreground|destructive|destructive-foreground)(\/\d+)?\b|var\(--(radius-card|radius-control|radius-panel|frame-stroke|sys-accent[\w-]*|sys-stroke-divider|sys-stroke-subtle)\)/;
+for (const f of files) {
+  if (f.rel.endsWith("globals.css")) continue;
+  for (const { line, n } of codeLines(f.text)) {
+    if (DEPRECATED.test(line)) {
+      add("deprecated-alias", f.rel, n, line.trim().slice(0, 88),
+        "a shadcn-era name — use the sys utilities (bg-raised, text-label-secondary, border-hairline, bg-ink …)");
+    }
+  }
+}
+
+/* ── 8. raw values where the scale should be ──────────────────────────────────
+   Radius is the scale (rounded-sm … rounded-4xl, rounded-full); elevation is the
+   ladder (shadow-elev-0 … 4); colour is a token. An arbitrary value at a call site
+   is a decision nobody made (VIS-040, VIS-050). */
+const RAW_VALUE = /\brounded(-[trbl]{1,2})?-\[|\bshadow-\[|#[0-9a-fA-F]{3,8}\b|\b(bg|text|border)-\[(#|rgb|hsl|oklch)/;
+for (const f of files) {
+  if (f.rel.endsWith(".css") || f.rel.endsWith("components/layouts.tsx")) continue; // PropertyImage draws generated plates in hsl()
+  for (const { line, n } of codeLines(f.text)) {
+    if (RAW_VALUE.test(line)) {
+      add("raw-value", f.rel, n, line.trim().slice(0, 88),
+        "radius, shadow and colour come from the scale, never an arbitrary value");
+    }
+  }
+}
+
+/* ── 9. disabled is a colour swap, never opacity (VIS-022) ───────────────────── */
+for (const f of files) {
+  if (f.rel.endsWith(".css")) continue;
+  for (const { line, n } of codeLines(f.text)) {
+    if (/\b(disabled|aria-disabled|data-\[disabled\]|peer-disabled|group-data-\[disabled=true\]):opacity-/.test(line)) {
+      add("opacity-disabled", f.rel, n, line.trim().slice(0, 88),
+        "disabled is a named colour (text-label-disabled, bg-disabled), never opacity");
+    }
+  }
+}
+
+/* ── 10. the copy lexicon ────────────────────────────────────────────────────────
+   Built after the Deel panel found "three integration errors" beside "700 Drive" on
+   one screen. Two rules: a count in JSX text is digits, never a spelled-out word;
+   and a term has one canonical spelling (evals/lexicon.json). */
+const LEX = JSON.parse(readFileSync(join(ROOT, "evals", "lexicon.json"), "utf8"));
+const WORDS = "(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)";
+const SPELLED = new RegExp("\\b" + WORDS + "\\s+(" + LEX.countNouns.join("|") + ")\\b", "i");
+const escapeRe = (v) => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const VARIANTS = Object.entries(LEX.terms).flatMap(([canon, vs]) =>
+  vs.map((v) => ({ canon, re: new RegExp("(^|[^\\w/-])" + escapeRe(v) + "(?=[^\\w-]|$)") })));
+for (const f of files) {
+  if (!f.rel.startsWith("src/app/") && !f.rel.startsWith("src/components/")) continue;
+  if (f.rel.endsWith(".css")) continue;
+  for (const { line, n } of codeLines(f.text)) {
+    for (const t of line.matchAll(/>([^<{}]+)</g)) {
+      const text = t[1];
+      if (SPELLED.test(text)) add("lexicon", f.rel, n, text.trim().slice(0, 88), "a count is written in digits, never spelled out");
+      for (const v of VARIANTS) if (v.re.test(text)) add("lexicon", f.rel, n, text.trim().slice(0, 88), "not the canonical term — use “" + v.canon + "”");
+    }
+  }
+}
+
+
 /* ── 6. every contracted screen exists ──────────────────────────────────────────
    A contract naming a route that no longer ships is a spec drifting from the product
    it claims to describe. */
@@ -151,6 +215,10 @@ const RULES = [
   ["raw-type-utility", "Raw type utility instead of a role"],
   ["uncoloured-bar-beside-legend", "Bar that disagrees with its key"],
   ["contract-without-screen", "Contract with no screen"],
+  ["deprecated-alias", "Deprecated shadcn-era utility"],
+  ["raw-value", "Raw radius, shadow or colour"],
+  ["opacity-disabled", "Disabled by opacity"],
+  ["lexicon", "Copy outside the lexicon"],
 ];
 
 const byRule = {};

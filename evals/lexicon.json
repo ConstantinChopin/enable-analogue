@@ -1,0 +1,20 @@
+{
+  "$doc": "The copy lexicon. Tier 1 fails on a variant that is not the canonical term, and on a count spelled out in words where the product elsewhere uses digits. Built after the Deel panel found 'three integration errors' beside '700 Drive' on one screen (docs/rebuild/01-feedback-deel.md, C2).",
+  "terms": {
+    "Google Drive": ["GDrive", "G Drive", "Gdrive"],
+    "booking system": ["booking platform", "booking-platform"],
+    "partner portal": ["partner-portal", "Partner Portal"],
+    "commission": ["comm."],
+    "traveller": ["traveler"],
+    "itinerary": ["itin."],
+    "advisory": ["notice"],
+    "unverified": ["not verified", "un-verified"]
+  },
+  "countNouns": ["error", "errors", "document", "documents", "record", "records", "source", "sources", "file", "files", "item", "items", "field", "fields", "commission", "commissions", "traveller", "travellers", "notice", "notices", "day", "days", "candidate", "candidates"],
+  "units": {
+    "currency": "EUR 12,532 — code, space, thousands separator, no decimals for whole amounts",
+    "date": "12 Mar — day then month, no ordinal, no year inside the current year",
+    "age": "54d — days as a number and a lowercase d, no space",
+    "percent": "12% — no space"
+  }
+}

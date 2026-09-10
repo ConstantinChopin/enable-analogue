@@ -5,20 +5,15 @@ import { Progress as ProgressPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
-/* A bar measures a quantity, and a quantity in this product usually has a colour
-   already — the legend under it, or the chip beside it, has named one. The bar had no
-   way to agree: the indicator was hardcoded to `bg-primary`, so the vault drew its
-   verified proportion in near-black one line under a legend saying verified is green.
-   The bar and its own key disagreed about the same number.
-
-   `tone` keeps that decision in the primitive rather than letting call sites paint
-   indicators by hand. `neutral` is the default and is what every existing bar keeps:
-   a plain quantity with no colour claim anywhere near it. */
+/* A bar measures a quantity that usually has a colour already — the legend under
+   it has named one. `tone` keeps that decision in the primitive so the bar and its
+   own key cannot disagree. `neutral` is ink on the sunken fill: a plain quantity
+   with no colour claim anywhere near it.                                         */
 const TONES = {
-  neutral: { fill: "bg-primary", track: "bg-primary/20" },
-  ok: { fill: "bg-ok", track: "bg-ok/15" },
-  warn: { fill: "bg-warn", track: "bg-warn/15" },
-  crit: { fill: "bg-crit", track: "bg-crit/15" },
+  neutral: { fill: "bg-ink", track: "bg-sunken" },
+  ok: { fill: "bg-ok", track: "bg-ok-soft" },
+  warn: { fill: "bg-warn", track: "bg-warn-soft" },
+  crit: { fill: "bg-crit", track: "bg-crit-soft" },
 } as const
 
 function Progress({
@@ -34,7 +29,7 @@ function Progress({
     <ProgressPrimitive.Root
       data-slot="progress"
       className={cn(
-        "relative h-2 w-full overflow-hidden rounded-full",
+        "relative h-1.5 w-full overflow-hidden rounded-full",
         t.track,
         className
       )}
@@ -42,7 +37,7 @@ function Progress({
     >
       <ProgressPrimitive.Indicator
         data-slot="progress-indicator"
-        className={cn("h-full w-full flex-1 transition-all", t.fill)}
+        className={cn("h-full w-full flex-1 rounded-full transition-transform duration-200 ease-standard", t.fill)}
         style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
       />
     </ProgressPrimitive.Root>

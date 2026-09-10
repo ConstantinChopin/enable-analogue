@@ -1,5 +1,8 @@
 "use client";
-/** Core custom atoms + small molecules per design-system-inventory.md. */
+/**
+ * Atoms and small molecules. Every value here is a sys-* utility or a type role;
+ * nothing holds a literal. Each component's rule is in docs/rebuild/decisions.md.
+ */
 import React from "react";
 import { cn } from "@/lib/utils";
 import { useDemo } from "@/lib/store";
@@ -8,21 +11,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FileText, HardDrive, Mail, Route, Database, Globe, PenLine, Presentation } from "lucide-react";
 
 /* ── Absent ──────────────────────────────────────────────────────────────────
-   One vocabulary for empty.
-
-   Blank space was carrying three incompatible meanings at once: a value that was
-   never computed, a step already done, and material this reader is not permitted
-   to see. On a product whose whole claim is that you can always tell why something
-   is not there, an advisor could look at a card and not know whether Acuity had
-   been withheld, never run, or did not apply.
-
-   So: restricted material stays genuinely absent — it never reaches the page, and
-   there is nothing here to render. Everything else that is empty says which kind
-   of empty it is, in the em-dash form the commissions ledger already used for
-   not-applicable. The dash is the constant; the word after it is the reason.        */
+   One vocabulary for empty. Restricted material never reaches the page; every
+   other empty says which kind of empty it is. The dash is the constant; the word
+   after it is the reason.                                                       */
 export function Absent({ reason, className }: { reason: "not run" | "none on file" | "not applicable" | "pending"; className?: string }) {
   return (
-    <span className={cn("inline-flex items-baseline gap-1.5 text-muted-foreground", className)}>
+    <span className={cn("inline-flex items-baseline gap-1.5 text-label-secondary", className)}>
       <span aria-hidden>—</span>
       <span className="type-micro">{reason}</span>
     </span>
@@ -30,16 +24,8 @@ export function Absent({ reason, className }: { reason: "not run" | "none on fil
 }
 
 /* ── DataList ─────────────────────────────────────────────────────────────────
-   One shape for label-and-value.
-
-   This is among the most repeated structures in the product and it had grown four
-   different implementations — label stacked above value, two-column unruled,
-   two-column ruled, and two-column with a wide gap — none of them shared. A reader
-   moving between the notification inspector, a traveller card and a policy widget
-   was reading the same kind of thing in four different grammars.
-
-   `rows` may carry a null value; a row with nothing to show renders the absence
-   vocabulary rather than an empty cell.                                            */
+   One shape for label-and-value: hairline rows at the row module, label in the
+   secondary level, value right-aligned. No box — a list is content, not a tool. */
 export function DataList({
   rows, className,
 }: {
@@ -47,17 +33,17 @@ export function DataList({
   className?: string;
 }) {
   return (
-    <dl className={cn("rounded-lg border border-border px-4 type-data", className)}>
+    <dl className={cn("type-data", className)}>
       {rows.map((r, i) => (
         <div
           key={r.label}
           className={cn(
-            "flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5",
-            i > 0 && "border-t border-border",
+            "flex min-h-[var(--row-h)] flex-wrap items-baseline justify-between gap-x-[var(--space-4)] gap-y-1 py-[11px]",
+            i > 0 && "border-t border-hairline",
           )}
         >
-          <dt className="text-muted-foreground">{r.label}</dt>
-          <dd className="min-w-0 text-right">
+          <dt className="text-label-secondary">{r.label}</dt>
+          <dd className="min-w-0 text-right text-label">
             {r.value ?? <Absent reason={r.absent ?? "none on file"} />}
           </dd>
         </div>
@@ -67,13 +53,7 @@ export function DataList({
 }
 
 /* ── EmptyState ───────────────────────────────────────────────────────────────
-   One shape for "there is nothing here". This existed already — unexported, inside
-   `notifications/page.tsx`, used once — while three other surfaces hand-rolled their
-   own (a centred Section, a table cell spanning seven columns, a bare paragraph).
-   The component was not missing; it was in the wrong file.
-
-   `icon` is optional and `action` is the way back out, because an empty state that
-   offers no route is a dead end rather than an answer.                            */
+   "There is nothing here", with the way back out.                              */
 export function EmptyState({
   title, body, icon: Icon, action, className,
 }: {
@@ -84,95 +64,102 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <Section className={cn("py-12 text-center", className)}>
-      {Icon && <Icon className="mx-auto size-[var(--icon-lg)] text-muted-foreground" aria-hidden />}
-      <p className={cn("type-data-strong", Icon && "mt-3")}>{title}</p>
+    <div className={cn("py-[var(--gap-5)] text-center", className)}>
+      {Icon && <Icon className="mx-auto size-[var(--icon-lg)] text-label-tertiary" aria-hidden />}
+      <p className={cn("type-data-strong", Icon && "mt-[var(--space-3)]")}>{title}</p>
       <p className="mx-auto mt-1 max-w-[46ch] type-meta">{body}</p>
-      {action && <div className="mt-3">{action}</div>}
-    </Section>
+      {action && <div className="mt-[var(--space-4)]">{action}</div>}
+    </div>
   );
 }
 
 /* ── Rows ─────────────────────────────────────────────────────────────────────
-   The list row, shared. Previously each surface declared its own `Row`/`Rows` pair
-   locally, which is why the two-line shape existed on exactly one screen.
-
-   A row owns its horizontal gutter so its divider and hover fill span the full card;
-   the `list` card body owns none. Use `RowStack` whenever the trailing marks would
-   otherwise squeeze the subject — the subject keeps at least half its width, and the
-   second line takes the message.                                                    */
+   The list row, shared. Hairlines between rows, none under the last; the row
+   module is 40. A row owns its horizontal gutter when it sits inside a tool
+   (`inset`), and none when it sits in a chapter, where the column is the edge. */
 export function Rows({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <ul className={cn("divide-y divide-border type-data", className)}>{children}</ul>;
+  return <ul className={cn("divide-y divide-hairline type-data", className)}>{children}</ul>;
 }
 
-export function Row({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <li className={cn("row-grid px-[var(--space-4)]", className)}>{children}</li>;
+export function Row({ children, className, inset }: { children: React.ReactNode; className?: string; inset?: boolean }) {
+  return <li className={cn("row-grid", inset && "px-[var(--space-6)]", className)}>{children}</li>;
 }
 
 /** Subject + one trailing mark on line one; the message on line two. */
 export function RowStack({
-  head, children, className,
-}: { head: React.ReactNode; children: React.ReactNode; className?: string }) {
+  head, children, className, inset,
+}: { head: React.ReactNode; children: React.ReactNode; className?: string; inset?: boolean }) {
   return (
-    <li className={cn("row-stack px-[var(--space-4)]", className)}>
+    <li className={cn("row-stack", inset && "px-[var(--space-6)]", className)}>
       <div className="row-stack-head">{head}</div>
       <div className="row-stack-body type-meta">{children}</div>
     </li>
   );
 }
 
-/* ── Chip ─────────────────────────────────────────────────────────────────────
-   Fill is reserved for severity.
-
-   The system's own principle is "emphasis is weight before size or colour" — but a
-   chip is a filled shape, and fill outranks weight perceptually whatever the type
-   size. So the stated hierarchy and the rendered one disagreed, and the chip won:
-   the eye read "chased · 54d" before "Aurelia", on every list in the product.
-
-   `warn` and `crit` keep their fill, because severity is the one thing that should
-   outrank a subject. Everything else — trust, lifecycle, counts — is outlined: the
-   tone still carries the meaning, and the subject returns to the top of the row.  */
+/* ── Chip — a status carrier, never an action ─────────────────────────────────
+   24 high, a pill (it floats over content). Fill is reserved for severity: warn
+   and crit take ink on tint; everything else is outlined so the row's subject
+   stays on top. Words always; the tone is redundant with them.                 */
 export function Chip({ tone = "neutral", className, title, children }: { tone?: "neutral" | "ok" | "warn" | "crit" | "primary"; className?: string; title?: string; children: React.ReactNode }) {
-  /* Every chip carries a border, so outlined and filled chips are the same height.
-     Previously only the outlined ones did, and the border added to the box — a filled
-     chip measured 18px and an outlined one 20px, staggering any row that held both.
-     A filled chip's border matches its own fill, so it stays invisible.              */
   const tones = {
-    neutral: "border-border text-muted-foreground",
-    ok: "border-ok/35 text-ok",
-    primary: "border-primary/30 text-primary",
-    /* severity — filled, and the border takes the fill so the box is unchanged */
+    neutral: "border-hairline text-label-secondary",
+    ok: "border-ok/40 text-ok",
+    primary: "border-strong text-label",
     warn: "border-warn-soft bg-warn-soft text-warn",
     crit: "border-crit-soft bg-crit-soft text-crit",
   } as const;
-  return <span title={title} className={cn("inline-flex h-5 items-center gap-1 rounded-full border px-2 type-micro whitespace-nowrap", tones[tone], className)}>{children}</span>;
+  return (
+    <span
+      title={title}
+      data-slot="chip"
+      className={cn("inline-flex h-[var(--chip-h)] items-center gap-1 whitespace-nowrap rounded-full border px-2.5 type-micro", tones[tone], className)}
+    >
+      {children}
+    </span>
+  );
 }
 
-/* ── StatusDot ────────────────────────────────────────────────────────────────
-   A state, in a word, with a dot beside it. The label is a REQUIRED child, which is
-   the whole point of the component: you cannot render a naked coloured circle through
-   it, so the rule "never colour alone" is enforced by the type rather than by everyone
-   remembering it.
+/* ── FilterChip — a chip you can press (VIS-021) ──────────────────────────────
+   32 high, a pill, hairline at rest, ink stroke on hover, INVERSE when selected.
+   `aria-pressed` carries the state for the harness and for readers.           */
+export function FilterChip({
+  selected, onClick, className, children, count,
+}: { selected?: boolean; onClick?: () => void; className?: string; children: React.ReactNode; count?: number }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={!!selected}
+      onClick={onClick}
+      data-slot="filter-chip"
+      className={cn(
+        "pressable inline-flex h-[var(--control-h-sm)] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border px-[var(--control-px-sm)] type-data font-medium",
+        selected
+          ? "border-selected bg-selected text-on-selected"
+          : "border-hairline bg-raised text-label hover:border-stroke-hover",
+        className,
+      )}
+    >
+      {children}
+      {count !== undefined && (
+        <span className={cn("type-micro tnum", selected ? "text-on-selected/70" : "text-label-tertiary")}>{count}</span>
+      )}
+    </button>
+  );
+}
 
-   Thirteen call sites had hand-rolled this markup at two different diameters, each
-   choosing its own colour semantics locally. Most kept the word; one did not, and that
-   one shipped — a column of dots beside a date, green on twelve of fourteen rows,
-   telling the reader nothing and breaking pattern exactly twice.
-
-   Colour never carries the meaning on its own here. It is redundant with the word,
-   which is also what makes the whole set legible to anyone who cannot separate the
-   green from the amber.                                                              */
+/* ── StatusDot — a state, in a word, with a dot beside it ─────────────────────
+   The label is a REQUIRED child: you cannot render a naked coloured circle.   */
 export function StatusDot({
   tone, children, className,
 }: {
   tone: "ok" | "warn" | "crit" | "muted" | "primary";
-  /** Required. A dot with no word is not a status, it is decoration. */
   children: React.ReactNode;
   className?: string;
 }) {
   const color = {
     ok: "bg-ok", warn: "bg-warn", crit: "bg-crit",
-    primary: "bg-primary", muted: "border border-muted-foreground/60",
+    primary: "bg-ink", muted: "border border-strong",
   }[tone];
   return (
     <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap", className)}>
@@ -182,23 +169,22 @@ export function StatusDot({
   );
 }
 
-/* ── EvidenceDot: state in words + dot, never color alone ── */
+/* ── EvidenceDot: state in words + dot, never colour alone ── */
 export function EvidenceDot({ kind, label }: { kind: "verified" | "stale" | "disagree" | "incentive" | "unconfirmed"; label: string }) {
-  /* `unconfirmed` is the absence of a trust state rather than one of them — hollow, not filled. */
-  const color = { verified: "bg-ok", stale: "bg-warn", disagree: "bg-crit", incentive: "bg-primary", unconfirmed: "border border-muted-foreground/60" }[kind];
+  const color = { verified: "bg-ok", stale: "bg-warn", disagree: "bg-crit", incentive: "bg-ink", unconfirmed: "border border-strong" }[kind];
   return (
-    <span className="inline-flex items-center gap-1.5 type-meta text-foreground">
+    <span className="inline-flex items-center gap-1.5 type-meta text-label">
       <span className={cn("size-2 rounded-full", color)} aria-hidden />
       {label}
     </span>
   );
 }
 
-/* ── LayerBadge ── */
+/* ── LayerBadge — which layer a value came from, in a word ── */
 export function LayerBadge({ layer }: { layer: "canonical" | "agency" | "personal" }) {
-  const color = { canonical: "bg-ok", agency: "bg-primary", personal: "bg-muted-foreground" }[layer];
+  const color = { canonical: "bg-ok", agency: "bg-ink", personal: "bg-strong" }[layer];
   return (
-    <span className="inline-flex items-center gap-1.5 type-micro text-muted-foreground">
+    <span className="inline-flex items-center gap-1.5 type-micro text-label-secondary">
       <span className={cn("size-1.5 rounded-full", color)} aria-hidden />
       {layer}
     </span>
@@ -207,7 +193,7 @@ export function LayerBadge({ layer }: { layer: "canonical" | "agency" | "persona
 
 /* ── FreshnessDate: a date, never an icon alone ── */
 export function FreshnessDate({ children, stale }: { children: React.ReactNode; stale?: boolean }) {
-  return <span className={cn("type-micro", stale ? "text-warn" : "text-muted-foreground")}>{children}</span>;
+  return <span className={cn("type-micro", stale ? "text-warn" : "text-label-secondary")}>{children}</span>;
 }
 
 /* ── SourceTag ── */
@@ -215,31 +201,29 @@ const sourceIcons = { intranet: FileText, gdrive: HardDrive, email: Mail, axus: 
 export function SourceTag({ kind, label }: { kind: keyof typeof sourceIcons; label: string }) {
   const Icon = sourceIcons[kind];
   return (
-    <span className="inline-flex items-center gap-1 type-micro text-muted-foreground font-mono">
-      <Icon className="size-3" aria-hidden />
+    <span className="inline-flex items-center gap-1 type-code text-label-secondary">
+      <Icon className="size-[var(--icon-sm)]" aria-hidden />
       {label}
     </span>
   );
 }
 
 /* ── ConfidenceMeter: "3 of 4 sources agree" ── */
-/** `label={null}` renders the bar alone — for rows where the words beside it already
-    say what the bar says, and repeating them is noise rather than clarity. */
 export function ConfidenceMeter({ agree, total, label, className }: { agree: number; total: number; label?: string | null; className?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
       <span
-        className="h-1.5 w-16 rounded-full bg-muted overflow-hidden"
+        className="h-1.5 w-16 overflow-hidden rounded-full bg-sunken"
         role="meter"
         aria-valuenow={agree}
         aria-valuemin={0}
         aria-valuemax={total}
         aria-label={label ?? "confidence"}
       >
-        <span className="block h-full rounded-full bg-primary" style={{ width: `${(agree / total) * 100}%` }} />
+        <span className="block h-full rounded-full bg-ink" style={{ width: `${(agree / total) * 100}%` }} />
       </span>
       {label !== null && (
-        <span className="type-micro text-muted-foreground">
+        <span className="type-micro text-label-secondary">
           {label ?? `${agree} of ${total} sources agree`}
         </span>
       )}
@@ -253,36 +237,47 @@ export function MoneyValue({ amount, currency = "EUR", converted, held }: { amou
   return (
     <span className="tnum">
       {currency} {typeof amount === "number" ? amount.toLocaleString("en-GB") : amount}
-      {converted && <span className="text-muted-foreground type-micro"> · {converted.currency} {converted.amount} (conversion dated {converted.date})</span>}
+      {converted && <span className="type-micro text-label-secondary"> · {converted.currency} {converted.amount} (conversion dated {converted.date})</span>}
     </span>
   );
 }
 
-/* ── ConfirmBanner: transient success (distinct from NoticeBanner) ── */
+/* ── ConfirmBanner: transient success ── */
 export function ConfirmBanner({ show, children }: { show: boolean; children: React.ReactNode }) {
   if (!show) return null;
-  return <div className="rounded-lg border-l-3 border-ok bg-ok-soft px-3 py-2 type-data" role="status">{children}</div>;
+  return <div className="rounded-lg bg-ok-soft px-[var(--space-4)] py-[var(--space-3)] type-data-read text-ok" role="status">{children}</div>;
 }
 
-/* ── NoticeBanner tones ── */
+/* ── SeverityBanner — ink on tint, one sentence ── */
 export function SeverityBanner({ severity, className, children }: { severity: "Info" | "Important" | "Critical" | "ok"; className?: string; children: React.ReactNode }) {
-  const tones = { Info: "border-border bg-subtle", Important: "border-warn bg-warn-soft", Critical: "border-crit bg-crit-soft", ok: "border-ok bg-ok-soft" } as const;
-  return <div className={cn("rounded-lg border-l-3 px-3 py-2.5 type-data", tones[severity], className)}>{children}</div>;
+  const tones = { Info: "bg-sunken text-label", Important: "bg-warn-soft text-warn", Critical: "bg-crit-soft text-crit", ok: "bg-ok-soft text-ok" } as const;
+  return <div className={cn("rounded-lg px-[var(--space-4)] py-[var(--space-3)] type-data-read", tones[severity], className)}>{children}</div>;
 }
 
-/* ── SchematicBadge ──────────────────────────────────────────────────────────
-   One meaning, everywhere: **the controls you can see here are drawn, not wired.**
+/* ── TrustRow — trust is a row of words (VIS-070) ─────────────────────────────
+   symbol · label · one sentence of reason · figures, in a hairline row at column
+   width. Colour never says "trusted".                                          */
+export function TrustRow({
+  icon: Icon, label, reason, figures, className,
+}: { icon?: React.ElementType; label: string; reason: string; figures?: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("flex items-center gap-[var(--space-4)] rounded-lg border border-hairline px-[var(--space-6)] py-[var(--space-4)]", className)}>
+      {Icon && <Icon className="size-[var(--icon-lg)] shrink-0 text-label" aria-hidden />}
+      <div className="min-w-0 flex-1">
+        <div className="type-data-strong">{label}</div>
+        <div className="type-data-read text-label-secondary">{reason}</div>
+      </div>
+      {figures && <div className="shrink-0 text-right type-data tnum">{figures}</div>}
+    </div>
+  );
+}
 
-   It had drifted across three jobs — a feature that does not exist, a feature partly
-   built, and a block of controls that look live and change nothing — which made it
-   unreadable. A thing that does not exist at all is not badged; it is absent, or
-   named on the control itself. This badge marks only the third case, and it now says
-   so on hover rather than relying on the reader to infer which sense is meant.     */
+/* ── SchematicBadge — the controls you can see here are drawn, not wired ── */
 export function SchematicBadge() {
   return (
     <Chip
       tone="neutral"
-      className="font-mono uppercase tracking-wide type-micro"
+      className="font-mono uppercase tracking-wide"
       title="Drawn, not wired — these controls do not change anything in this build."
     >
       schematic
@@ -295,73 +290,79 @@ export function NarrationNote({ children }: { children: React.ReactNode }) {
   const { s } = useDemo();
   if (!s.narration) return null;
   return (
-    <aside className="rounded-lg border border-dashed border-primary/50 bg-primary-soft/50 px-3 py-2.5 type-data text-foreground/90 flex gap-2">
-      <Presentation className="size-4 shrink-0 text-primary mt-0.5" aria-hidden />
+    <aside className="flex gap-2 rounded-lg border border-dashed border-strong bg-sunken/60 px-[var(--space-4)] py-[var(--space-3)] type-data-read text-label">
+      <Presentation className="mt-0.5 size-[var(--icon-md)] shrink-0 text-label-secondary" aria-hidden />
       <span>{children}</span>
     </aside>
   );
 }
 
-/* ── ProvenancePopover on a field value ── */
+/* ── ProvenancePopover on a field value ───────────────────────────────────────
+   A value you can press: hairline underline at rest, fill on hover.           */
 export function ProvenancePopover({ source, children }: { source: { what: string; where: string; when: string; kind: keyof typeof sourceIcons }; children: React.ReactNode }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="text-left rounded-sm hover:bg-muted/70 px-1 -mx-1 cursor-pointer">{children}</button>
+        <button className="pressable -mx-1 cursor-pointer rounded-sm px-1 text-left underline decoration-hairline underline-offset-4 hover:bg-interactive hover:decoration-ink">{children}</button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-80 type-data space-y-2">
-        <div className="font-medium type-meta uppercase tracking-wide text-muted-foreground">Field provenance</div>
-        <div><span className="text-muted-foreground">What · </span>{source.what}</div>
-        <div><span className="text-muted-foreground">Where · </span>{source.where}</div>
-        <div><span className="text-muted-foreground">When · </span>{source.when}</div>
-        <div className="pt-1 border-t border-border"><SourceTag kind={source.kind} label="open document (permission holds)" /></div>
+      <PopoverContent align="start" className="w-80 space-y-2 type-data">
+        <div className="type-micro-caps text-label-tertiary">Field provenance</div>
+        <div><span className="text-label-secondary">What · </span>{source.what}</div>
+        <div><span className="text-label-secondary">Where · </span>{source.where}</div>
+        <div><span className="text-label-secondary">When · </span>{source.when}</div>
+        <div className="border-t border-hairline pt-2"><SourceTag kind={source.kind} label="open document (permission holds)" /></div>
       </PopoverContent>
     </Popover>
   );
 }
 
 /**
- * The card primitive.
+ * Section — the page's atom (VIS-070).
  *
- * Two variants, each complete on its own:
- *   padded (default) — 16px body inset; prose and mixed content
- *   list             — zero body inset, children own theirs; header and footer ruled
+ *   chapter  the section unit: padding · title · content · padding · rule, at
+ *            column width. No box. Content lives here.
+ *   tool     a hairline box on raised paper, 24 inside: something that must stay
+ *            in reach while the page scrolls. `follows` elevates it (step 2).
+ *   padded   (transitional) the previous boxed card, 16 inside.
+ *   list     (transitional) the previous boxed card with a flush body.
  *
- * `list` replaces the old `flush`, which required every one of its call sites to *also*
- * pass a body padding override. A primitive that needs a second prop to function is one
- * people route around, and 31 hand-rolled card shells across 13 files were the cost.
- *
- * The header has two zones and an admission rule:
- *   IDENTITY (left) — the title, plus at most one qualifier, and only if it carries
- *                     information the title does not.
- *   ACTION (right)  — controls only.
- * Status that describes the *content* belongs in the body's first row, not up here.
- * The rule is what makes "Enable canonical ● canonical" a violation rather than taste.
+ * The header has two zones: IDENTITY (title + at most one qualifier) and ACTION
+ * (controls only). Status that describes the content belongs in the body.
  */
 export function Section({
-  title, chips, actions, footer, variant = "padded", className, bodyClassName, children,
+  title, chips, actions, footer, variant = "chapter", quiet, deep, follows, className, bodyClassName, children,
 }: {
   title?: React.ReactNode;
-  /** One qualifier, admitted only if it adds what the title does not. */
   chips?: React.ReactNode;
   actions?: React.ReactNode;
   footer?: React.ReactNode;
-  variant?: "padded" | "list";
+  variant?: "chapter" | "tool" | "padded" | "list";
+  /** A note's title (14/400 secondary), not a chapter's. */
+  quiet?: boolean;
+  /** Below the fold: 48 of breathing room instead of 32. */
+  deep?: boolean;
+  /** A tool that follows you: elevation 2. */
+  follows?: boolean;
   className?: string;
   bodyClassName?: string;
   children: React.ReactNode;
 }) {
+  const chapter = variant === "chapter";
+  const tool = variant === "tool";
   const list = variant === "list";
+  const boxed = !chapter;
   return (
     <section
-      /* `<section>` is used for page regions as well as cards, so the eval harness had
-         no way to tell a card from a layout wrapper and measured the alignment of a
-         two-column grid as though it were one card's contents. A card says so. */
-      data-slot="card"
+      data-slot={chapter ? "chapter" : "card"}
       data-variant={variant}
       className={cn(
-        "flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-border bg-card",
-        !list && "p-[var(--space-4)]",
+        chapter && "chapter",
+        chapter && deep && "chapter-deep",
+        tool && "tool",
+        tool && follows && "tool-follows",
+        (variant === "padded" || list) && "flex min-w-0 flex-col overflow-hidden rounded-lg bg-raised shadow-elev-0",
+        variant === "padded" && "p-[var(--space-4)]",
+        boxed && "flex min-w-0 flex-col",
         className,
       )}
     >
@@ -369,24 +370,25 @@ export function Section({
         <header
           className={cn(
             "flex flex-wrap items-center gap-[var(--space-2)]",
-            list ? "border-b border-border px-[var(--space-4)] py-[var(--space-3)]" : "mb-[var(--space-3)]",
+            chapter && "mb-[var(--space-4)]",
+            tool && "mb-[var(--space-4)]",
+            list ? "border-b border-hairline px-[var(--space-4)] py-[var(--space-3)]" : variant === "padded" && "mb-[var(--space-3)]",
           )}
         >
-          {/* `type-section`, not `type-data-strong`. At 13/590 the card's title was the
-              same SIZE as the values under it and differed only in weight, so it sat
-              among its content rather than above it — a border can enclose a group but
-              it cannot subordinate one, which is why a stack of cards read as a pile of
-              equals no matter how the spacing was tuned. 15/590 over 13/400 is the step
-              that makes the heading own what follows, and every card in the product
-              inherits it from here. */}
-          <h3 className="flex min-w-0 flex-wrap items-center gap-[var(--space-2)] type-section">{title}</h3>
+          <h3 className={cn("flex min-w-0 flex-wrap items-center gap-[var(--space-2)]", quiet ? "type-section-quiet" : "type-section")}>{title}</h3>
           {chips}
           {actions && <div className="ml-auto flex items-center gap-[var(--space-2)]">{actions}</div>}
         </header>
       )}
       <div className={cn("min-w-0 flex-1", list && "py-[var(--space-3)]", bodyClassName)}>{children}</div>
       {footer && (
-        <footer className="mt-auto border-t border-border px-[var(--space-4)] py-[var(--space-3)]">
+        <footer className={cn(
+          "mt-auto",
+          chapter && "mt-[var(--space-4)]",
+          tool && "mt-[var(--space-4)] border-t border-hairline pt-[var(--space-4)]",
+          list && "border-t border-hairline px-[var(--space-4)] py-[var(--space-3)]",
+          variant === "padded" && "border-t border-hairline pt-[var(--space-3)]",
+        )}>
           {footer}
         </footer>
       )}
@@ -394,8 +396,8 @@ export function Section({
   );
 }
 
-/* ── Segmented — one control for view toggles, tag filters, state filters ──
-   Three surfaces had reimplemented this, each with its own radius and size. */
+/* ── Segmented — one control for view toggles and state filters ──────────────
+   A row of pills at control-sm; the selected one inverts (VIS-021).          */
 export function Segmented<T extends string>({
   value, onChange, options, label, className,
 }: {
@@ -406,17 +408,10 @@ export function Segmented<T extends string>({
   className?: string;
 }) {
   return (
-    /* The container is `control-sm` tall (28px) and its tabs fill it, so a segmented
-       control and any other filter-class control on the same line agree. It measured
-       29px against a 36px search input on the ledger — close enough to look like an
-       accident, which is what it was: nothing decided either number. */
     <div
       role="tablist"
       aria-label={label}
-      className={cn(
-        "inline-flex h-[var(--control-h-sm)] shrink-0 items-center rounded-[var(--radius-control)] border border-border p-0.5",
-        className,
-      )}
+      className={cn("inline-flex shrink-0 items-center gap-[var(--space-2)]", className)}
     >
       {options.map((o) => {
         const on = o.value === value;
@@ -429,13 +424,15 @@ export function Segmented<T extends string>({
             aria-selected={on}
             onClick={() => onChange(o.value)}
             className={cn(
-              "flex h-full cursor-pointer items-center gap-1.5 rounded-[4px] px-2.5 type-data transition-colors",
-              on ? "bg-muted font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
+              "pressable flex h-[var(--control-h-sm)] cursor-pointer items-center gap-1.5 rounded-full border px-[var(--control-px-sm)] type-data font-medium",
+              on
+                ? "border-selected bg-selected text-on-selected"
+                : "border-hairline bg-raised text-label-secondary hover:border-stroke-hover hover:text-label",
             )}
           >
             {Icon && <Icon className="size-[var(--icon-md)]" aria-hidden />}
             {o.label}
-            {o.count !== undefined && <span className="type-micro tnum opacity-70">{o.count}</span>}
+            {o.count !== undefined && <span className={cn("type-micro tnum", on ? "text-on-selected/70" : "text-label-tertiary")}>{o.count}</span>}
           </button>
         );
       })}
@@ -443,21 +440,18 @@ export function Segmented<T extends string>({
   );
 }
 
-/* ── QuietLoading ───────────────────────────────────────────────────
-   The one loading treatment, used by the route boundary (`app/loading.tsx`) and by
-   the session gate while the store rehydrates. A skeleton of the shape that is
-   coming rather than a spinner: the wait is a read, not a computation, and a blank
-   frame on reload reads as a broken build. */
+/* ── QuietLoading ─────────────────────────────────────────────────────────────
+   A skeleton of the shape that is coming rather than a spinner.               */
 export function QuietLoading({ note }: { note?: string }) {
   return (
     <div className="p-[var(--panel-pad)]" role="status" aria-live="polite">
       <Skeleton className="h-7 w-64" />
-      <p className="mt-3 type-meta">
+      <p className="mt-[var(--space-3)] type-meta">
         {note ?? "Reading the workspace. Nothing is drawn until the data behind it is here."}
       </p>
-      <div className="mt-6 space-y-3">
+      <div className="mt-[var(--space-6)] space-y-[var(--space-3)]">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-lg border border-border bg-card p-4">
+          <div key={i} className="border-b border-hairline pb-[var(--space-4)]">
             <Skeleton className="h-4 w-40" />
             <Skeleton className="mt-3 h-3 w-full" />
             <Skeleton className="mt-2 h-3 w-2/3" />
@@ -467,7 +461,3 @@ export function QuietLoading({ note }: { note?: string }) {
     </div>
   );
 }
-
-/* A second PageHeader lived here — its own markup, its own props, its own display size,
-   imported by nothing. Every surface uses the one in layouts.tsx. Two implementations of
-   one component is how a system starts disagreeing with itself, so this one is gone. */

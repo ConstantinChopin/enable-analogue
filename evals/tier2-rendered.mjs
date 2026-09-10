@@ -148,16 +148,40 @@ async function probe(page, semantic) {
       marks.add(bg(el));
     }
 
+    /* Selected must differ by more than colour (VIS-021; Deel C3). For every element
+       that says it is selected, find an unselected sibling of the same role and compare
+       the properties that are NOT text colour. */
+    const selectedWeak = [];
+    const SEL = '[aria-selected="true"], [aria-pressed="true"], [aria-current="page"], [data-state="active"], [data-state="selected"], [data-state="checked"]';
+    for (const el of document.querySelectorAll(SEL)) {
+      if (!vis(el)) continue;
+      const parent = el.parentElement;
+      if (!parent) continue;
+      const sib = [...parent.children].find((c) => c !== el && vis(c) && c.tagName === el.tagName && !c.matches(SEL));
+      if (!sib) continue;
+      const a = getComputedStyle(el), b = getComputedStyle(sib);
+      const differs = ["backgroundColor", "borderBottomWidth", "borderLeftWidth", "boxShadow", "fontWeight", "textDecorationLine", "borderColor"].some((k) => a[k] !== b[k]);
+      if (!differs) selectedWeak.push((el.textContent || el.getAttribute("aria-label") || "").trim().slice(0, 40));
+    }
+
+    /* The one primary is a pill (VIS-041); one page title per screen (VIS-012).
+       Filled buttons are counted in the topmost layer: an open sheet is its own surface. */
+    const topmost = document.querySelector('[role="dialog"][data-state="open"]') ?? document;
+    const filled = [...topmost.querySelectorAll("button, a[data-slot=button]")].filter((b) => b.dataset.variant === "default" && vis(b));
+    const notPill = filled.filter((b) => { const cs = getComputedStyle(b); const r = parseFloat(cs.borderTopLeftRadius); const h = b.getBoundingClientRect().height; return r < h / 2 - 1; }).map((b) => b.textContent.trim().slice(0, 40));
+    const titles = [...document.querySelectorAll(".type-title-page")].filter(vis).length;
+
     return {
+      selectedWeak,
+      notPill,
+      titles,
       columns,
       bars,
       naked,
       edges,
       distinctMarkColours: [...marks],
       overflowX: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-      filledButtons: [...document.querySelectorAll("button, a[data-slot=button]")]
-        .filter((b) => b.dataset.variant === "default" && vis(b))
-        .map((b) => b.textContent.trim().slice(0, 40)),
+      filledButtons: filled.map((b) => b.textContent.trim().slice(0, 40)),
     };
   }, semantic);
 }
@@ -215,6 +239,13 @@ try {
 
     record("at most one filled button", path, role, p.filledButtons.length <= 1,
       p.filledButtons.length > 1 ? p.filledButtons.join(" / ") : "");
+
+    record("the primary is a pill", path, role, p.notPill.length === 0, p.notPill.join(" / "));
+
+    record("one page title", path, role, p.titles === 1, p.titles === 1 ? "" : p.titles + " type-title-page on screen");
+
+    record("selected differs by more than colour", path, role, p.selectedWeak.length === 0,
+      p.selectedWeak.length ? p.selectedWeak.join(" / ") : "");
 
     await ctx.close();
   }

@@ -59,6 +59,6 @@ export async function palette(page) {
   return page.evaluate(() => {
     const cs = getComputedStyle(document.documentElement);
     const read = (n) => cs.getPropertyValue(n).trim();
-    return { ok: read("--ok"), warn: read("--warn"), crit: read("--crit"), primary: read("--primary") };
+    return { ok: read("--sys-ok"), warn: read("--sys-warn"), crit: read("--sys-crit"), primary: read("--sys-ink") };
   });
 }

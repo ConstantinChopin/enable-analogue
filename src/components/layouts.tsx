@@ -1,10 +1,8 @@
 "use client";
 /**
- * Layout primitives — the five archetypes are composed from these (§7).
- *
- * There is no global top bar (§10.8): every page opens with the same header zone,
- * back arrow + breadcrumb left, actions right. Every page clears the dock by way of
- * <Page>, which owns the bottom padding.
+ * Layout primitives. Every page opens with the same header zone — the page's
+ * name (the one serif on the screen) left, actions right — and clears the dock
+ * by way of <Page>, which owns the bottom padding.
  */
 import React, { useEffect, useState } from "react";
 
@@ -17,17 +15,17 @@ import {
 } from "@/components/ui/dialog";
 import { X, LayoutGrid, Rows3 } from "lucide-react";
 
-/* ── Dock clearance ────────────────────────────────────────────────────────────
-   16 (gap from viewport) + 16 (dock padding) + 44 (tile) + 8 (indicator row)
-   = 84px of furniture, plus breathing room. One constant, used everywhere.      */
+/* ── Dock clearance ──────────────────────────────────────────────────────────── */
 export const DOCK_FOOTPRINT = 84;
 export const DOCK_CLEARANCE = "pb-[112px]";
 
-/* ── PageHeader ─────────────────────────────────────────────────────────────── */
+/* ── PageHeader ───────────────────────────────────────────────────────────────
+   The title row: the page's name, and its text actions right-aligned (Airbnb's
+   title row carries Share · Save as text). The primary never lives here; it sits
+   at the bottom of the tool that owns it.                                       */
 export function PageHeader({
   back, crumb, title, actions, children, className,
 }: {
-  /** true → router.back(); a string → push that href. */
   back?: boolean | string;
   crumb?: React.ReactNode;
   title: React.ReactNode;
@@ -35,40 +33,31 @@ export function PageHeader({
   children?: React.ReactNode;
   className?: string;
 }) {
-  /* `back` and `crumb` are accepted for call-site compatibility but no longer drawn
-     here: navigation and location belong to the frame bar, above the content panel,
-     so they appear exactly once in the application. */
   void back; void crumb;
   return (
-    <header className={cn("mb-6", className)}>
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-        <h1 className="type-title-page flex min-w-0 flex-wrap items-center gap-3">{title}</h1>
-        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+    <header className={cn("mb-[var(--gap-2)]", className)}>
+      <div className="flex flex-wrap items-start justify-between gap-x-[var(--space-4)] gap-y-[var(--space-2)]">
+        <h1 className="type-title-page flex min-w-0 flex-wrap items-center gap-[var(--space-3)]">{title}</h1>
+        {actions && <div className="flex flex-wrap items-center gap-[var(--space-2)]">{actions}</div>}
       </div>
       {children}
     </header>
   );
 }
 
-/* ── Page ───────────────────────────────────────────────────────────────────── */
+/* ── Page ─────────────────────────────────────────────────────────────────────
+   Content sits in a centred column capped at `--content-max` (Airbnb's 1120),
+   so a wide panel gets gutters instead of a page that stretches to its edges.
+   Only genuine prose keeps a reading measure. The page owns its scroll.        */
 export function Page({
   width = "wide", className, fill = false, children,
 }: {
   width?: "wide" | "text" | "full";
   className?: string;
-  /**
-   * Give the inner column the panel's own height, so a page that pins something to
-   * its foot — Ask's composer — can size against the panel instead of the viewport.
-   * Off by default: a scrolling page wants this column to grow with its content.
-   */
   fill?: boolean;
   children: React.ReactNode;
 }) {
-  /* Content fills the panel at a fixed inset on every side, rather than being centred
-     inside a max-width column — the centred column produced ~97px side gutters on a
-     wide screen while the top sat at 24px, which read as three different paddings.
-     Only genuine prose keeps a measure. The page owns its scroll; the frame does not. */
-  const max = { wide: "max-w-none", text: "max-w-[72ch]", full: "max-w-none" }[width];
+  const max = { wide: "max-w-[var(--content-max)] mx-auto", text: "max-w-[72ch]", full: "max-w-none" }[width];
   return (
     <div className={cn("h-full w-full overflow-y-auto p-[var(--panel-pad)]", className)}>
       <div className={cn("w-full min-w-0", max, fill && "h-full")}>{children}</div>
@@ -76,19 +65,9 @@ export function Page({
   );
 }
 
-/* The Document archetype's layout lives in globals.css as .doc-layout / .doc-rail,
-   not as a component here. A React wrapper would have meant restructuring three large
-   surfaces to pass a ail prop; the rule is the same either way, and in CSS it applies
-   to the markup those surfaces already have. .doc-rail carries data-rail-label. */
-
-
 /* ── SplitPage ───────────────────────────────────────────────────────────────
-   A catalogue or ledger with an inspector. The inspector is a full-height column
-   at the right edge of the frame — the way Notion's side panel and Claude Code's
-   preview behave — and the page's own header, tabs and filters stay to its left,
-   narrowing as it opens. The previous arrangement nested the panel inside the
-   content column below the header, which made it read as a card rather than as an
-   inspector. */
+   A catalogue or ledger with an inspector: a full-height column at the frame's
+   right edge, on raised paper behind a hairline. On the phone, a bottom sheet. */
 export function SplitPage({
   header, panel, panelOpen, onClosePanel, panelTitle = "Detail", children,
 }: {
@@ -120,39 +99,25 @@ export function SplitPage({
       {open && (
         <aside
           aria-label={panelTitle}
-          className="flex h-full w-[400px] shrink-0 flex-col border-l border-border bg-card"
+          className="flex h-full w-[400px] shrink-0 flex-col border-l border-hairline bg-raised"
         >
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-3">
-            <span className="truncate type-data-strong">{panelTitle}</span>
-            <button
-              type="button"
-              onClick={onClosePanel}
-              aria-label="Close panel"
-              className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <X className="size-4" aria-hidden />
-            </button>
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-hairline px-[var(--space-6)] py-[var(--space-3)]">
+            <span className="truncate type-section">{panelTitle}</span>
+            <Button variant="ghost" size="icon-sm" onClick={onClosePanel} aria-label="Close panel"><X /></Button>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-4">{panel}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-[var(--space-6)]">{panel}</div>
         </aside>
       )}
 
       {!isDesktop && (
         <Sheet open={panelOpen} onOpenChange={(o) => { if (!o) onClosePanel(); }}>
-          <SheetContent side="bottom" showCloseButton={false} className="max-h-[85dvh] gap-0 rounded-t-2xl p-0">
+          <SheetContent side="bottom" showCloseButton={false} className="max-h-[85dvh] gap-0 p-0">
             <SheetTitle asChild><span className="sr-only">{panelTitle}</span></SheetTitle>
-            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-              <span className="truncate type-data-strong">{panelTitle}</span>
-              <button
-                type="button"
-                onClick={onClosePanel}
-                aria-label="Close panel"
-                className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <X className="size-4" aria-hidden />
-              </button>
+            <div className="flex items-center justify-between gap-2 border-b border-hairline px-[var(--space-6)] py-[var(--space-3)]">
+              <span className="truncate type-section">{panelTitle}</span>
+              <Button variant="ghost" size="icon-sm" onClick={onClosePanel} aria-label="Close panel"><X /></Button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-8">{panel}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-[var(--space-6)] pb-[var(--space-8)]">{panel}</div>
           </SheetContent>
         </Sheet>
       )}
@@ -160,8 +125,6 @@ export function SplitPage({
   );
 }
 
-/* ── the desktop query ────────────────────────────────────────────────────────
-   One breakpoint decides whether the inspector is a column or a sheet.          */
 function useIsDesktop() {
   const [is, setIs] = useState(false);
   useEffect(() => {
@@ -174,9 +137,7 @@ function useIsDesktop() {
   return is;
 }
 
-/* ── ViewToggle ───────────────────────────────────────────────────────────────
-   A thin wrapper over `Segmented` — the one segmented control. The prop signature
-   is unchanged, so every call site is untouched. */
+/* ── ViewToggle ─────────────────────────────────────────────────────────────── */
 const VIEW_OPTIONS = [
   { value: "grid" as const, label: "Grid", icon: LayoutGrid },
   { value: "table" as const, label: "Table", icon: Rows3 },
@@ -198,21 +159,9 @@ export function ViewToggle({
 
 /* ── PropertyImage ──────────────────────────────────────────────────────────────
    A picture where the record has one, the generated plate where it does not.
-
-   The images are GENERATED, not photographed, and that is a correctness decision
-   rather than a convenience. These properties are fictional, and the product attaches
-   invented commission rates and a fabricated "do not confirm bookings" advisory to
-   them — so a photograph of a real, identifiable hotel sitting above that advisory is
-   a problem no licence solves. Generation also gives the whole set one art direction;
-   28 stock photographs by 28 photographers read as a mood board, not as one catalogue.
-
-   They live in `public/records/<id>.jpg` (plus `-2`, `-3` for the gallery) and ship
-   with the build, so no demo can fail on a dead image host. Each is produced from a
-   fixed seed derived from the id, so the same record always yields the same picture —
-   the property the generated plate had, and the reason the demo looks the same twice.
-
-   The plate stays as the fallback: an abstract architectural drawing from a hash of
-   the id, so a record whose image is missing still has a picture rather than a hole. */
+   The images are GENERATED, not photographed: the properties are fictional and
+   the product attaches invented commission rates to them. Each is produced from
+   a fixed seed so the same record always yields the same picture.               */
 
 /** FNV-1a, 32-bit. Stable across runs and machines. */
 function hashId(id: string) {
@@ -242,11 +191,8 @@ export function PropertyImage({
   name?: string;
   category?: string;
   className?: string;
-  /** Overrides the conventional `/records/<id>.jpg` path. */
   src?: string;
 }) {
-  /* A record with no photograph 404s once and falls back to its plate, so the two can
-     coexist while the set is being filled in — no manifest to keep in sync. */
   const [photoFailed, setPhotoFailed] = useState(false);
   const photo = src ?? `/records/${id}.jpg`;
 
@@ -381,25 +327,15 @@ export function PropertyImage({
 }
 
 /* ── PropertyGallery ────────────────────────────────────────────────────────────
-   The record's images, as a mosaic rather than a band.
-
-   What this replaces was a full-width strip of fixed height — 112px, 160px above
-   `sm`. Against a 1200px column that is a 7.5:1 crop of a 16:10 picture: a sliver of
-   façade and sky, from which nothing can be read. The geometry was inherited from the
-   era when the image was an abstract plate, where the crop carried no information and
-   any band would do. A photograph is not a texture and cannot be cropped that way.
-
-   So the gallery is sized by RATIO, not by height, and the ratio is the composition:
-   one establishing view held large, two closer views stacked beside it. Each tile
-   keeps a sane aspect, and the whole block scales with the column instead of
-   flattening as the column grows.                                                  */
+   The record's images as a mosaic: one establishing view held large, two closer
+   views stacked beside it. Radius-5 (the gallery step), 2px gaps, imagery scales
+   1.04 on hover. The reveal is the disclosure pattern: a grey button at the
+   content's left edge under the preview (VIS-071).                              */
 export function PropertyGallery({
   id, name, category, className,
 }: { id: string; name?: string; category?: string; className?: string }) {
   const [open, setOpen] = useState(false);
   const [at, setAt] = useState(0);
-  /* Three views per record, by convention: the hero plus two numbered. A view that is
-     missing renders its plate rather than a hole, so the mosaic never loses a cell. */
   const views = [`/records/${id}.jpg`, `/records/${id}-2.jpg`, `/records/${id}-3.jpg`];
   const openAt = (i: number) => { setAt(i); setOpen(true); };
   const step = (n: number) => setAt((v) => (v + n + views.length) % views.length);
@@ -409,11 +345,7 @@ export function PropertyGallery({
       type="button"
       onClick={() => openAt(i)}
       aria-label={`${name ?? "Property"} — view ${i + 1} of ${views.length}`}
-      className={cn(
-        "group relative overflow-hidden bg-subtle transition-opacity hover:opacity-90",
-        "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
-        extra,
-      )}
+      className={cn("img-hover group relative cursor-pointer overflow-hidden bg-sunken", extra)}
     >
       <PropertyImage id={id} name={name} category={category} src={views[i]} />
     </button>
@@ -423,9 +355,7 @@ export function PropertyGallery({
     <>
       <div
         className={cn(
-          "grid gap-[2px] overflow-hidden rounded-[var(--radius-card)] border border-border",
-          /* One view on a narrow column — two more would be postage stamps. The count
-             button says what is behind it, so nothing is hidden by the collapse. */
+          "grid gap-[2px] overflow-hidden rounded-2xl",
           "aspect-[16/10] grid-cols-1 sm:aspect-[2/1] sm:grid-cols-[1.7fr_1fr]",
           className,
         )}
@@ -437,32 +367,26 @@ export function PropertyGallery({
         </div>
       </div>
 
-      {/* Deliberately below the mosaic rather than floated over its corner: an overlaid
-          control has to carry its own scrim to stay legible against an unknown image,
-          and that scrim is the one piece of chrome on this page that would not match
-          any other button in the product. */}
-      <button
-        type="button"
-        onClick={() => openAt(0)}
-        className="mt-[var(--space-2)] type-meta text-muted-foreground underline underline-offset-2 hover:text-foreground"
-      >
-        Show all {views.length} photos
-      </button>
+      <div className="mt-[var(--space-3)]">
+        <Button variant="secondary" size="sm" onClick={() => openAt(0)}>
+          Show all {views.length} photos
+        </Button>
+      </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-[min(96vw,1100px)] gap-[var(--space-3)]">
+        <DialogContent className="max-w-[min(96vw,1100px)] gap-[var(--space-4)]">
           <DialogHeader>
-            <DialogTitle className="type-data-strong">{name ?? "Property"}</DialogTitle>
-            <DialogDescription className="type-meta">
+            <DialogTitle>{name ?? "Property"}</DialogTitle>
+            <DialogDescription>
               Generated view {at + 1} of {views.length}. The properties in this directory are fictional; the imagery is generated and depicts no real business.
             </DialogDescription>
           </DialogHeader>
-          <div className="aspect-[16/10] w-full overflow-hidden rounded-[var(--radius-card)] border border-border bg-subtle">
+          <div className="aspect-[16/10] w-full overflow-hidden rounded-2xl bg-sunken">
             <PropertyImage id={id} name={name} category={category} src={views[at]} />
           </div>
           <div className="flex items-center gap-[var(--space-2)]">
-            <Button variant="outline" size="sm" onClick={() => step(-1)}>Previous</Button>
-            <Button variant="outline" size="sm" onClick={() => step(1)}>Next</Button>
+            <Button variant="secondary" size="sm" onClick={() => step(-1)}>Previous</Button>
+            <Button variant="secondary" size="sm" onClick={() => step(1)}>Next</Button>
             <span className="ml-auto type-meta tnum">{at + 1} / {views.length}</span>
           </div>
         </DialogContent>

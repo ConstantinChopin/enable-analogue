@@ -1,8 +1,12 @@
 {
-  "colour-alone": 11,
+  "colour-alone": 10,
   "semantic-colour-at-call-site": 30,
-  "undefined-token": 0,
-  "raw-type-utility": 25,
+  "undefined-token": 1,
+  "raw-type-utility": 23,
   "uncoloured-bar-beside-legend": 0,
-  "contract-without-screen": 0
+  "contract-without-screen": 0,
+  "deprecated-alias": 310,
+  "raw-value": 7,
+  "opacity-disabled": 1,
+  "lexicon": 7
 }

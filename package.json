@@ -7,10 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "eval": "node evals/tier1-static.mjs && node evals/tier2-rendered.mjs && node evals/tier3-judgement.mjs",
+    "eval": "node evals/tokens-aa.mjs && node evals/tier1-static.mjs && node evals/tier2-rendered.mjs && node evals/tier3-judgement.mjs",
     "eval:static": "node evals/tier1-static.mjs",
     "eval:rendered": "node evals/tier2-rendered.mjs",
-    "eval:judge": "node evals/tier3-judgement.mjs"
+    "eval:judge": "node evals/tier3-judgement.mjs",
+    "eval:tokens": "node evals/tokens-aa.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.2.6",
