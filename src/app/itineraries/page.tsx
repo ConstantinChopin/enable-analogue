@@ -1,27 +1,47 @@
 "use client";
 /**
- * Itineraries — the Ledger archetype over every trip, with the worked example
- * (a Document) below it.
+ * Itineraries — the ledger over every trip, recomposed, with one trip opened beneath
+ * it as a document (docs/rebuild/04-recomposition-brief.md).
  *
- * This is where the briefing's Departures widget expands: a departure is an
- * itinerary with a near date, so ?window=30 is a saved view onto this same list
- * rather than a page of its own (§8).
+ * Job (evals/contracts.mjs): check a trip is ready to travel. The briefing's
+ * Departures widget expands here with `?window=30` already applied — a departure is
+ * an itinerary with a near date, not a second data set.
+ *
+ * Chapters, in order: the ledger (saved views as FilterChips — status, and the 30-day
+ * window — selected inverts; the Table with micro-caps heads, 40px rows, hairlines,
+ * the selected row's 2px ink edge) · Kyoto & Kansai — the day board (one trip,
+ * opened; schematic) · Add from records (preview → grey button) · Why the warning
+ * appeared (quiet).
+ *
+ * The one primary: "Open the trip", at the bottom of the inspector — the tool that
+ * follows the selected row (contract: open a trip). There is no trip route in this
+ * build, so it lands on the opened trip beneath the ledger. "Open the traveller" is a
+ * text action in the inspector's title row; "Add … to Day 1", "Show every trip" and
+ * the day tabs are secondary or selected-inverse.
+ *
+ * No new components: the page's own FilterChip is gone in favour of the shared one.
  */
 import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { cn } from "@/lib/utils";
 import { useDemo, canViewCommissions } from "@/lib/store";
 import {
   trips, itinerary, productById, type ItineraryStatus, type Trip,
 } from "@/data/seed";
 import { PageHeader, SplitPage, PropertyImage } from "@/components/layouts";
-import { Chip, EmptyState, Section, SeverityBanner, NarrationNote, SchematicBadge } from "@/components/bits";
+import {
+  Chip, EmptyState, Section, SeverityBanner, NarrationNote, SchematicBadge, FilterChip,
+  Rows, Row, RowStack, DataList, StatusDot,
+} from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import {
-  ArrowRight, Bed, CarFront, Compass, PlaneTakeoff, Plus, Search, Ticket, UtensilsCrossed, X,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  ArrowRight, Bed, CarFront, Compass, PlaneTakeoff, Search, Ticket, UtensilsCrossed,
 } from "lucide-react";
 
 /* The pipeline, in its own order. */
@@ -96,16 +116,14 @@ function Itineraries() {
         title={
           <>
             Itineraries
-            {/* Counts what is on screen. It counted every trip regardless of the
-                filters, so the header disagreed with the list under it. */}
+            {/* Counts what is on screen, so the title agrees with the list under it. */}
             <Chip tone="neutral">
               <span className="tnum">{rows.length}</span>
               {rows.length === trips.length ? " trips" : ` of ${trips.length} trips`}
             </Chip>
           </>
         }
-      >
-      </PageHeader>
+      />
 
       <NarrationNote>
         Departures are not a second data set. The widget expands into the surface that already holds
@@ -123,422 +141,325 @@ function Itineraries() {
       panelTitle={active?.title ?? "Trip"}
       panel={active ? <TripPanel t={active} /> : null}
     >
-      {
-          <div className="min-w-0">
-            {/* ── filters ── */}
-            <div className="mt-4 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-              <FilterChip
-                label="All"
-                count={STATUSES.reduce((n, st) => n + counts[st], 0)}
-                on={status === "all"}
-                onClick={() => setStatus("all")}
-              />
-              {STATUSES.filter((st) => counts[st] > 0).map((st) => (
-                <FilterChip
-                  key={st}
-                  label={st}
-                  count={counts[st]}
-                  on={status === st}
-                  onClick={() => setStatus(status === st ? "all" : st)}
-                />
-              ))}
-            </div>
+      <Section>
+        {/* ── saved views: status, and the 30-day window ── */}
+        <div className="flex flex-wrap items-center gap-[var(--space-2)]">
+          <FilterChip
+            selected={status === "all"}
+            onClick={() => setStatus("all")}
+            count={STATUSES.reduce((n, st) => n + counts[st], 0)}
+          >
+            All
+          </FilterChip>
+          {STATUSES.filter((st) => counts[st] > 0).map((st) => (
+            <FilterChip
+              key={st}
+              selected={status === st}
+              onClick={() => setStatus(status === st ? "all" : st)}
+              count={counts[st]}
+            >
+              {st}
+            </FilterChip>
+          ))}
+          <span aria-hidden className="mx-[var(--space-1)] h-[var(--control-h-sm)] border-l border-hairline" />
+          <FilterChip selected={near} onClick={() => setNear((v) => !v)}>
+            Departing within 30 days
+          </FilterChip>
+        </div>
 
-            {/* Same rule as the records filter bar: no `ml-auto` across a wrap. */}
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap items-center gap-2">
-              {near ? (
-                <Chip tone="primary" className="pr-1">
-                  <span className="text-muted-foreground">Window</span> departing within 30 days
-                  <button
-                    type="button"
-                    aria-label="Remove the 30-day window"
-                    onClick={() => setNear(false)}
-                    className="grid size-4 cursor-pointer place-items-center rounded-full hover:bg-border"
-                  >
-                    <X className="size-3" aria-hidden />
-                  </button>
-                </Chip>
-              ) : (
-                /* The off state used to read "Departing within 30 days" in a bordered
-                   pill — indistinguishable from the applied filter chip beside it, so
-                   the page appeared to be showing a filtered list while listing trips
-                   96, 138 and 142 days out. It now names the action, not the state. */
-                <button
-                  type="button"
-                  onClick={() => setNear(true)}
-                  className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-1 type-data text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  <Plus className="size-3.5" aria-hidden />
-                  Limit to the next 30 days
-                </button>
-              )}
-              </div>
-              <span className="shrink-0 type-meta">
-                <span className="tnum">{rows.length}</span> {rows.length === 1 ? "trip" : "trips"}
-              </span>
-            </div>
-
-            {/* ── the ledger ── */}
-            {rows.length === 0 ? (
-              <EmptyState
-                className="mt-4"
-                title="No trips under this filter."
-                body="Nothing is hidden by accident — widen the window or clear the status."
-                action={
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => { setNear(false); setStatus("all"); }}
-                  >
-                    Show every trip
-                  </Button>
-                }
-              />
-            ) : (
-              <Section variant="list" className="mt-4">
-                {/* The header sits outside the list, as it does on every other ledger.
-                    It was an <li>, which made a column header a member of the list of
-                    trips — wrong semantically, and it left the trailing column reading
-                    "text, then eight pills" to anything checking that a column keeps one
-                    shape. A header is not a row. */}
-                <div className="row-grid px-4 type-micro uppercase tracking-widest text-muted-foreground">
-                  <span className="row-primary">Trip</span>
-                  <span className="row-meta">Dates</span>
-                  <span className="row-trailing">Departs</span>
-                </div>
-                <ul>
-                {rows.map((t) => (
-                  <li key={t.id} className="border-t border-border">
-                    <button
-                      type="button"
-                      onClick={() => setSelected(t.id)}
-                      aria-pressed={selected === t.id}
-                      className={cn(
-                        "row-grid w-full cursor-pointer px-4 text-left transition-colors",
-                        selected === t.id ? "bg-muted/70" : "hover:bg-muted/40",
-                      )}
+        {/* ── the ledger ── */}
+        {rows.length === 0 ? (
+          <EmptyState
+            className="mt-[var(--space-4)]"
+            title="No trips under this filter."
+            body="Nothing is hidden by accident — widen the window or clear the status."
+            action={
+              <Button variant="secondary" size="sm" onClick={() => { setNear(false); setStatus("all"); }}>
+                Show every trip
+              </Button>
+            }
+          />
+        ) : (
+          <div className="mt-[var(--space-4)]">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Trip</TableHead>
+                  <TableHead className="hidden sm:table-cell">Traveller</TableHead>
+                  <TableHead className="hidden lg:table-cell">Destinations</TableHead>
+                  <TableHead className="hidden md:table-cell">Dates</TableHead>
+                  <TableHead>Readiness</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Departs</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((t) => {
+                  const on = selected === t.id;
+                  return (
+                    <TableRow
+                      key={t.id}
+                      onClick={() => setSelected(on ? null : t.id)}
+                      aria-selected={on}
+                      data-state={on ? "selected" : undefined}
+                      className="cursor-pointer"
                     >
-                      <span className="row-primary">
-                        <span className="block truncate type-data-strong">{t.title}</span>
-                        <span className="block truncate type-meta">
-                          {t.traveller} · {t.destinations.join(", ")}
-                        </span>
-                      </span>
-                      <span className="row-meta flex items-center gap-2 type-meta">
-                        {t.alert && <Chip tone="warn">{t.alert}</Chip>}
-                        <span className="tnum">
-                          {t.dates} · {t.nights}n
-                        </span>
-                      </span>
-                      <span className="row-trailing flex items-center gap-2">
-                        <Chip tone={statusTone(t.status)}>{t.status}</Chip>
-                        <span className="tnum type-meta">
-                          {t.startsInDays === null ? "—" : `in ${t.startsInDays}d`}
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-                </ul>
-              </Section>
-            )}
-
-            <p className="mt-3 type-meta">
-              <span className="tnum">{rows.length}</span> of{" "}
-              <span className="tnum">{trips.length}</span> trips shown · sorted by days to departure
-            </p>
+                      <TableCell className="max-w-[220px] truncate type-data-strong">{t.title}</TableCell>
+                      <TableCell className="hidden text-label-secondary sm:table-cell">{t.traveller}</TableCell>
+                      <TableCell className="hidden max-w-[220px] truncate text-label-secondary lg:table-cell">
+                        {t.destinations.join(", ")}
+                      </TableCell>
+                      <TableCell className="hidden text-label-secondary tnum md:table-cell">
+                        {t.dates} · {t.nights}n
+                      </TableCell>
+                      <TableCell>
+                        {t.alert
+                          ? <Chip tone="warn">{t.alert}</Chip>
+                          : t.checklist
+                            ? <Chip tone="neutral" className="tnum">checklist {t.checklist.done}/{t.checklist.of}</Chip>
+                            : <span className="text-label-secondary">—</span>}
+                      </TableCell>
+                      <TableCell><Chip tone={statusTone(t.status)}>{t.status}</Chip></TableCell>
+                      <TableCell className="text-right text-label-secondary tnum">
+                        {t.startsInDays === null ? "—" : `in ${t.startsInDays}d`}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </div>
-      }
+        )}
 
-      {/* ── the worked example, beneath the ledger ── */}
-      <WorkedExample money={money} />
+        <p className="mt-[var(--space-3)] type-meta tnum">
+          {rows.length} of {trips.length} trips shown · sorted by days to departure
+        </p>
+      </Section>
+
+      {/* ── one trip, opened — the document beneath the ledger ── */}
+      <OpenedTrip money={money} />
     </SplitPage>
   );
 }
 
-function FilterChip({
-  label, count, on, onClick,
-}: { label: string; count: number; on: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={on}
-      className={cn(
-        "control-sm flex shrink-0 cursor-pointer items-center gap-2 rounded-full border transition-colors",
-        on
-          ? "border-foreground bg-foreground font-semibold text-background"
-          : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
-      )}
-    >
-      {label}
-      <span className="tnum type-micro opacity-70">{count}</span>
-    </button>
-  );
-}
-
-/* ── the trip, in summary ───────────────────────────────────────────────────── */
+/* ── the inspector — the tool that follows the selected row ─────────────────────
+   The trip in summary, and the one primary at its bottom.                       */
 function TripPanel({ t }: { t: Trip }) {
   const linked = t.products.map((id) => productById(id)).filter(Boolean);
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-[var(--space-6)]">
       <div>
-        <h2 className="type-section">{t.title}</h2>
-        <p className="type-meta">
+        <div className="flex flex-wrap items-start justify-between gap-[var(--space-2)]">
+          <h2 className="type-section">{t.title}</h2>
+          {t.travellerId && (
+            <Button asChild variant="link" size="sm">
+              <Link href={`/travellers/${t.travellerId}`}>Open the traveller <ArrowRight aria-hidden /></Link>
+            </Button>
+          )}
+        </div>
+        <p className="mt-1 type-meta">
           {t.traveller} · {t.destinations.join(" · ")}
         </p>
+        <div className="mt-[var(--space-3)] flex flex-wrap items-center gap-[var(--space-2)]">
+          <Chip tone={statusTone(t.status)}>{t.status}</Chip>
+          {t.startsInDays !== null && (
+            <Chip tone={t.startsInDays <= 14 ? "warn" : "neutral"}>
+              departs in <span className="tnum">{t.startsInDays}</span> days
+            </Chip>
+          )}
+          {t.alert && <Chip tone="warn">{t.alert}</Chip>}
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Chip tone={statusTone(t.status)}>{t.status}</Chip>
-        {t.startsInDays !== null && (
-          <Chip tone={t.startsInDays <= 14 ? "warn" : "neutral"}>
-            departs in <span className="tnum">{t.startsInDays}</span> days
-          </Chip>
-        )}
-        {t.alert && <Chip tone="warn">{t.alert}</Chip>}
-      </div>
-
-      <dl className="rounded-lg border border-border p-4 type-data">
-        <div className="flex items-baseline justify-between gap-3 py-1">
-          <dt className="text-muted-foreground">Dates</dt>
-          <dd className="tnum text-right">{t.dates}</dd>
-        </div>
-        <div className="flex items-baseline justify-between gap-3 py-1">
-          <dt className="text-muted-foreground">Nights</dt>
-          <dd className="tnum text-right">{t.nights}</dd>
-        </div>
-        <div className="flex items-baseline justify-between gap-3 py-1">
-          <dt className="text-muted-foreground">Destinations</dt>
-          <dd className="text-right">{t.destinations.join(", ")}</dd>
-        </div>
-      </dl>
+      <DataList
+        rows={[
+          { label: "Dates", value: <span className="tnum">{t.dates}</span> },
+          { label: "Nights", value: <span className="tnum">{t.nights}</span> },
+          { label: "Destinations", value: t.destinations.join(", ") },
+        ]}
+      />
 
       {t.checklist && (
         <div>
-          <Progress value={(t.checklist.done / t.checklist.of) * 100} className="h-1.5" />
-          <p className="mt-2 type-meta">
-            Departure checklist{" "}
-            <span className="tnum">
-              {t.checklist.done}/{t.checklist.of}
-            </span>
-          </p>
+          <div className="flex items-baseline justify-between gap-[var(--space-3)]">
+            <span className="type-data">Departure checklist</span>
+            <span className="type-meta tnum">{t.checklist.done}/{t.checklist.of}</span>
+          </div>
+          <Progress tone="neutral" value={(t.checklist.done / t.checklist.of) * 100} className="mt-[var(--space-2)]" />
         </div>
       )}
 
       <div>
-        <h3 className="type-micro uppercase tracking-widest text-muted-foreground">Linked products</h3>
-        <ul className="mt-2 space-y-2">
+        <div className="type-micro-caps text-label-tertiary">Linked records</div>
+        <Rows className="mt-[var(--space-2)]">
           {linked.map((p) =>
             p ? (
-              <li key={p.id}>
+              <Row key={p.id}>
                 <Link
                   href={`/records/${p.id}`}
-                  className="flex items-center gap-3 rounded-lg border border-border p-2 transition-colors hover:bg-muted/50"
+                  className="row-primary flex items-center gap-[var(--space-3)] underline decoration-hairline underline-offset-4 hover:decoration-ink"
                 >
-                  <span className="size-8 shrink-0 overflow-hidden rounded-lg border border-border">
+                  <span className="size-8 shrink-0 overflow-hidden rounded-md bg-sunken">
                     <PropertyImage id={p.id} name={p.name} category={p.category} />
                   </span>
-                  <span className="min-w-0">
-                    <span className="block truncate type-data-strong">{p.name}</span>
-                    <span className="block truncate type-meta">
-                      {p.city} · {p.country}
-                    </span>
+                  <span className="min-w-0 truncate">
+                    <span className="type-data-strong">{p.name}</span>
+                    <span className="text-label-secondary"> · {p.city}</span>
                   </span>
                 </Link>
-              </li>
+              </Row>
             ) : null,
           )}
           {linked.length === 0 && (
-            <li className="type-meta">No record is linked to this trip yet.</li>
+            <li className="py-[11px] type-data-read text-label-secondary">No record is linked to this trip yet.</li>
           )}
-        </ul>
+        </Rows>
       </div>
 
-      {t.travellerId && (
-        <Button asChild variant="outline" size="sm" className="w-full">
-          <Link href={`/travellers/${t.travellerId}`}>
-            Open the traveller <ArrowRight className="size-3.5" aria-hidden />
-          </Link>
-        </Button>
-      )}
+      <Button asChild className="w-full">
+        <a href="#opened-trip">Open the trip <ArrowRight aria-hidden /></a>
+      </Button>
     </div>
   );
 }
 
-/* ── the worked example — a Document, deliberately schematic ─────────────────── */
-function WorkedExample({ money }: { money: boolean }) {
+/* ── one trip, opened — deliberately schematic ─────────────────────────────────
+   It exists to show where record intelligence lands: programme chips, incentive
+   windows, and the preference warning at the moment of selection.              */
+function OpenedTrip({ money }: { money: boolean }) {
   const [added, setAdded] = useState(false);
   const [openDay, setOpenDay] = useState(1);
   const day = itinerary.days.find((d) => d.n === openDay) ?? itinerary.days[0];
   const builtDays = itinerary.days.map((d) => d.n);
+  const suggested = itinerary.addFromRecords.find((r) => "primary" in r && r.primary) ?? itinerary.addFromRecords[0];
 
   return (
-    /* A Ledger and a Document used to sit in one scroll with only a hairline between
-       them, so the reader crossed from "all trips" into "this trip" without any signal
-       that the unit had changed. The band below is that signal: a labelled change of
-       ground, on its own tinted plane. */
-    <section className="-mx-[var(--panel-pad)] mt-8 border-t border-border bg-subtle px-[var(--panel-pad)] pb-8 pt-6">
-      <header className="mb-4">
-        <p className="type-code uppercase tracking-widest text-muted-foreground">
-          One trip, opened
-        </p>
-        <h2 className="mt-1 flex flex-wrap items-center gap-2 type-section">
-          {itinerary.title} — the day board
-          <Chip tone="neutral">{itinerary.status}</Chip>
-          <SchematicBadge />
-        </h2>
-        <p className="mt-2 type-meta">
-          {itinerary.client} · <span className="tnum">{itinerary.dates}</span> · shared with{" "}
+    <div id="opened-trip" className="min-w-0">
+      <Section
+        deep
+        title={
+          <>
+            {itinerary.title} — the day board
+            <Chip tone="neutral">{itinerary.status}</Chip>
+            <SchematicBadge />
+          </>
+        }
+      >
+        <p className="-mt-[var(--space-2)] mb-[var(--space-2)] type-data-read text-label-secondary">
+          One trip, opened. {itinerary.client} · <span className="tnum">{itinerary.dates}</span> · shared with{" "}
           {itinerary.sharedWith} · saved 12:04
         </p>
-      </header>
 
-      <NarrationNote>
-        The itinerary surface is deliberately schematic. It exists to show where record intelligence
-        lands: programme chips, incentive windows, and the preference warning at the moment of
-        selection.
-      </NarrationNote>
+        <NarrationNote>
+          The itinerary surface is deliberately schematic. It exists to show where record intelligence
+          lands: programme chips, incentive windows, and the preference warning at the moment of
+          selection.
+        </NarrationNote>
 
-      <div className="mt-4 doc-layout">
-        <div className="min-w-0 space-y-4">
-          {/* Day tabs */}
-          <div role="tablist" aria-label="Itinerary days" className="flex gap-1">
-            {[1, 2, 3].map((n) => {
-              const built = builtDays.includes(n);
-              const on = n === openDay;
-              return (
-                <button
-                  key={n}
-                  type="button"
-                  role="tab"
-                  aria-selected={on}
-                  disabled={!built}
-                  onClick={() => setOpenDay(n)}
-                  className={cn(
-                    "control-sm transition-colors",
-                    on
-                      ? "border border-border bg-card font-semibold"
-                      : built
-                        ? "cursor-pointer text-muted-foreground hover:text-foreground"
-                        : "cursor-not-allowed text-muted-foreground/50",
-                  )}
-                >
-                  Day {n}
-                </button>
-              );
-            })}
-          </div>
+        <Tabs value={String(openDay)} onValueChange={(v) => setOpenDay(Number(v))} className="mt-[var(--space-3)]">
+          <TabsList aria-label="Itinerary days">
+            {[1, 2, 3].map((n) => (
+              <TabsTrigger key={n} value={String(n)} disabled={!builtDays.includes(n)}>
+                Day {n}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
-          <Section className="p-0">
-            <ul className="divide-y divide-border">
-              {day.events.map((e) => {
-                const Icon = eventIcon(e.type);
-                return (
-                  <li key={e.title} className="row-grid px-4">
-                    <span className="row-primary flex items-center gap-3">
-                      <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                      <span className="min-w-0">
-                        <span className="block truncate type-data-strong">{e.title}</span>
-                        <span className="block truncate type-meta">
-                          {e.type} · {e.note}
-                        </span>
-                      </span>
+        <Rows className="mt-[var(--space-3)]">
+          {day.events.map((e) => {
+            const Icon = eventIcon(e.type);
+            return (
+              <RowStack
+                key={e.title}
+                head={
+                  <>
+                    <span className="flex min-w-0 items-center gap-[var(--space-2)]">
+                      <Icon className="size-[var(--icon-md)] shrink-0 text-label-secondary" aria-hidden />
+                      <span className="truncate type-data-strong">{e.title}</span>
                     </span>
-                    <span className="row-meta flex flex-wrap gap-2">
+                    <span className="flex shrink-0 items-center gap-[var(--space-2)]">
                       {"chips" in e && e.chips
                         ? e.chips.map((c) =>
                             money || !c.startsWith("+") ? (
-                              <Chip key={c} tone={c.startsWith("+") ? "primary" : "neutral"}>
-                                {c}
-                              </Chip>
+                              <Chip key={c} tone={c.startsWith("+") ? "primary" : "neutral"}>{c}</Chip>
                             ) : null,
                           )
                         : null}
+                      <span className="type-meta tnum">{e.time}</span>
                     </span>
-                    <span className="row-trailing tnum type-meta">{e.time}</span>
-                  </li>
-                );
-              })}
-            </ul>
-            <div className="flex flex-wrap items-center gap-4 border-t border-border p-4">
-              {EVENT_TYPES.map(({ type, icon: Icon }) => (
-                <span key={type} className="inline-flex items-center gap-2 type-micro text-muted-foreground">
-                  <Icon className="size-3.5" aria-hidden />
-                  {type}
-                </span>
-              ))}
-            </div>
-          </Section>
+                  </>
+                }
+              >
+                {e.type} · {e.note}
+              </RowStack>
+            );
+          })}
+        </Rows>
 
-          {/* Preference conflict — warn, not block */}
+        <p className="mt-[var(--space-3)] flex flex-wrap items-center gap-[var(--space-4)] type-micro text-label-secondary">
+          {EVENT_TYPES.map(({ type, icon: Icon }) => (
+            <span key={type} className="inline-flex items-center gap-[var(--space-1)]">
+              <Icon className="size-[var(--icon-sm)]" aria-hidden />
+              {type}
+            </span>
+          ))}
+        </p>
+
+        {/* Preference conflict — warn, not block */}
+        <div className="mt-[var(--space-4)]">
           <SeverityBanner severity="Important">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-[var(--space-2)]">
               <span className="min-w-0">
                 <b>{itinerary.ideaConflict.title}</b> — {itinerary.ideaConflict.conflict}.
               </span>
               <span className="ml-auto" />
               <Chip tone="warn">preference conflict</Chip>
-              <Link
-                href="/travellers/s-marchetti"
-                className="type-data-strong text-primary underline underline-offset-2"
-              >
-                {itinerary.ideaConflict.action}
-              </Link>
+              <Button asChild variant="link" size="sm">
+                <Link href="/travellers/s-marchetti">{itinerary.ideaConflict.action}</Link>
+              </Button>
             </div>
-            <p className="mt-2 type-meta">A warning, not a block — proceeding is possible and recorded.</p>
+            <p className="mt-[var(--space-2)] type-meta">A warning, not a block — proceeding is possible and recorded.</p>
           </SeverityBanner>
         </div>
+      </Section>
 
-        <div className="space-y-4">
-          <Section title="Add from records">
-            <div className="relative">
-              <Search
-                className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
-                aria-hidden
-              />
-              <Input readOnly value="kaiseki" className="h-8 pl-8 type-data" aria-label="Search records" />
-            </div>
-            <p className="mt-2 type-meta">Matches in records — verified first.</p>
-            <div className="mt-2 space-y-2">
-              {itinerary.addFromRecords.map((r, i) => (
-                <div
-                  key={r.name}
-                  className={cn(
-                    "rounded-md p-4",
-                    i === 0 ? "border border-primary/40 bg-card" : "border border-border bg-subtle",
-                  )}
-                >
-                  <div className="type-data-strong">{r.name}</div>
-                  <div className="type-meta">{r.meta}</div>
-                  {"primary" in r && r.primary ? (
-                    added ? (
-                      <div className="mt-2">
-                        <Chip tone="ok">added to Day 1 · draft</Chip>
-                      </div>
-                    ) : (
-                      <Button size="sm" className="mt-2 w-full" onClick={() => setAdded(true)}>
-                        Add to Day 1
-                      </Button>
-                    )
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          </Section>
-
-          <Section title="Why the warning appeared">
-            <p className="flex gap-2 type-meta">
-              <span className="mt-1 size-2 shrink-0 rounded-full bg-warn" aria-hidden />
-              Hôtel Verlaine is tagged contemporary design in the record. The traveller profile holds
-              a preference for classic interiors on three sources. The product does not remove the
-              property — it says what it found and offers a swap.
-            </p>
-          </Section>
+      <Section title="Add from records" deep>
+        <div className="relative max-w-sm">
+          <Search
+            className="pointer-events-none absolute left-[10px] top-1/2 size-[var(--icon-md)] -translate-y-1/2 text-label-tertiary"
+            aria-hidden
+          />
+          <Input readOnly size="sm" value="kaiseki" className="pl-8" aria-label="Search records" />
         </div>
-      </div>
-    </section>
+        <p className="mt-[var(--space-2)] type-meta">Matches in records — verified first.</p>
+        <Rows className="mt-[var(--space-3)]">
+          {itinerary.addFromRecords.map((r) => (
+            <Row key={r.name}>
+              <span className="row-primary type-data-strong">{r.name}</span>
+              <span className="row-trailing type-meta">{r.meta}</span>
+            </Row>
+          ))}
+        </Rows>
+        <div className="mt-[var(--space-3)]">
+          {added ? (
+            <Chip tone="ok">{suggested.name} added to Day 1 · draft</Chip>
+          ) : (
+            <Button variant="secondary" size="sm" onClick={() => setAdded(true)}>
+              Add {suggested.name} to Day 1
+            </Button>
+          )}
+        </div>
+      </Section>
+
+      <Section title="Why the warning appeared" quiet deep>
+        <p className="max-w-[60ch] type-data-read text-label-secondary">
+          <StatusDot tone="warn">Preference conflict</StatusDot> — Hôtel Verlaine is tagged contemporary
+          design in the record. The traveller profile holds a preference for classic interiors on 3
+          sources. The product does not remove the property — it says what it found and offers a swap.
+        </p>
+      </Section>
+    </div>
   );
 }

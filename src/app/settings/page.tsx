@@ -4,16 +4,27 @@
  * account cluster in the dock rather than taking a tile, and it stays small:
  * who you are, what reaches you, and the way out to connections for the role
  * that owns them.
+ *
+ * Recomposed as a document of quiet chapters (Pass 1.5): Profile · Notifications ·
+ * Connections (lead only). Each control sits in a row of the list it belongs to.
+ *
+ * No ink pill on this surface. The contract's primary is "change a setting", and
+ * the switch IS the change — it applies as it is flipped, so a filled "Save" would
+ * promise a step that does not exist. "Open connections" is a secondary: it leaves
+ * the page. The taxonomy budget is empty, so nothing here carries state colour;
+ * the connection health chip is words on a hairline.
+ *
+ * Local components (not promoted to bits): SettingRow.
  */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useDemo } from "@/lib/store";
 import { personName, personEmail, roleLabel, connectionHealth } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
-import { Chip, Section, SchematicBadge } from "@/components/bits";
+import { Chip, DataList, Section, SchematicBadge, Rows } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { ArrowRight, Plug } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 const NOTIFICATION_PREFS: { id: string; label: string; detail: string; on: boolean }[] = [
   {
@@ -31,13 +42,13 @@ const NOTIFICATION_PREFS: { id: string; label: string; detail: string; on: boole
   {
     id: "departures",
     label: "Departure watch",
-    detail: "A trip inside thirty days with an open checklist.",
+    detail: "A trip inside 30 days with an open checklist.",
     on: true,
   },
   {
     id: "freshness",
     label: "Freshness sweep",
-    detail: "Records that have not been verified in ninety days, gathered weekly.",
+    detail: "Records that have not been verified in 90 days, gathered weekly.",
     on: false,
   },
   {
@@ -47,6 +58,22 @@ const NOTIFICATION_PREFS: { id: string; label: string; detail: string; on: boole
     on: false,
   },
 ];
+
+/* ── a setting's row: name and consequence on the left, the control on the right ──
+   The same row module as DataList, with a control where the value would be.     */
+function SettingRow({
+  id, label, detail, control,
+}: { id: string; label: string; detail: string; control: ReactNode }) {
+  return (
+    <li className="flex items-start justify-between gap-[var(--space-4)] py-[11px]">
+      <div className="min-w-0 flex-1">
+        <label htmlFor={id} className="block type-data-strong">{label}</label>
+        <p className="mt-1 type-meta">{detail}</p>
+      </div>
+      <div className="shrink-0 pt-px">{control}</div>
+    </li>
+  );
+}
 
 export default function SettingsPage() {
   const { s } = useDemo();
@@ -58,88 +85,72 @@ export default function SettingsPage() {
   const { sources, needAttention } = connectionHealth;
 
   return (
-    <Page width="wide">
+    <Page width="text">
       <PageHeader title="Settings" />
 
-      <div className="space-y-4">
-        <Section title="Profile">
-          <dl className="divide-y divide-border">
-            <div className="row-grid">
-              <dt className="row-primary type-data text-muted-foreground">Name</dt>
-              <dd className="row-trailing type-data">{personName[s.role]}</dd>
-            </div>
-            <div className="row-grid">
-              <dt className="row-primary type-data text-muted-foreground">Role</dt>
-              <dd className="row-trailing type-data">{roleLabel[s.role]}</dd>
-            </div>
-            <div className="row-grid">
-              <dt className="row-primary type-data text-muted-foreground">Email</dt>
-              <dd className="row-trailing type-data">{personEmail[s.role]}</dd>
-            </div>
-          </dl>
-          <p className="mt-3 type-meta">
-            Name, role and address come from the agency directory. Changing them is an
-            administrator&rsquo;s act, not a personal one.
-          </p>
-        </Section>
+      <Section title="Profile" quiet>
+        <DataList
+          rows={[
+            { label: "Name", value: personName[s.role] },
+            { label: "Role", value: roleLabel[s.role] },
+            { label: "Email", value: personEmail[s.role] },
+          ]}
+        />
+        <p className="mt-[var(--space-3)] type-meta">
+          Name, role and address come from the agency directory. Changing them is an
+          administrator&rsquo;s act, not a personal one.
+        </p>
+      </Section>
 
-        <Section title="Notifications" chips={<SchematicBadge />}>
-          <ul className="divide-y divide-border">
-            {NOTIFICATION_PREFS.map((p) => (
-              <li key={p.id} className="flex items-start gap-4 py-3">
-                <div className="min-w-0 flex-1">
-                  <label htmlFor={`pref-${p.id}`} className="block type-data-strong">
-                    {p.label}
-                  </label>
-                  <p className="mt-1 type-meta">{p.detail}</p>
-                </div>
+      <Section title="Notifications" quiet deep chips={<SchematicBadge />}>
+        <Rows>
+          {NOTIFICATION_PREFS.map((p) => (
+            <SettingRow
+              key={p.id}
+              id={`pref-${p.id}`}
+              label={p.label}
+              detail={p.detail}
+              control={
                 <Switch
                   id={`pref-${p.id}`}
                   checked={prefs[p.id]}
                   onCheckedChange={(v) => setPrefs((m) => ({ ...m, [p.id]: v }))}
-                  className="mt-1"
                 />
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 type-meta">
-            These switches decide what raises an item. Nothing here clears an item — an item is
-            actioned or deferred in triage, deliberately.
-          </p>
-        </Section>
+              }
+            />
+          ))}
+        </Rows>
+        <p className="mt-[var(--space-3)] type-meta">
+          These switches decide what raises an item. Nothing here clears an item — an item is
+          actioned or deferred in triage, deliberately.
+        </p>
+      </Section>
 
-        {s.role === "lead" ? (
-          <Section
-            title={
-              <span className="inline-flex items-center gap-2">
-                <Plug className="size-3.5 text-muted-foreground" aria-hidden /> Connections
-              </span>
-            }
-            chips={
-              needAttention > 0 ? (
-                <Chip tone="crit">
-                  <span className="tnum">{needAttention}</span> need attention
-                </Chip>
-              ) : (
-                <Chip tone="ok">all connected</Chip>
-              )
-            }
-          >
-            <p className="type-data text-muted-foreground">
-              <span className="tnum">{sources}</span> sources feed this workspace. Each
-              one carries its last success, and a failed source degrades answers visibly.
-            </p>
-            <Button asChild variant="outline" size="sm" className="mt-4">
-              <Link href="/admin/connections">
-                Open connections <ArrowRight className="size-3.5" aria-hidden />
-              </Link>
-            </Button>
-          </Section>
-        ) : null}
-        {/* For a role that cannot manage connections there is no Connections section.
-            It held prose and no control — a settings section whose only content was
-            the news that the setting is somewhere else. Absent, not masked, again. */}
-      </div>
+      {/* For a role that cannot manage connections there is no Connections chapter.
+          It held prose and no control — a settings section whose only content was
+          the news that the setting is somewhere else. Absent, not masked, again. */}
+      {s.role === "lead" && (
+        <Section
+          title="Connections"
+          quiet
+          deep
+          chips={
+            <Chip tone="neutral">
+              {needAttention > 0 ? connectionHealth.label : "all connected"}
+            </Chip>
+          }
+        >
+          <p className="type-data-read text-label-secondary">
+            <span className="tnum">{sources}</span> sources feed this workspace. Each one carries
+            its last success, and a failed source degrades answers visibly.
+          </p>
+          <Button asChild variant="secondary" size="sm" className="mt-[var(--space-4)]">
+            <Link href="/admin/connections">
+              Open connections <ArrowRight aria-hidden />
+            </Link>
+          </Button>
+        </Section>
+      )}
     </Page>
   );
 }

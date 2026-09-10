@@ -17,6 +17,12 @@
  * be teaching an administrator to do the one thing every security team tells them not
  * to — and it would be an inaccurate drawing of OAuth besides. The provider's screen
  * belongs to the provider; this flow shows the handoff and the grant that comes back.
+ *
+ * Recomposed against the rebuilt system: the sheet is its own surface, and its one
+ * primary is the stepper's "Continue" / "Connect source" / "Done" in the footer. The
+ * provider handoff ("Continue to Google Drive") is a secondary under the grant it
+ * extends; Back / Cancel are secondary; "Use another account" is a text action.
+ * Options are hairline boxes that take the ink stroke when chosen.
  */
 import { useState } from "react";
 import { connectors, type Connector } from "@/data/seed";
@@ -27,7 +33,6 @@ import {
 } from "@/components/ui/sheet";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Check, ExternalLink } from "lucide-react";
 
 /* There is no "who can read it" step, and its absence is the policy.
@@ -39,6 +44,10 @@ import { Check, ExternalLink } from "lucide-react";
    also contradicted the governance page a click away, which states that every kind of
    record arrives closed and that opening one is an act somebody performs. */
 const STEPS = ["Source", "Authorise", "What to index", "Review"] as const;
+
+/* An option you can press: hairline at rest, ink stroke on hover and when chosen. */
+const OPTION =
+  "flex cursor-pointer items-start gap-[var(--space-3)] rounded-lg border border-hairline p-[var(--space-3)] transition-colors duration-200 ease-standard hover:border-stroke-hover has-[[data-state=checked]]:border-selected";
 
 export function AddConnection({
   open, onOpenChange,
@@ -77,8 +86,8 @@ export function AddConnection({
 
   return (
     <Sheet open={open} onOpenChange={(v) => (v ? onOpenChange(true) : close())}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-[560px]">
-        <SheetHeader className="shrink-0 border-b border-border">
+      <SheetContent side="right" className="w-[min(92vw,560px)]">
+        <SheetHeader className="shrink-0">
           <SheetTitle>{done ? "Source connected" : "Add a connection"}</SheetTitle>
           <SheetDescription>
             {done
@@ -87,7 +96,7 @@ export function AddConnection({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-[var(--space-6)] py-[var(--space-6)]">
           {done && pick ? (
             <div className="space-y-[var(--space-4)]">
               <Chip tone="ok">connected · first sync running</Chip>
@@ -98,54 +107,55 @@ export function AddConnection({
             <RadioGroup
               value={pick?.id ?? ""}
               onValueChange={(v) => setPick(connectors.find((c) => c.id === v) ?? null)}
-              className="gap-3"
+              className="gap-[var(--space-3)]"
             >
               {connectors.map((c) => (
-                <div key={c.id} className="flex items-start gap-3 rounded-lg border border-border p-3">
+                <label key={c.id} htmlFor={`src-${c.id}`} className={OPTION}>
                   <RadioGroupItem value={c.id} id={`src-${c.id}`} className="mt-1" />
-                  <Label htmlFor={`src-${c.id}`} className="flex flex-1 flex-col items-start gap-1 font-normal">
-                    <span className="flex flex-wrap items-center gap-2">
+                  <span className="flex flex-1 flex-col items-start gap-1">
+                    <span className="flex flex-wrap items-center gap-[var(--space-2)]">
                       <span className="type-data-strong">{c.name}</span>
                       <Chip tone={c.posture === "MCP upstream" ? "primary" : "neutral"}>{c.posture}</Chip>
                     </span>
                     <span className="type-meta">{c.subtitle}</span>
-                  </Label>
-                </div>
+                  </span>
+                </label>
               ))}
             </RadioGroup>
           ) : step === 1 && pick ? (
             <div className="space-y-[var(--space-4)]">
-              <p className="type-data">
+              <p className="type-data-read">
                 You will be taken to {pick.name} to sign in. Enable never sees the password — it
                 receives a token, scoped to what you approve there, which you can revoke from{" "}
                 {pick.name} at any time.
               </p>
-              <div className="rounded-[var(--radius-card)] border border-border bg-subtle p-[var(--space-3)]">
-                <div className="type-micro text-muted-foreground">What Enable will be granted</div>
-                <ul className="mt-2 space-y-1">
+              <div className="rounded-lg bg-sunken p-[var(--space-4)]">
+                <div className="type-micro-caps text-label-tertiary">What Enable will be granted</div>
+                <ul className="mt-[var(--space-2)] space-y-1">
                   {pick.grants.map((g) => (
-                    <li key={g} className="flex items-start gap-2 type-data">
-                      <Check className="mt-0.5 size-3.5 shrink-0 text-ok" aria-hidden /> {g}
+                    <li key={g} className="flex items-start gap-[var(--space-2)] type-data-read">
+                      <Check className="mt-0.5 size-[var(--icon-md)] shrink-0 text-label-secondary" aria-hidden /> {g}
                     </li>
                   ))}
                 </ul>
               </div>
               {account ? (
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-[var(--space-2)]">
                   <Chip tone="ok">authorised</Chip>
                   <span className="type-data">{account}</span>
-                  <Button variant="ghost" size="sm" onClick={() => setAccount(null)}>
+                  <Button variant="link" size="sm" onClick={() => setAccount(null)}>
                     Use another account
                   </Button>
                 </div>
               ) : (
                 <Button
+                  variant="secondary"
                   size="sm"
                   onClick={() =>
                     setAccount(pick.id === "mailbox" ? "parisdesk@enable.example" : "m.keller@enable.example")
                   }
                 >
-                  <ExternalLink className="size-3.5" aria-hidden /> Continue to {pick.name}
+                  <ExternalLink aria-hidden /> Continue to {pick.name}
                 </Button>
               )}
             </div>
@@ -156,11 +166,7 @@ export function AddConnection({
                 see, including what nobody meant to publish.
               </p>
               {pick.scopeOptions.map((o) => (
-                <label
-                  key={o.id}
-                  htmlFor={`scope-${o.id}`}
-                  className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3"
-                >
+                <label key={o.id} htmlFor={`scope-${o.id}`} className={OPTION}>
                   <Checkbox
                     id={`scope-${o.id}`}
                     checked={scopes.includes(o.id)}
@@ -168,7 +174,7 @@ export function AddConnection({
                     className="mt-0.5"
                   />
                   <span className="flex flex-1 flex-col gap-0.5">
-                    <span className="flex flex-wrap items-center gap-2">
+                    <span className="flex flex-wrap items-center gap-[var(--space-2)]">
                       <span className="type-data-strong">{o.label}</span>
                       {o.recommended && <Chip tone="ok">recommended</Chip>}
                     </span>
@@ -180,16 +186,16 @@ export function AddConnection({
           ) : pick ? (
             <div className="space-y-[var(--space-4)]">
               <DataList rows={summary} />
-              <div className="rounded-[var(--radius-card)] border border-border p-[var(--space-3)]">
-                <div className="type-micro text-muted-foreground">This connection cannot</div>
-                <p className="mt-1 type-data">{pick.cannot}</p>
+              <div className="border-t border-hairline pt-[var(--space-4)]">
+                <div className="type-micro-caps text-label-tertiary">This connection cannot</div>
+                <p className="mt-1 type-data-read">{pick.cannot}</p>
               </div>
               {/* Stated at the moment of connecting, because this is the moment an
                   administrator assumes the opposite. */}
-              <div className="rounded-[var(--radius-card)] border border-border bg-subtle p-[var(--space-3)]">
-                <div className="type-micro text-muted-foreground">Connecting does not share anything</div>
-                <p className="mt-1 type-data">
-                  Documents arrive closed and answer nobody. Each one is opened in the knowledge
+              <div className="rounded-lg bg-sunken p-[var(--space-4)]">
+                <div className="type-micro-caps text-label-tertiary">Connecting does not share anything</div>
+                <p className="mt-1 type-data-read">
+                  Documents arrive closed and answer nobody. Each is opened in the knowledge
                   vault, to a named audience, by a person — and the log records who.
                 </p>
               </div>
@@ -197,12 +203,12 @@ export function AddConnection({
           ) : null}
         </div>
 
-        <SheetFooter className="shrink-0 border-t border-border">
+        <SheetFooter className="shrink-0 sm:flex-row sm:justify-end">
           {done ? (
             <Button onClick={close}>Done</Button>
           ) : (
             <>
-              <Button variant="outline" onClick={() => (step === 0 ? close() : setStep((v) => v - 1))}>
+              <Button variant="secondary" onClick={() => (step === 0 ? close() : setStep((v) => v - 1))}>
                 {step === 0 ? "Cancel" : "Back"}
               </Button>
               <Button

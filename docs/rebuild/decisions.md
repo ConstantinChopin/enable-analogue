@@ -142,3 +142,39 @@ Evidence classes: **[A]** Airbnb pattern (anatomy file) · **[E]** editorial ref
 **Why this one:** one reveal pattern is learnable; three are not.
 **What we'd change if wrong:** allow tabs for a ledger's saved views only.
 **Enforced by:** contract `disclosure` field (Pass 2).
+
+## VIS-072 · 2026-09-10 · proposed
+**Decision:** the record's Summary is the tool that follows you: a sticky, elevated card in the document's rail holding everything unsettled about the record and the ONE primary, "Resolve 3 sources", at its bottom. The commission row keeps the three values and a secondary "Resolve 3 sources".
+**Problem it serves:** the record's contract (check a value, see where it came from, settle it if it disagrees); the demo's "Stop on the Summary card" beat; one primary per surface.
+**Evidence:** [A] the booking card: the only elevated surface on the listing page, sticky, with the one pill at its bottom (`anatomy/components/card.md` §2); [P] DEC-08 (conflicts shown, human confirms, stored at the agency layer).
+**Alternatives considered:** the primary on the commission row only (the previous form); a full-width summary above the chapters (the 31 Aug form).
+**Why this one:** the decision an advisor must make on this record is reachable from wherever she has scrolled to, and the field still offers it where the disagreement is shown.
+**What we'd change if wrong:** if the rail reads as a second page, drop the elevation and keep the summary as the first chapter.
+**Enforced by:** tier 2 "at most one filled button", "the primary is a pill".
+
+## VIS-073 · 2026-09-10 · proposed
+**Decision:** the brief is a document addressed to the person: her day in sentences with the figures inline (serif lead), then chapters in the order of her obligations (commissions · departures · notices · incentives · verification, per `widgetsFor`), each closing in the text action that opens its saved view; the tool that follows is "Today" with the counts and the one primary, "Open the ledger".
+**Problem it serves:** T4, "correct but impersonal".
+**Evidence:** [P] `01-feedback-deel.md` §2 Problem solving; [P] DEC-12/DEC-13 (commission reconciliation is the first pain; the briefing room is "the first screen I open"); [A] the section unit and the elevated card (`anatomy/01-system-rules.md` §4); [E] a written brief reads as a colleague's note, not a grid.
+**Alternatives considered:** keep the card grid with better cards; departures first (the plan's own order in §4.5).
+**Why this one:** commissions first because the agency named it first and the demo starts there; the order is logged, which the criterion allows.
+**What we'd change if wrong:** if a cold reader names the departures before the ledger as her first task, swap the order and the primary.
+**Enforced by:** tier 3 cold read on `/briefing` (names the person and one task); tier 2 "one page title", "at most one filled button".
+
+## VIS-080 · 2026-09-10 · proposed
+**Decision:** surface-local components are allowed when they compose registry primitives for one page and nothing else; they are named in the page's header comment and listed here, not in the registry. Today: `AccountRow` (sign-in), `Exchange` · `Foot` · `Mark` · `Cite` · `StateMark` (Ask), `FacetChip` · `Initials` · `TierChip` (records, travellers), `TimelineRow` · `ProjectedAgainstActual` (commission), `FieldLine` · `readingWords` (review), `SeverityChip` · `StateMark` (notifications), `SettingRow` (settings), `SheetBody` (record, commission, review, Ask).
+**Problem it serves:** the registry stays small enough to enforce by reading; a page's one-off arrangement does not become a system component by accident.
+**Evidence:** [A] Airbnb's per-instance component properties (`--dls-button_*`) live on the instance, not in the token file (`anatomy/01-system-rules.md` §1); [M] fifteen surfaces produced sixteen local components and no new primitive.
+**Alternatives considered:** promote each to `bits.tsx`; forbid local components.
+**Why this one:** a local component that appears on a second surface is the signal to promote it; until then it is a page's business.
+**What we'd change if wrong:** promote `SheetBody` and `SeverityChip` now, since each already appears on more than one page.
+**Enforced by:** tier 1 (a local component uses only sys utilities and roles, like any page code); judgement for promotion.
+
+## VIS-081 · 2026-09-10 · proposed
+**Decision:** a sheet or dialog is its own surface: it may carry one filled action of its own while the page beneath keeps its one primary.
+**Problem it serves:** the one-primary rule and the disclosure pattern would otherwise conflict on every confirm flow.
+**Evidence:** [A] the sheet reuses the page's anatomy and carries its own action (`anatomy/components/sheet.md`); [M] tier 2 counts filled buttons in the topmost open layer.
+**Alternatives considered:** sheet commits as secondary fills.
+**Why this one:** the act a sheet exists for is the most important thing on it while it is open.
+**What we'd change if wrong:** nothing structural; the check scope is one line.
+**Enforced by:** tier 2 "at most one filled button" (scoped to the topmost layer).

@@ -40,6 +40,12 @@ const buttonVariants = cva(
         "icon-sm": "size-[var(--control-h-sm)] rounded-full",
       },
     },
+    /* A text action has no box: whatever size it is given for line-height parity, it
+       keeps no height and no inline padding, so it sits flush with the text beside it. */
+    compoundVariants: [
+      { variant: "link", size: "default", className: "h-auto px-0" },
+      { variant: "link", size: "sm", className: "h-auto px-0" },
+    ],
     defaultVariants: {
       variant: "default",
       size: "default",

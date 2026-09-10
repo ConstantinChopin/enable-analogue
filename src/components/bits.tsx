@@ -323,8 +323,6 @@ export function ProvenancePopover({ source, children }: { source: { what: string
  *            column width. No box. Content lives here.
  *   tool     a hairline box on raised paper, 24 inside: something that must stay
  *            in reach while the page scrolls. `follows` elevates it (step 2).
- *   padded   (transitional) the previous boxed card, 16 inside.
- *   list     (transitional) the previous boxed card with a flush body.
  *
  * The header has two zones: IDENTITY (title + at most one qualifier) and ACTION
  * (controls only). Status that describes the content belongs in the body.
@@ -336,7 +334,7 @@ export function Section({
   chips?: React.ReactNode;
   actions?: React.ReactNode;
   footer?: React.ReactNode;
-  variant?: "chapter" | "tool" | "padded" | "list";
+  variant?: "chapter" | "tool";
   /** A note's title (14/400 secondary), not a chapter's. */
   quiet?: boolean;
   /** Below the fold: 48 of breathing room instead of 32. */
@@ -349,8 +347,6 @@ export function Section({
 }) {
   const chapter = variant === "chapter";
   const tool = variant === "tool";
-  const list = variant === "list";
-  const boxed = !chapter;
   return (
     <section
       data-slot={chapter ? "chapter" : "card"}
@@ -360,9 +356,7 @@ export function Section({
         chapter && deep && "chapter-deep",
         tool && "tool",
         tool && follows && "tool-follows",
-        (variant === "padded" || list) && "flex min-w-0 flex-col overflow-hidden rounded-lg bg-raised shadow-elev-0",
-        variant === "padded" && "p-[var(--space-4)]",
-        boxed && "flex min-w-0 flex-col",
+        tool && "flex min-w-0 flex-col",
         className,
       )}
     >
@@ -370,9 +364,7 @@ export function Section({
         <header
           className={cn(
             "flex flex-wrap items-center gap-[var(--space-2)]",
-            chapter && "mb-[var(--space-4)]",
-            tool && "mb-[var(--space-4)]",
-            list ? "border-b border-hairline px-[var(--space-4)] py-[var(--space-3)]" : variant === "padded" && "mb-[var(--space-3)]",
+            "mb-[var(--space-4)]",
           )}
         >
           <h3 className={cn("flex min-w-0 flex-wrap items-center gap-[var(--space-2)]", quiet ? "type-section-quiet" : "type-section")}>{title}</h3>
@@ -380,14 +372,12 @@ export function Section({
           {actions && <div className="ml-auto flex items-center gap-[var(--space-2)]">{actions}</div>}
         </header>
       )}
-      <div className={cn("min-w-0 flex-1", list && "py-[var(--space-3)]", bodyClassName)}>{children}</div>
+      <div className={cn("min-w-0 flex-1", bodyClassName)}>{children}</div>
       {footer && (
         <footer className={cn(
           "mt-auto",
           chapter && "mt-[var(--space-4)]",
           tool && "mt-[var(--space-4)] border-t border-hairline pt-[var(--space-4)]",
-          list && "border-t border-hairline px-[var(--space-4)] py-[var(--space-3)]",
-          variant === "padded" && "border-t border-hairline pt-[var(--space-3)]",
         )}>
           {footer}
         </footer>
@@ -411,7 +401,7 @@ export function Segmented<T extends string>({
     <div
       role="tablist"
       aria-label={label}
-      className={cn("inline-flex shrink-0 items-center gap-[var(--space-2)]", className)}
+      className={cn("inline-flex flex-wrap items-center gap-[var(--space-2)]", className)}
     >
       {options.map((o) => {
         const on = o.value === value;
@@ -424,7 +414,7 @@ export function Segmented<T extends string>({
             aria-selected={on}
             onClick={() => onChange(o.value)}
             className={cn(
-              "pressable flex h-[var(--control-h-sm)] cursor-pointer items-center gap-1.5 rounded-full border px-[var(--control-px-sm)] type-data font-medium",
+              "pressable flex h-[var(--control-h-sm)] shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border px-[var(--control-px-sm)] type-data font-medium",
               on
                 ? "border-selected bg-selected text-on-selected"
                 : "border-hairline bg-raised text-label-secondary hover:border-stroke-hover hover:text-label",

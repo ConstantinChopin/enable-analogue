@@ -153,44 +153,6 @@
   --section-pad-deep: var(--gap-5);     /* below the fold */
   --content-max: 1120px;
 
-  /* ═════════════════════════════════════════════════════════════════
-     DEPRECATED — shadcn-era names, kept only until every call site has
-     moved to a sys-* utility. Tier 1 counts them (`deprecated-alias`)
-     and the count may only fall. Delete this block when it reaches 0.
-     ═════════════════════════════════════════════════════════════════ */
-  --radius: var(--radius-3);
-  --radius-panel: var(--radius-4);
-  --radius-card: var(--radius-3);
-  --radius-control: var(--radius-2);
-  --frame-stroke: var(--sys-stroke-frame);
-  --sys-accent: var(--sys-ink);
-  --sys-accent-hover: var(--sys-ink-hover);
-  --sys-accent-on: var(--sys-on-ink);
-  --sys-accent-soft: var(--sys-bg-sunken);
-  --sys-stroke-divider: var(--sys-stroke-hairline);
-  --sys-stroke-subtle: var(--sys-bg-sunken);
-  --background: var(--sys-bg-raised);
-  --foreground: var(--sys-label-primary);
-  --sidebar: var(--sys-bg-base);
-  --card: var(--sys-bg-raised);
-  --card-foreground: var(--sys-label-primary);
-  --popover: var(--sys-bg-overlay);
-  --popover-foreground: var(--sys-label-primary);
-  --muted: var(--sys-fill-interactive);
-  --muted-foreground: var(--sys-label-secondary);
-  --subtle: var(--sys-bg-base);
-  --border: var(--sys-stroke-hairline);
-  --input: var(--sys-stroke-hairline);
-  --primary: var(--sys-ink);
-  --primary-foreground: var(--sys-on-ink);
-  --primary-soft: var(--sys-bg-sunken);
-  --secondary: var(--sys-fill-interactive);
-  --secondary-foreground: var(--sys-label-primary);
-  --accent: var(--sys-fill-interactive);
-  --accent-foreground: var(--sys-label-primary);
-  --destructive: var(--sys-crit);
-  --destructive-foreground: var(--ref-paper-05);
-  --ring: var(--sys-focus);
 }
 
 @media (max-width: 640px) {
@@ -274,28 +236,6 @@
 
   --ease-standard: var(--ease);
 
-  /* ── DEPRECATED utilities (see the block in :root) ──────────────── */
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-sidebar: var(--sidebar);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-subtle: var(--subtle);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary-soft: var(--primary-soft);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
 }
 
 /* ═══ Ground ═════════════════════════════════════════════════════════ */
@@ -425,9 +365,6 @@ b, strong { font-weight: 590; }
    a copied grid-template-columns cannot drift between them.              */
 .field-row { display: grid; gap: var(--space-1) var(--space-4); padding-block: var(--space-3); }
 @media (min-width: 640px) { .field-row { grid-template-columns: 140px minmax(0, 1fr) auto; } }
-
-/* Transitional: the previous card grid. Removed when the last page leaves it. */
-.bento { display: grid; gap: var(--gap-2); }
 
 /* ═══ Imagery ═════════════════════════════════════════════════════════
    Hover scales imagery up (1.04); nothing else scales up on hover.   */

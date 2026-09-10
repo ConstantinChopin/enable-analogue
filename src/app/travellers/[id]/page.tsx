@@ -1,13 +1,31 @@
 "use client";
 /**
- * Traveller profile — the Document archetype (§7): main column plus a context rail.
+ * Traveller profile — recomposed as a document (docs/rebuild/04-recomposition-brief.md;
+ * Journey F, docs/journeys/journey-f-traveller.md).
  *
- * S. Marchetti carries the whole anatomy (departure checklist, profile tabs,
- * attributed preferences with the confirm promotion, suggestions, the shortlist
- * conflict, tiered sharing, Acuity, gated financials, trip history). Every other id
- * renders a real profile from its own card — never a stub.
+ * The most sensitive record type in the product, presented as chapters at column
+ * width, and beside them the one tool that follows you — Sharing — which holds the
+ * profile's visibility and the ONE primary action at its bottom. Personal by
+ * default; sharing explicit, tiered, attributed, revocable; every preference
+ * answers "who says so, and when".
+ *
+ * Chapters, in order (S. Marchetti): the shortlist conflict (warn, not block) ·
+ * Preferences (attributed rows; the single-source one asks to be confirmed) ·
+ * Suggestions (labelled, outside the preferences until confirmed or discarded) ·
+ * Where these come from (quiet) · Departure checklist · Travel profiles · Trips ·
+ * Financials (entitlement-gated, absent otherwise) · Acuity.
+ *
+ * The one primary: "Share with J. Dubois" / "Change sharing" (the owner's act that
+ * Journey F is about), at the bottom of the Sharing tool; a colleague at
+ * Collaborator Full sees the tool with no action, because they cannot re-share.
+ * Secondary actions: "Proceed knowingly (recorded)", "Confirm as preference";
+ * text actions: "swap the property", "confirm this", "Discard".
+ *
+ * Every other id renders a real profile from its own card — never a stub. Its
+ * Sharing tool carries state only: no share action is wired for those profiles,
+ * so the generic profile has no filled button.
  */
-import React, { useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useDemo, canViewCommissions } from "@/lib/store";
@@ -17,7 +35,7 @@ import {
 import { Page, PageHeader } from "@/components/layouts";
 import {
   Chip, DataList, Section, SeverityBanner, NarrationNote, ConfirmBanner, SourceTag, SchematicBadge,
-  ConfidenceMeter,
+  ConfidenceMeter, Rows, Row, RowStack, EmptyState,
 } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -26,10 +44,23 @@ import {
 } from "@/components/ui/sheet";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, Check, CircleDashed, Lock, Share2, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Lock, Share2, Users } from "lucide-react";
 
-/* The profile-type tab row was removed — see the note where it stood. Its sections
-   live in the main column and the rail. */
+type Tier = "private" | "full" | "basic";
+const tierLabel: Record<Tier, string> = { private: "private to you", full: "Collaborator Full", basic: "Collaborator Basic" };
+
+/* ── the sharing state, in a word, on a chip ── */
+function TierChip({ tier, who }: { tier: Tier; who?: string | null }) {
+  if (tier === "private") {
+    return <Chip tone="neutral"><Lock className="size-[var(--icon-sm)]" aria-hidden /> {tierLabel.private}</Chip>;
+  }
+  return (
+    <Chip tone="primary">
+      <Share2 className="size-[var(--icon-sm)]" aria-hidden />
+      {tierLabel[tier]}{who ? ` · ${who}` : ""}
+    </Chip>
+  );
+}
 
 export default function TravellerProfilePage() {
   const params = useParams<{ id: string }>();
@@ -56,25 +87,25 @@ function MarchettiProfile() {
     return (
       <Page width="wide">
         <PageHeader title="Travellers" />
-        <div className="space-y-4">
+        <div className="space-y-[var(--space-4)]">
           {requested && (
             <ConfirmBanner show>
               Request recorded for {people.advisor} · today. Access arrives only if they share;
               nothing here grants it.
             </ConfirmBanner>
           )}
-          <Section className="py-12 text-center">
-            <Users className="mx-auto size-6 text-muted-foreground" aria-hidden />
-            <p className="mt-3 type-data-strong">No travellers shared with you</p>
-            <p className="mx-auto mt-2 max-w-[46ch] type-meta">
-              An unshared profile is invisible. There is nothing here to unlock.
-            </p>
-            {!requested && (
-              <Button variant="outline" size="sm" className="mt-4" onClick={() => setRequested(true)}>
-                Request access from the owner
-              </Button>
-            )}
-          </Section>
+          <EmptyState
+            icon={Users}
+            title="No travellers shared with you"
+            body="An unshared profile is invisible. There is nothing here to unlock."
+            action={
+              !requested && (
+                <Button variant="secondary" size="sm" onClick={() => setRequested(true)}>
+                  Request access from the owner
+                </Button>
+              )
+            }
+          />
         </div>
       </Page>
     );
@@ -84,19 +115,12 @@ function MarchettiProfile() {
   if (isColleague && s.shareTier === "basic") {
     return (
       <Page width="wide">
-        <PageHeader
-          title={
-            <>
-              {traveller.name}
-              <Chip tone="primary">Collaborator Basic</Chip>
-            </>
-          }
-        />
+        <PageHeader title={<>{traveller.name} <Chip tone="primary">Collaborator Basic</Chip></>} />
         <Section title="Contact">
           <p className="type-data">
             {traveller.name} · {traveller.relationshipStatus} · contact on file
           </p>
-          <p className="mt-3 type-meta">
+          <p className="mt-[var(--space-3)] type-data-read text-label-secondary">
             Name and contact only at this tier. Preferences, journeys, intelligence and spend fields
             are absent — not masked. The share is explicit, attributed, and revocable by{" "}
             {people.advisor}.
@@ -123,6 +147,8 @@ function MarchettiProfile() {
     setShareBanner(true);
   }
 
+  const singleSource = traveller.preferences.filter((p) => p.sources < 2).length;
+
   return (
     <Page width="wide">
       <PageHeader
@@ -132,24 +158,8 @@ function MarchettiProfile() {
             <Chip tone="warn">departs in {traveller.departure.inDays} days</Chip>
           </>
         }
-        actions={
-          isColleague ? (
-            <Chip tone="primary">Collaborator Full</Chip>
-          ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setPickedTier(s.shareTier);
-                setShareOpen(true);
-              }}
-            >
-              <Share2 className="size-3.5" aria-hidden /> Sharing
-            </Button>
-          )
-        }
       >
-        <p className="mt-2 type-data text-muted-foreground">
+        <p className="mt-[var(--space-2)] type-meta">
           {traveller.relationshipStatus} · {traveller.preferences.length} preferences, each
           attributed to a source and a date
         </p>
@@ -161,117 +171,73 @@ function MarchettiProfile() {
         Collaborator Full / Basic is the schema&rsquo;s answer.
       </NarrationNote>
 
-      {shareBanner && (
-        <div className="mt-4">
-          <ConfirmBanner show>
-            {s.shareTier === "private"
-              ? "Sharing withdrawn — the profile is private to you again. The audit records the shared interval."
-              : `Shared with ${people.colleague} at the ${
-                  s.shareTier === "full" ? "Collaborator Full" : "Collaborator Basic"
-                } tier — explicit, attributed, revocable. Non-admin shares route through the suggestion and approval workflow.`}
-          </ConfirmBanner>
-        </div>
-      )}
+      <div className="doc-layout">
+        {/* ── the body: chapters at column width ── */}
+        <div className="min-w-0">
+          <div className="space-y-[var(--space-2)] pb-[var(--gap-2)] empty:hidden">
+            {shareBanner && (
+              <ConfirmBanner show>
+                {s.shareTier === "private"
+                  ? "Sharing withdrawn — the profile is private to you again. The audit records the shared interval."
+                  : `Shared with ${people.colleague} at the ${tierLabel[s.shareTier]} tier — explicit, attributed, revocable. Non-admin shares route through the suggestion and approval workflow.`}
+              </ConfirmBanner>
+            )}
 
-      <div className="mt-4 doc-layout">
-        {/* ── Main column ── */}
-        <div className="min-w-0 space-y-4">
-          {/* The departure checklist used to open this page, so the most sensitive
-              record type in the product led with logistics and a heavy progress bar
-              rather than with the person. It now sits below the preferences, where
-              trip admin belongs. */}
-
-          {/* The tab row is gone.
-
-              It was never navigation: five tabs sat above a single stacked column that
-              already contained all of their content, four of them inert, one marked
-              selected. It produced three separate defects — controls that look pressable
-              and are not, a badge at the row's end that read as a sixth tab, and, once
-              Financials was actually built below, a tab calling built content unbuilt.
-              A Document archetype navigates by its sections and its rail, which this
-              page already has. */}
-
-          {/* Shortlist conflict — warn, not block */}
-          <SeverityBanner severity="Important">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="min-w-0">
-                <b>Shortlist conflict.</b> {shortlistConflict.property} is {shortlistConflict.reason}.
-              </span>
-              <span className="ml-auto" />
-              <Link
-                href="/itineraries"
-                className="type-data-strong text-primary underline underline-offset-2"
-              >
-                swap the property
-              </Link>
-              {proceeded ? (
-                <Chip tone="neutral">proceeded knowingly · {people.advisor} · recorded</Chip>
-              ) : (
-                <Button variant="outline" size="sm" onClick={() => setProceeded(true)}>
-                  Proceed knowingly (recorded)
+            {/* Shortlist conflict — warn, not block (Journey F U1). */}
+            <SeverityBanner severity="Important">
+              <div className="flex flex-wrap items-center gap-x-[var(--space-3)] gap-y-[var(--space-2)]">
+                <span className="min-w-0">
+                  <b>Shortlist conflict.</b> {shortlistConflict.property} is {shortlistConflict.reason}.
+                </span>
+                <span className="ml-auto" />
+                <Button asChild variant="link" size="sm">
+                  <Link href="/itineraries">swap the property</Link>
                 </Button>
-              )}
-            </div>
-          </SeverityBanner>
+                {proceeded ? (
+                  <Chip tone="neutral">proceeded knowingly · {people.advisor} · recorded</Chip>
+                ) : (
+                  <Button variant="secondary" size="sm" onClick={() => setProceeded(true)}>
+                    Proceed knowingly (recorded)
+                  </Button>
+                )}
+              </div>
+            </SeverityBanner>
+          </div>
 
-          {/* Preferences */}
+          {/* Preferences — every one says who said so, and when. */}
           <Section title="Preferences" chips={<Chip tone="neutral">every one attributed</Chip>}>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <Rows>
               {traveller.preferences.map((p) => {
                 const confirmed = p.id === "kaiseki" && s.prefConfirmed;
+                const asks = "confirmThis" in p && !!p.confirmThis && !confirmed;
                 return (
-                  <div key={p.id} className="rounded-lg border border-border bg-subtle p-4">
-                    <div className="type-data-strong">{p.text}</div>
-                    <div className="mt-2">
+                  <RowStack
+                    key={p.id}
+                    head={
+                      <>
+                        <span className="row-primary type-data-strong">{p.text}</span>
+                        <span className="row-trailing flex items-center gap-[var(--space-2)]">
+                          {confirmed ? (
+                            <Chip tone="ok">confirmed · {people.advisor} · today</Chip>
+                          ) : asks ? (
+                            <>
+                              <Chip tone="warn">1 source</Chip>
+                              <Button variant="link" size="sm" onClick={() => d({ type: "confirmPref" })}>confirm this</Button>
+                            </>
+                          ) : (
+                            <Chip tone="neutral" className="tnum">{p.sources} {p.sources === 1 ? "source" : "sources"}</Chip>
+                          )}
+                        </span>
+                      </>
+                    }
+                  >
+                    <span className="flex flex-wrap items-center gap-x-[var(--space-3)] gap-y-1">
                       <SourceTag kind={p.source.kind} label={`${p.source.label} · ${p.source.when}`} />
-                    </div>
-                    <div className="mt-2 flex items-center gap-2 type-meta">
-                      {confirmed ? (
-                        <>
-                          <span className="size-2 rounded-full bg-ok" aria-hidden />
-                          confirmed · {people.advisor} · today
-                        </>
-                      ) : "confirmThis" in p && p.confirmThis ? (
-                        <>
-                          <span className="size-2 rounded-full bg-warn" aria-hidden />
-                          <button
-                            type="button"
-                            /* An inline action inside meta text takes the meta role and
-                               an underline for its affordance — not a bespoke weight. */
-                            className="cursor-pointer text-warn underline underline-offset-2 hover:no-underline"
-                            onClick={() => d({ type: "confirmPref" })}
-                          >
-                            confirm this
-                          </button>
-                          <span>· 1 source</span>
-                        </>
-                      ) : p.sources >= 2 ? (
-                        <>
-                          <span className="size-2 rounded-full bg-ok" aria-hidden />
-                          <span className="tnum">{p.sources}</span> sources
-                        </>
-                      ) : (
-                        <>
-                          <span
-                            className="size-2 rounded-full border border-muted-foreground"
-                            aria-hidden
-                          />
-                          1 source
-                        </>
-                      )}
-                      {/* The bare probability is gone. An advisor cannot act on the
-                          difference between 0.60 and 0.65, and printing six unexplained
-                          decimals beside a client's preferences is the opposite of the
-                          claim that we do not guess. The corroboration count to the left
-                          already carries the real signal; the bar shows its weight. */}
-                      <ConfidenceMeter
-                        className="ml-auto"
-                        agree={Math.round(p.confidence * 100)}
-                        total={100}
-                        label={null}
-                      />
-                    </div>
-                  </div>
+                      {/* The bare probability is gone: the corroboration count carries the
+                          signal; the bar shows its weight. */}
+                      <ConfidenceMeter agree={Math.round(p.confidence * 100)} total={100} label={null} />
+                    </span>
+                  </RowStack>
                 );
               })}
 
@@ -279,96 +245,99 @@ function MarchettiProfile() {
               {s.prefConfirmed &&
                 suggestion !== "discarded" &&
                 traveller.suggestions.map((sg) => (
-                  <div key={sg.id} className="rounded-lg border border-ok/50 bg-subtle p-4">
-                    <div className="type-data-strong">{sg.text}</div>
-                    <div className="mt-2">
-                      <SourceTag kind="manual" label="confirmed from suggestion · today" />
-                    </div>
-                    <div className="mt-2 flex items-center gap-2 type-meta">
-                      <span className="size-2 rounded-full bg-ok" aria-hidden />
-                      confirmed · {people.advisor} · today
-                    </div>
-                  </div>
+                  <RowStack
+                    key={sg.id}
+                    head={
+                      <>
+                        <span className="row-primary type-data-strong">{sg.text}</span>
+                        <span className="row-trailing flex items-center gap-[var(--space-2)]">
+                          <Chip tone="ok">confirmed · {people.advisor} · today</Chip>
+                        </span>
+                      </>
+                    }
+                  >
+                    <SourceTag kind="manual" label="confirmed from suggestion · today" />
+                  </RowStack>
                 ))}
-            </div>
+            </Rows>
           </Section>
 
-          {/* Suggestions */}
-          <Section
-            title={
-              <span className="inline-flex items-center gap-2">
-                <Sparkles className="size-3.5 text-primary" aria-hidden /> Suggestions
-              </span>
-            }
-          >
+          {/* Suggestions — labelled, outside the preferences until a person decides (U3). */}
+          <Section title="Suggestions" chips={<Chip tone="neutral">labelled · never applied unconfirmed</Chip>}>
             {traveller.suggestions.map((sg) => (
-              <div key={sg.id} className="flex flex-wrap items-center gap-2 type-data">
+              <div key={sg.id}>
                 {suggestion === "discarded" ? (
-                  <span className="text-muted-foreground">
+                  <p className="type-data-read text-label-secondary">
                     Suggestion discarded — recorded, and the model learns nothing was true here.
-                  </span>
+                  </p>
                 ) : s.prefConfirmed ? (
-                  <span className="text-muted-foreground">
+                  <p className="type-data-read text-label-secondary">
                     Confirmed and moved into Preferences · attributed to {people.advisor}.
-                  </span>
+                  </p>
                 ) : (
                   <>
-                    <span className="italic">{sg.text}</span>
-                    <span className="type-meta">{sg.basis}</span>
-                    <span className="ml-auto" />
-                    <Button variant="outline" size="sm" onClick={() => d({ type: "confirmPref" })}>
-                      Confirm as preference
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setSuggestion("discarded")}>
-                      Discard
-                    </Button>
+                    <p className="type-data-read"><span className="italic">{sg.text}</span> <span className="type-meta">· {sg.basis}</span></p>
+                    <div className="mt-[var(--space-3)] flex flex-wrap items-center gap-[var(--space-3)]">
+                      <Button variant="secondary" size="sm" onClick={() => d({ type: "confirmPref" })}>
+                        Confirm as preference
+                      </Button>
+                      <Button variant="link" size="sm" onClick={() => setSuggestion("discarded")}>
+                        Discard
+                      </Button>
+                    </div>
                   </>
                 )}
               </div>
             ))}
           </Section>
 
-          {/* Departure checklist — trip admin, below the person it belongs to */}
+          {/* Where the signals come from — a note, not a chapter. */}
+          <Section title="Where these come from" quiet deep>
+            <Rows>
+              {traveller.signalsBySource.map(([label, n]) => (
+                <Row key={label}>
+                  <span className="row-primary">{label}</span>
+                  <span className="row-trailing tnum text-label-secondary">{n}</span>
+                </Row>
+              ))}
+              <Row>
+                <span className="row-primary type-data-strong">Signals held</span>
+                <span className="row-trailing tnum type-data-strong">9</span>
+              </Row>
+            </Rows>
+            <p className="mt-[var(--space-3)] type-meta">
+              <span className="tnum">{singleSource}</span> of these rest on a single source. The product marks them and asks
+              for a second before it treats any of them as settled.
+            </p>
+          </Section>
+
+          {/* Departure checklist — trip admin, below the person it belongs to. */}
           <Section
             title={`${traveller.departure.trip} — departure checklist`}
-            chips={
-              <Chip tone="neutral">
-                <span className="tnum">
-                  {done}/{of}
-                </span>{" "}
-                complete
-              </Chip>
-            }
+            deep
+            chips={<Chip tone="neutral"><span className="tnum">{done}/{of}</span> complete</Chip>}
           >
-            <Progress value={(done / of) * 100} className="h-1" />
-            <ul className="mt-4 grid gap-x-4 gap-y-2 type-data sm:grid-cols-2">
+            <Progress tone="neutral" value={(done / of) * 100} className="max-w-md" />
+            <Rows className="mt-[var(--space-3)]">
               {traveller.departure.checklist.items.map((item) => {
                 const pending = item.includes("pending");
                 return (
-                  <li key={item} className="flex items-center gap-2">
-                    {pending ? (
-                      <CircleDashed className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                    ) : (
-                      <Check className="size-3.5 shrink-0 text-ok" aria-hidden />
-                    )}
-                    <span className={pending ? "text-muted-foreground" : undefined}>
+                  <Row key={item}>
+                    <span className={pending ? "row-primary text-label-secondary" : "row-primary"}>
                       {item.replace(" — pending", "")}
                     </span>
-                    {/* Both states are marked. A row whose trailing slot was empty was
-                        relying on blank space to mean "done", which is one of the three
-                        things blank space was being asked to mean at once. */}
-                    <span className="ml-auto shrink-0">
-                      {pending ? <Chip tone="warn">pending</Chip> : <span className="type-micro text-muted-foreground">done</span>}
+                    <span className="row-trailing">
+                      {pending ? <Chip tone="warn">pending</Chip> : <Chip tone="neutral">done</Chip>}
                     </span>
-                  </li>
+                  </Row>
                 );
               })}
-            </ul>
+            </Rows>
           </Section>
 
           {/* Profiles */}
-          <Section title="Travel profiles">
-            <div className="flex flex-wrap gap-2">
+          <Section title="Travel profiles" deep>
+            <div className="flex flex-wrap gap-[var(--space-2)]">
               {traveller.profiles.map((p) => (
                 <Chip key={p.type} tone={p.isPrimary ? "primary" : "neutral"}>
                   {p.type}
@@ -376,32 +345,29 @@ function MarchettiProfile() {
                 </Chip>
               ))}
             </div>
-            <p className="mt-3 type-meta">
+            <p className="mt-[var(--space-3)] type-meta">
               Six blocks per profile — a preference files into the profile it belongs to.
             </p>
           </Section>
 
           {/* Trips */}
-          <Section variant="list" title="Trips">
-            <ul className="divide-y divide-border">
+          <Section title="Trips" deep>
+            <Rows>
               {traveller.trips.map((t) => (
-                <li key={t.title} className="row-grid px-4">
+                <Row key={t.title}>
                   <span className="row-primary type-data-strong">{t.title}</span>
                   <span className="row-meta tnum type-meta">{t.dates}</span>
                   <span className="row-trailing">
                     <Chip tone={t.status === "Planning" ? "primary" : "neutral"}>{t.status}</Chip>
                   </span>
-                </li>
+                </Row>
               ))}
-            </ul>
+            </Rows>
           </Section>
 
           {/* Financials — gated; absent for the colleague, never masked */}
           {money && (
-            <Section
-              title="Financials"
-              chips={<Chip tone="neutral">commission entitlement</Chip>}
-            >
+            <Section title="Financials" deep chips={<Chip tone="neutral">commission entitlement</Chip>}>
               <DataList
                 rows={[
                   {
@@ -434,60 +400,68 @@ function MarchettiProfile() {
                   },
                 ]}
               />
-              <p className="mt-3 type-meta">
+              <p className="mt-[var(--space-3)] type-meta">
                 {traveller.financials.source}. Figures follow the booking system, which stays
                 authoritative for money — they carry its sync time rather than claiming to be
                 current.
               </p>
             </Section>
           )}
-        </div>
 
-        {/* ── Context rail ── */}
-        <div className="doc-rail space-y-4" data-rail-label="About this traveller">
-          <Section
-            variant="list"
-            title="Where these come from"
-          >
-            <ul className="divide-y divide-border">
-              {traveller.signalsBySource.map(([label, n]) => (
-                <li key={label} className="row-grid px-4">
-                  <span className="row-primary type-data">{label}</span>
-                  <span className="row-trailing tnum type-meta">{n}</span>
-                </li>
-              ))}
-              <li className="row-grid px-4">
-                <span className="row-primary type-data-strong">Signals held</span>
-                <span className="row-trailing tnum type-data-strong">9</span>
-              </li>
-            </ul>
-          </Section>
-
-          <Section title="Visibility">
-            <p className="flex gap-2 type-meta">
-              <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-              {visibilityLine}
-            </p>
-          </Section>
-
-          <Section title="One source is a note">
-            <p className="type-meta">
-              Three of these nine signals rest on a single source. The product marks them and asks
-              for a second before it treats any of them as a preference.
-            </p>
-          </Section>
-
-          <Section title="Acuity" chips={<Chip tone="ok">{traveller.acuity.status}</Chip>}>
-            <div className="flex items-baseline gap-2">
-              <span className="tnum type-data-strong">{traveller.acuity.score}</span>
+          {/* Acuity */}
+          <Section title="Acuity" deep chips={<Chip tone="ok">{traveller.acuity.status}</Chip>}>
+            <div className="flex items-baseline gap-[var(--space-3)]">
+              <span className="type-figure">{traveller.acuity.score}</span>
               <span className="type-meta">last run {traveller.acuity.lastRun}</span>
             </div>
-            <p className="mt-2 type-meta">
+            <p className="mt-[var(--space-2)] max-w-[60ch] type-data-read text-label-secondary">
               Four states — Not Run, Running, Complete, Locked. Running it is gated on the
               entitlement, not on the sharing tier.
             </p>
           </Section>
         </div>
+
+        {/* ── the tool that follows you: who can see this, and the one action ── */}
+        <aside className="doc-rail" data-rail-label="Sharing">
+          <Section variant="tool" follows title="Sharing">
+            <div className="flex flex-wrap items-center gap-[var(--space-2)]">
+              <TierChip tier={s.shareTier} who={s.shareTier === "private" ? null : people.colleague} />
+            </div>
+            <p className="mt-[var(--space-3)] type-data-read text-label-secondary">{visibilityLine}</p>
+            <Rows className="mt-[var(--space-3)]">
+              <Row>
+                <span className="row-primary">Owner</span>
+                <span className="row-trailing text-label-secondary">{people.advisor}</span>
+              </Row>
+              <Row>
+                <span className="row-primary">Spend fields</span>
+                <span className="row-trailing text-label-secondary">{money ? "entitled" : "absent"}</span>
+              </Row>
+              <Row>
+                <span className="row-primary">Audit</span>
+                <span className="row-trailing text-label-secondary">every share, every revoke</span>
+              </Row>
+            </Rows>
+            {isColleague ? (
+              <p className="mt-[var(--space-4)] type-meta">
+                Shared with you by {people.advisor}. A collaborator cannot re-share or delete.
+              </p>
+            ) : (
+              <div className="mt-[var(--space-4)]">
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    setPickedTier(s.shareTier);
+                    setShareOpen(true);
+                  }}
+                >
+                  {s.shareTier === "private" ? `Share with ${people.colleague}` : "Change sharing"}
+                </Button>
+                <p className="mt-[var(--space-2)] text-center type-meta">Explicit, attributed, revocable.</p>
+              </div>
+            )}
+          </Section>
+        </aside>
       </div>
 
       {/* ── Sharing sheet ── */}
@@ -497,37 +471,27 @@ function MarchettiProfile() {
             <SheetTitle>Who can see this profile</SheetTitle>
             <SheetDescription>Sharing with {people.colleague}</SheetDescription>
           </SheetHeader>
-          <div className="px-4">
+          <div className="overflow-y-auto px-[var(--space-6)] py-[var(--space-6)]">
             <RadioGroup
               value={pickedTier}
               onValueChange={(v) => setPickedTier(v as typeof pickedTier)}
-              className="gap-3"
+              className="gap-[var(--space-3)]"
             >
-              <div className="flex items-start gap-3">
-                <RadioGroupItem value="private" id="tier-private" className="mt-1" />
-                <Label htmlFor="tier-private" className="flex flex-col items-start gap-1 font-normal">
-                  <span className="type-data-strong">Private to you</span>
-                  <span className="type-meta">Nobody else at the agency can read it.</span>
-                </Label>
-              </div>
-              <div className="flex items-start gap-3">
-                <RadioGroupItem value="full" id="tier-full" className="mt-1" />
-                <Label htmlFor="tier-full" className="flex flex-col items-start gap-1 font-normal">
-                  <span className="type-data-strong">Collaborator — Full</span>
-                  <span className="type-meta">
-                    All fields; can edit and run Acuity. Cannot re-share or delete.
-                  </span>
-                </Label>
-              </div>
-              <div className="flex items-start gap-3">
-                <RadioGroupItem value="basic" id="tier-basic" className="mt-1" />
-                <Label htmlFor="tier-basic" className="flex flex-col items-start gap-1 font-normal">
-                  <span className="type-data-strong">Collaborator — Basic</span>
-                  <span className="type-meta">Name and contact only, for a limited introduction.</span>
-                </Label>
-              </div>
+              {([
+                ["private", "Private to you", "Nobody else at the agency can read it."],
+                ["full", "Collaborator — Full", "All fields; can edit and run Acuity. Cannot re-share or delete."],
+                ["basic", "Collaborator — Basic", "Name and contact only, for a limited introduction."],
+              ] as const).map(([v, label, hint]) => (
+                <div key={v} className="flex items-start gap-[var(--space-3)]">
+                  <RadioGroupItem value={v} id={`tier-${v}`} className="mt-px" />
+                  <Label htmlFor={`tier-${v}`} className="flex flex-col items-start gap-0.5">
+                    <span className="type-data-strong">{label}</span>
+                    <span className="type-meta">{hint}</span>
+                  </Label>
+                </div>
+              ))}
             </RadioGroup>
-            <div className="mt-4 space-y-2 border-t border-border pt-4 type-meta">
+            <div className="mt-[var(--space-4)] space-y-[var(--space-2)] border-t border-hairline pt-[var(--space-4)] type-meta">
               <p>Private by default. Sharing is an explicit action.</p>
               <p>A non-admin share routes through the suggestion and approval workflow.</p>
               <p>Spend fields stay behind the commission entitlement at every tier.</p>
@@ -552,14 +516,12 @@ function GenericProfile({ id }: { id: string }) {
       <Page width="wide">
         <PageHeader title="Not on your list" />
         <Section>
-          <p className="type-data text-muted-foreground">
+          <p className="type-data-read text-label-secondary">
             Nothing at this address for your permission path. What is not shared is absent, not
             locked.
           </p>
-          <Button asChild variant="outline" size="sm" className="mt-4">
-            <Link href="/travellers">
-              Back to travellers <ArrowRight className="size-3.5" aria-hidden />
-            </Link>
+          <Button asChild variant="secondary" size="sm" className="mt-[var(--space-3)]">
+            <Link href="/travellers">Back to travellers <ArrowRight aria-hidden /></Link>
           </Button>
         </Section>
       </Page>
@@ -574,7 +536,7 @@ function GenericProfile({ id }: { id: string }) {
       <Page width="wide">
         <PageHeader title="Not shared with you" />
         <Section>
-          <p className="type-data text-muted-foreground">
+          <p className="type-data-read text-label-secondary">
             This profile is private to its owning advisor. It is absent from your list, not locked
             inside it.
           </p>
@@ -600,19 +562,8 @@ function GenericProfile({ id }: { id: string }) {
             )}
           </>
         }
-        actions={
-          card.shared ? (
-            <Chip tone="primary">
-              <Share2 className="size-3" aria-hidden /> shared with {card.shared}
-            </Chip>
-          ) : (
-            <Chip tone="neutral">
-              <Lock className="size-3" aria-hidden /> private to you
-            </Chip>
-          )
-        }
       >
-        <p className="mt-2 type-data text-muted-foreground">{card.relationshipStatus}</p>
+        <p className="mt-[var(--space-2)] type-meta">{card.relationshipStatus}</p>
       </PageHeader>
 
       {basic ? (
@@ -620,32 +571,54 @@ function GenericProfile({ id }: { id: string }) {
           <p className="type-data">
             {card.name} · {card.relationshipStatus} · contact on file
           </p>
-          <p className="mt-3 type-meta">
+          <p className="mt-[var(--space-3)] type-data-read text-label-secondary">
             Name and contact only at Collaborator Basic. Preferences, journeys, intelligence and
             spend fields are absent — not masked.
           </p>
         </Section>
       ) : (
         <div className="doc-layout">
-          <div className="min-w-0 space-y-4">
-            <Section title="Next journey">
+          <div className="min-w-0">
+            <Section title="At a glance">
+              <DataList
+                rows={[
+                  { label: "Relationship", value: card.relationshipStatus },
+                  { label: "Travel profiles", value: <span className="tnum">{card.profiles}</span> },
+                  { label: "Preferences", value: <span className="tnum">{card.preferences}</span> },
+                  {
+                    label: "Departs in",
+                    value: card.departsInDays === null ? null : <span className="tnum">{card.departsInDays} days</span>,
+                    absent: "not applicable",
+                  },
+                  {
+                    label: "Acuity",
+                    value: card.acuityScore === null ? null : <span className="tnum">{card.acuityScore} · complete</span>,
+                    absent: "not run",
+                  },
+                ]}
+              />
+              {card.acuityScore === null && (
+                <p className="mt-[var(--space-3)] type-meta">
+                  Acuity has not been run for this profile. The score is absent rather than estimated.
+                </p>
+              )}
+            </Section>
+
+            <Section title="Next journey" deep>
               {trip ? (
                 <>
-                  <div className="flex flex-wrap items-baseline gap-3">
+                  <div className="flex flex-wrap items-center gap-[var(--space-3)]">
                     <span className="type-data-strong">{trip.title}</span>
                     <Chip tone={trip.status === "Booked" ? "ok" : "neutral"}>{trip.status}</Chip>
                   </div>
-                  <p className="mt-2 type-data text-muted-foreground">
+                  <p className="mt-[var(--space-2)] type-data-read text-label-secondary">
                     {trip.destinations.join(" · ")} · <span className="tnum">{trip.dates}</span> ·{" "}
                     <span className="tnum">{trip.nights}</span> nights
                   </p>
                   {trip.checklist && (
-                    <div className="mt-4">
-                      <Progress
-                        value={(trip.checklist.done / trip.checklist.of) * 100}
-                        className="h-1.5"
-                      />
-                      <p className="mt-2 type-meta">
+                    <div className="mt-[var(--space-4)]">
+                      <Progress tone="neutral" value={(trip.checklist.done / trip.checklist.of) * 100} className="max-w-md" />
+                      <p className="mt-[var(--space-2)] type-meta">
                         Departure checklist{" "}
                         <span className="tnum">
                           {trip.checklist.done}/{trip.checklist.of}
@@ -653,107 +626,71 @@ function GenericProfile({ id }: { id: string }) {
                       </p>
                     </div>
                   )}
-                  <Button asChild variant="outline" size="sm" className="mt-4">
-                    <Link href="/itineraries">
-                      Open the itinerary <ArrowRight className="size-3.5" aria-hidden />
-                    </Link>
+                  <Button asChild variant="secondary" size="sm" className="mt-[var(--space-4)]">
+                    <Link href="/itineraries">Open the itinerary <ArrowRight aria-hidden /></Link>
                   </Button>
                 </>
               ) : (
-                <p className="type-data text-muted-foreground">No trip on file.</p>
+                <p className="type-data-read text-label-secondary">No trip on file.</p>
               )}
             </Section>
 
-            <Section variant="list" title="All journeys">
-              <ul className="divide-y divide-border">
-                {past.map((t) => (
-                  <li key={t.id} className="row-grid px-4">
-                    <span className="row-primary type-data-strong">{t.title}</span>
-                    <span className="row-meta tnum type-meta">{t.dates}</span>
-                    <span className="row-trailing">
-                      <Chip tone={t.status === "Traveled" ? "neutral" : "primary"}>{t.status}</Chip>
-                    </span>
-                  </li>
-                ))}
-                {past.length === 0 && (
-                  <li className="p-4 type-data text-muted-foreground">Nothing recorded yet.</li>
-                )}
-              </ul>
+            <Section title="All journeys" deep>
+              {past.length === 0 ? (
+                <p className="type-data-read text-label-secondary">Nothing recorded yet.</p>
+              ) : (
+                <Rows>
+                  {past.map((t) => (
+                    <Row key={t.id}>
+                      <span className="row-primary type-data-strong">{t.title}</span>
+                      <span className="row-meta tnum type-meta">{t.dates}</span>
+                      <span className="row-trailing">
+                        <Chip tone={t.status === "Traveled" ? "neutral" : "primary"}>{t.status}</Chip>
+                      </span>
+                    </Row>
+                  ))}
+                </Rows>
+              )}
             </Section>
 
-            <Section title="Intelligence" chips={<SchematicBadge />}>
-              <p className="type-data text-muted-foreground">
+            <Section title="Intelligence" quiet deep chips={<SchematicBadge />}>
+              <p className="max-w-[60ch] type-data-read text-label-secondary">
                 <span className="tnum">{card.preferences}</span> preferences sit on this profile,
                 each one attributed to a source and a date, across{" "}
                 <span className="tnum">{card.profiles}</span> travel{" "}
                 {card.profiles === 1 ? "profile" : "profiles"}. The per-field anatomy is built on{" "}
-                <Link
-                  href={`/travellers/${traveller.id}`}
-                  className="text-primary underline underline-offset-2"
-                >
-                  {traveller.name}
-                </Link>{" "}
+                <Button asChild variant="link" size="sm">
+                  <Link href={`/travellers/${traveller.id}`}>{traveller.name}</Link>
+                </Button>{" "}
                 in this vintage.
               </p>
             </Section>
           </div>
 
-          <div className="space-y-4">
-            <Section variant="list" title="At a glance">
-              <ul className="divide-y divide-border">
-                <li className="row-grid px-4">
-                  <span className="row-primary type-data">Relationship</span>
-                  <span className="row-trailing type-meta">{card.relationshipStatus}</span>
-                </li>
-                <li className="row-grid px-4">
-                  <span className="row-primary type-data">Travel profiles</span>
-                  <span className="row-trailing tnum type-meta">{card.profiles}</span>
-                </li>
-                <li className="row-grid px-4">
-                  <span className="row-primary type-data">Preferences</span>
-                  <span className="row-trailing tnum type-meta">{card.preferences}</span>
-                </li>
-                <li className="row-grid px-4">
-                  <span className="row-primary type-data">Departs in</span>
-                  <span className="row-trailing tnum type-meta">
-                    {card.departsInDays === null ? "—" : `${card.departsInDays} days`}
-                  </span>
-                </li>
-              </ul>
-            </Section>
-
-            <Section
-              title="Acuity"
-              chips={
-                card.acuityScore === null ? (
-                  <Chip tone="neutral">Not Run</Chip>
-                ) : (
-                  <Chip tone="ok">Complete</Chip>
-                )
-              }
-            >
-              {card.acuityScore === null ? (
-                <p className="type-meta">
-                  Acuity has not been run for this profile. The score is absent rather than
-                  estimated.
-                </p>
-              ) : (
-                <div className="flex items-baseline gap-2">
-                  <span className="tnum type-data-strong">{card.acuityScore}</span>
-                  <span className="type-meta">last complete run</span>
-                </div>
-              )}
-            </Section>
-
-            <Section title="Visibility">
-              <p className="flex gap-2 type-meta">
-                <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          {/* The tool that follows you: the sharing state. No share action is wired
+              for this profile, so the tool carries state only. */}
+          <aside className="doc-rail" data-rail-label="Sharing">
+            <Section variant="tool" follows title="Sharing">
+              <div className="flex flex-wrap items-center gap-[var(--space-2)]">
+                <TierChip tier={card.shared ? "full" : "private"} who={card.shared} />
+              </div>
+              <p className="mt-[var(--space-3)] type-data-read text-label-secondary">
                 {card.shared
                   ? `Shared with ${card.shared} — Collaborator Full. Explicit, attributed, and revocable.`
                   : "Private to you. Nobody else at the agency can read this profile."}
               </p>
+              <Rows className="mt-[var(--space-3)]">
+                <Row>
+                  <span className="row-primary">Owner</span>
+                  <span className="row-trailing text-label-secondary">{people.advisor}</span>
+                </Row>
+                <Row>
+                  <span className="row-primary">Audit</span>
+                  <span className="row-trailing text-label-secondary">every share, every revoke</span>
+                </Row>
+              </Rows>
             </Section>
-          </div>
+          </aside>
         </div>
       )}
     </Page>

@@ -151,7 +151,7 @@ function EditFieldSheet({
                     <RadioGroupItem value={v} id={`edit-scope-${v}`} className="mt-px" />
                     <Label htmlFor={`edit-scope-${v}`} className="flex flex-col items-start gap-0.5">
                       <span className="type-data">{label}</span>
-                      <span className="type-meta font-normal">
+                      <span className="type-meta">
                         {scopeAudience(v, s.role)}
                         {needsReview && " · goes to a lead for review"}
                       </span>
@@ -230,7 +230,7 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[min(92vw,560px)]">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2"><Scale className="size-[var(--icon-lg)] text-crit" aria-hidden /> {commissionConflict.field} — 3 sources</SheetTitle>
+          <SheetTitle className="flex items-center gap-2"><Scale className="size-[var(--icon-lg)] text-label-secondary" aria-hidden /> {commissionConflict.field} — 3 sources</SheetTitle>
           <SheetDescription>{commissionConflict.headline}</SheetDescription>
         </SheetHeader>
         <SheetBody className="space-y-[var(--space-4)]">
@@ -598,7 +598,7 @@ function LeandreRecord() {
                   <RadioGroupItem value={v} id={`scope-${v}`} className="mt-px" />
                   <Label htmlFor={`scope-${v}`} className="flex flex-col items-start gap-0.5">
                     <span className="type-data">{l}</span>
-                    <span className="type-meta font-normal">{hint}</span>
+                    <span className="type-meta">{hint}</span>
                   </Label>
                 </div>
               ))}

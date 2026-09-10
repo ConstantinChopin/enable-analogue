@@ -139,18 +139,25 @@ export default function Briefing() {
               <p className="type-data-read text-label-secondary">No departures for travellers shared with you.</p>
             ) : (
               <Rows>
+                {/* Two lines: the traveller and when on the first, the trip and its marks on
+                    the second. On one line the name truncated under its own chips on the
+                    phone, which is the row rule's own failure case. */}
                 {visibleDepartures.map((t) => (
-                  <Row key={t.id}>
-                    <span className="row-primary">
-                      <span className="type-data-strong">{t.traveller}</span>
-                      <span className="text-label-secondary"> · {t.title}</span>
-                    </span>
-                    <span className="row-meta type-meta tnum">in {t.startsInDays}d</span>
-                    <span className="row-trailing flex items-center gap-2">
+                  <RowStack
+                    key={t.id}
+                    head={
+                      <>
+                        <span className="row-primary type-data-strong">{t.traveller}</span>
+                        <span className="type-meta tnum">in {t.startsInDays}d</span>
+                      </>
+                    }
+                  >
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span>{t.title}</span>
                       {t.checklist && <Chip tone="neutral">checklist {t.checklist.done}/{t.checklist.of}</Chip>}
                       {t.alert && <Chip tone="warn">{t.alert}</Chip>}
                     </span>
-                  </Row>
+                  </RowStack>
                 ))}
               </Rows>
             )}
@@ -265,8 +272,7 @@ export default function Briefing() {
               <span className="type-figure">{briefing.recordsVerified.done}</span>
               <span className="type-meta tnum">of {briefing.recordsVerified.of} in Paris</span>
             </div>
-            <Progress
-              value={(briefing.recordsVerified.done / briefing.recordsVerified.of) * 100}
+            <Progress tone="neutral" value={(briefing.recordsVerified.done / briefing.recordsVerified.of) * 100}
               className="mt-[var(--space-2)] max-w-md"
             />
             <p className="mt-[var(--space-2)] max-w-[60ch] type-data-read text-label-secondary">
@@ -400,7 +406,7 @@ export default function Briefing() {
                 <div className="type-meta tnum">{openCommissions.length} open · {overdue.length} overdue</div>
               </div>
             </div>
-            <Progress value={(collected / (collected + outstanding)) * 100} className="mt-[var(--space-3)] max-w-md" />
+            <Progress tone="neutral" value={(collected / (collected + outstanding)) * 100} className="mt-[var(--space-3)] max-w-md" />
             <p className="mt-[var(--space-2)] type-meta">
               Actuals arrive read-only from the booking system. Ground truth stays in the source.
             </p>

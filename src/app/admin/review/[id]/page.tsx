@@ -1,17 +1,36 @@
 "use client";
 /**
- * Candidate detail — the Document archetype (§7). Per-field confirmation with the
- * source snippet and its confidence; a merge sheet for a possible duplicate; a
- * rejection that carries its reason. Nothing merges or commits automatically.
+ * Candidate detail — Journey D (docs/journeys/journey-d-ingestion-confirmation.md),
+ * recomposed as a document. A candidate becomes truth only when a human confirms it
+ * field by field; a held field has no confirm control; nothing merges automatically.
+ *
+ * Chapters, in order: the identity check (a banner: no match, or a possible match with
+ * its signals) · Extracted fields (label · value · where in the document it came from,
+ * with the reading in words beside the bar; a held row carries its reason and NO
+ * confirm control; template copy is marked and excluded) · for the unreadable row,
+ * "Nothing extracted from this row".
+ *
+ * The one primary lives at the bottom of the tool that follows (Review), which counts
+ * what is ready, held and template: "Confirm record — stamped M. Keller, today" on a
+ * new candidate (demo J3, key 8); "Review the match" on a possible duplicate (opens the
+ * merge sheet, which requires a reason); "Key the name by hand" on the unreadable row.
+ * Secondary: Confirm / Enter value on a row, Create new record under the match banner,
+ * Show the source row. Text: Fix on a row, Reject — reason logged. Sheets (source,
+ * reject, merge) carry their own commit, as the record's sheets do.
+ *
+ * Local components: FieldLine (label · body · provenance on the shared .field-row
+ * track), readingWords (the bar's label in words, so "confidence" never appears).
  */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { cn } from "@/lib/utils";
 import { useDemo } from "@/lib/store";
 import { candidates, products, people, filterOptions } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
 import {
-  Chip, Section, NarrationNote, ConfirmBanner, ConfidenceMeter, MoneyValue, SeverityBanner,
+  Chip, Section, NarrationNote, ConfirmBanner, ConfidenceMeter, SeverityBanner,
+  SourceTag, Rows, Row, DataList,
 } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +42,6 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ArrowRight, Check, CircleDashed, CopyPlus, FileSearch, Pencil } from "lucide-react";
 
 /* Which extracted fields are ENTITIES, and what they may be.
    Anything absent from this table is genuinely free text — a rate, a description, an
@@ -37,6 +55,43 @@ function entityOptions(label: string): string[] | null {
   if (key.startsWith("status")) return filterOptions.status;
   if (key.startsWith("region")) return filterOptions.region as string[];
   return null;
+}
+
+/* The bar's label, in words. The two-decimal probability was model internals wearing
+   a UI; the word "confidence" beside a bar is a number pretending to be a reason. */
+function readingWords(c: number) {
+  if (c >= 0.9) return "read cleanly";
+  if (c >= 0.75) return "read, small doubt";
+  if (c >= 0.5) return "read with doubt";
+  return "barely read";
+}
+
+function sourceKind(uri: string): "gdrive" | "portal" | "intranet" {
+  if (uri.startsWith("gdrive://")) return "gdrive";
+  if (uri.startsWith("portal://")) return "portal";
+  return "intranet";
+}
+
+/* ── the field row's shape: label · value · provenance on one shared track ── */
+function FieldLine({
+  label, provenance, children,
+}: { label: string; provenance?: ReactNode; children: ReactNode }) {
+  return (
+    <div className="field-row">
+      <div className="type-data text-label-secondary">{label}</div>
+      <div className="min-w-0">{children}</div>
+      {provenance && (
+        <div className="flex max-w-[30ch] flex-col items-start gap-1 sm:items-end sm:text-right">
+          {provenance}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── the sheet body: 24 inside ── */
+function SheetBody({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn("min-h-0 flex-1 space-y-[var(--space-4)] overflow-y-auto px-[var(--space-6)] py-[var(--space-6)]", className)}>{children}</div>;
 }
 
 export default function CandidateDetail() {
@@ -61,13 +116,9 @@ export default function CandidateDetail() {
       <Page width="wide">
         <PageHeader title="No candidate at this address" />
         <Section>
-          <p className="type-data text-muted-foreground">
-            Nothing is waiting for confirmation here.
-          </p>
-          <Button asChild variant="outline" size="sm" className="mt-4">
-            <Link href="/admin/review">
-              Back to the queue <ArrowRight className="size-3.5" aria-hidden />
-            </Link>
+          <p className="type-data-read text-label-secondary">Nothing is waiting for confirmation here.</p>
+          <Button asChild variant="link" size="sm" className="mt-[var(--space-3)]">
+            <Link href="/admin/review">Open the queue</Link>
           </Button>
         </Section>
       </Page>
@@ -75,7 +126,7 @@ export default function CandidateDetail() {
   }
 
   /* A candidate whose source row could not be read — held, and visibly so. The three
-     acts the sentence names (open the source, fix it by hand, reject it with a reason)
+     acts the copy names (open the source, fix it by hand, reject it with a reason)
      are rendered as controls rather than described. */
   const isHeld = candidate.kind === "held";
   const raw = "raw" in candidate ? candidate.raw : undefined;
@@ -86,14 +137,19 @@ export default function CandidateDetail() {
     : {};
 
   const confirmedAlready = candidate.id === "sereno" && s.candidateConfirmed;
-  /* A field a person has keyed is no longer held, so it stops being counted as one.
-     The count drove the confirmation banner, so supplying a value and then being told
-     the same number of fields were still held would have contradicted the work just
-     done on screen. */
-  const heldCount = candidate.fields.filter(
-    (f) =>
-      (("held" in f && f.held) || ("template" in f && f.template)) && !corrected[f.label],
-  ).length;
+  const kind = sourceKind(candidate.uri);
+
+  const isHeldField = (f: (typeof candidate.fields)[number]) => "held" in f && !!f.held;
+  const isTemplate = (f: (typeof candidate.fields)[number]) => "template" in f && !!f.template;
+
+  /* A field a person has keyed is no longer held, so it stops being counted as one. */
+  const heldCount = candidate.fields.filter((f) => (isHeldField(f) || isTemplate(f)) && !corrected[f.label]).length;
+  const readyFields = candidate.fields.filter((f) => (!isHeldField(f) && !isTemplate(f)) || corrected[f.label]);
+  const confirmedCount = confirmedAlready
+    ? readyFields.length
+    : readyFields.filter((f) => fieldOk[f.label]).length;
+  const heldOnly = candidate.fields.filter((f) => isHeldField(f) && !corrected[f.label]).length;
+  const templateOnly = candidate.fields.filter((f) => isTemplate(f) && !corrected[f.label]).length;
 
   function confirmRecord() {
     d({ type: "confirmCandidate" });
@@ -104,215 +160,204 @@ export default function CandidateDetail() {
     );
   }
 
+  const kindChip = isHeld
+    ? <Chip tone="crit">held</Chip>
+    : isDup
+      ? <Chip tone="warn">possible duplicate</Chip>
+      : <Chip tone="primary">new candidate</Chip>;
+
+  const reject = (
+    <Button variant="link" size="sm" onClick={() => { setRejectOpen(true); setReason(""); }}>
+      Reject — reason logged
+    </Button>
+  );
+
   return (
     <Page width="wide">
-      <PageHeader
-        title={
-          <>
-            {candidate.name}
-            {isHeld ? (
-              <Chip tone="crit">
-                <CircleDashed className="size-3" aria-hidden /> held
-              </Chip>
-            ) : isDup ? (
-              <Chip tone="warn">possible duplicate</Chip>
-            ) : (
-              <Chip tone="primary">new candidate</Chip>
-            )}
-          </>
-        }
-      >
-        <p className="mt-2 type-code text-muted-foreground">
-          {candidate.from} · {candidate.uri}
+      <PageHeader title={<>{candidate.name} {kindChip}</>}>
+        <p className="mt-[var(--space-2)] type-meta">
+          {candidate.from} · <span className="type-code">{candidate.uri}</span>
         </p>
       </PageHeader>
 
-      {!isHeld && (
-        <NarrationNote>
-          Every extracted field arrives with what, where and when. The two held fields demonstrate
-          the hold gate: a converted figure without its source currency, and boilerplate
-          masquerading as content.
-        </NarrationNote>
-      )}
+      <div className="doc-layout">
+        {/* ── the body: chapters at column width ── */}
+        <div className="min-w-0">
+          {!isHeld && (
+            <NarrationNote>
+              Every extracted field arrives with what, where and when. The held fields demonstrate
+              the hold gate: a converted figure without its source currency, a rate with no
+              programme, an empty cell — and boilerplate masquerading as content.
+            </NarrationNote>
+          )}
 
-      <div className="mt-4 space-y-4">
-        {banner && <ConfirmBanner show>{banner}</ConfirmBanner>}
-        {confirmedAlready && !banner && (
-          <ConfirmBanner show>
-            Confirmed by {people.lead} — live at the agency layer with{" "}
-            <span className="tnum">{heldCount}</span> fields still held in review.
-          </ConfirmBanner>
-        )}
+          <div className="space-y-[var(--space-2)] pb-[var(--gap-2)] empty:hidden">
+            {banner && <ConfirmBanner show>{banner}</ConfirmBanner>}
+            {confirmedAlready && !banner && (
+              <ConfirmBanner show>
+                Confirmed by {people.lead} — live at the agency layer with{" "}
+                <span className="tnum">{heldCount}</span> fields still held in review.
+              </ConfirmBanner>
+            )}
 
-        {/* Identity check */}
-        {isHeld ? null : isDup && candidate.match ? (
-          <SeverityBanner severity="Important">
-            <div className="flex flex-wrap items-start gap-3">
-              <span className="min-w-0">
-                <b>Possible match: {candidate.match.target}</b> · match signal{" "}
-                <span className="tnum">{candidate.match.similarity}</span>
-                <span className="mt-2 flex flex-wrap gap-2">
+            {/* Identity check — first, because it decides whether anything below creates
+                a record or overlays one. */}
+            {isHeld ? null : isDup && candidate.match ? (
+              <SeverityBanner severity="Important">
+                <div className="type-data-strong">
+                  Possible match: {candidate.match.target} · match signal{" "}
+                  <span className="tnum">{candidate.match.similarity}</span>
+                </div>
+                <div className="mt-[var(--space-2)] flex flex-wrap gap-[var(--space-2)]">
                   {candidate.match.signals.map(([k, v]) => (
-                    <Chip key={k} tone="neutral" className="font-mono">
-                      {k} {v}
-                    </Chip>
+                    <Chip key={k} tone="neutral" className="font-mono">{k} {v}</Chip>
                   ))}
-                </span>
-              </span>
-              <span className="ml-auto" />
-              {/* The decision on a duplicate is merge into the existing record or create a
-                  new one. Offering only Merge makes the other half of the choice invisible. */}
-              <span className="flex flex-wrap items-center gap-2">
+                </div>
+                <p className="mt-[var(--space-2)] type-meta">
+                  The decision is merge into the existing record, or create a new one. Creating
+                  a new record keeps both: the match stays logged against them, so the duplicate
+                  comes back for a later human pass rather than disappearing.
+                </p>
+                {/* The other half of the choice, under the content it extends. */}
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
-                  onClick={() => {
-                    setMergeOpen(true);
-                    setReason("");
-                  }}
-                >
-                  Merge
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
+                  className="mt-[var(--space-3)]"
                   onClick={() =>
-                    setBanner(
-                      `Created as a separate record — both stand, attributed to ${people.lead}. The match signal is logged against them.`,
-                    )
+                    setBanner(`Created as a separate record — both stand, attributed to ${people.lead}. The match signal is logged against them.`)
                   }
                 >
-                  <CopyPlus className="size-3.5" aria-hidden /> Create new record
+                  Create new record
                 </Button>
-              </span>
-              <p className="w-full type-meta">
-                Creating a new record keeps both. The match stays logged against them, so the
-                duplicate comes back for a later human pass rather than disappearing.
-              </p>
-            </div>
-          </SeverityBanner>
-        ) : (
-          <SeverityBanner severity="Info">
-            Identity check — no canonical match. Name, city and place-id are all clear, so this
-            creates a new record.
-          </SeverityBanner>
-        )}
+              </SeverityBanner>
+            ) : (
+              <SeverityBanner severity="Info">
+                Identity check — no canonical match. Name, city and place-id are all clear, so
+                this creates a new record.
+              </SeverityBanner>
+            )}
+          </div>
 
-        {/* Nothing extracted — the row is all there is to show */}
-        {isHeld && (
-          <Section title="Nothing extracted from this row">
-            <p className="type-data text-muted-foreground">
-              Nothing was extracted with confidence from this row. The candidate is held — it never
-              surfaces anywhere until a person opens the source, fixes it by hand, or rejects it
-              with a reason.
-            </p>
-            {corrected.Name && (
-              <>
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <span className="w-24 shrink-0 type-meta">Name</span>
-                  <span className="type-data-strong">{corrected.Name}</span>
-                  <Chip tone="ok">corrected · {people.lead}</Chip>
-                </div>
-                <p className="mt-2 type-meta">
+          {/* Nothing extracted — the row is all there is to show. */}
+          {isHeld && (
+            <Section title="Nothing extracted from this row">
+              <p className="max-w-[62ch] type-data-read text-label-secondary">
+                Nothing was extracted with confidence from this row. The candidate is held — it
+                never surfaces anywhere until a person opens the source, fixes it by hand, or
+                rejects it with a reason.
+              </p>
+              <DataList
+                className="mt-[var(--space-3)]"
+                rows={[
+                  { label: "Where", value: <SourceTag kind={kind} label={raw?.where ?? ""} /> },
+                  { label: "Why it is held", value: <span className="type-data-read">{raw?.note}</span> },
+                  {
+                    label: "Name",
+                    value: corrected.Name ? (
+                      <span className="inline-flex flex-wrap items-center justify-end gap-[var(--space-2)]">
+                        <span className="type-data-strong">{corrected.Name}</span>
+                        <Chip tone="ok">keyed · {people.lead}</Chip>
+                      </span>
+                    ) : undefined,
+                    absent: "pending",
+                  },
+                ]}
+              />
+              {corrected.Name && (
+                <p className="mt-[var(--space-2)] type-meta">
                   Keyed by hand, attributed. The source row is unchanged, and the candidate stays
                   held until the rest of it can be read.
                 </p>
-              </>
-            )}
-          </Section>
-        )}
+              )}
+              {/* Preview → grey button → sheet: the row itself opens beside the page. */}
+              <Button variant="secondary" size="sm" className="mt-[var(--space-3)]" onClick={() => setSourceOpen(true)}>
+                Show the source row
+              </Button>
+            </Section>
+          )}
 
-        {/* Fields */}
-        {!isHeld && (
-        <Section
-          variant="list"
-          title="Extracted fields"
-          chips={<Chip tone="neutral">value · source snippet · confidence</Chip>}
-        >
-          <ul className="divide-y divide-border">
-            {candidate.fields.map((f) => {
-              const held = "held" in f && f.held;
-              const template = "template" in f && f.template;
-              return (
-                <li key={f.label} className="p-4">
-                  <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
-                    <span className="w-24 shrink-0 type-meta">{f.label}</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {held && !corrected[f.label] ? (
-                          /* Each hold has its own reason. Rendering the rate’s reason on every
-                             held row said a blank cell was a converted figure. */
+          {/* The fields, in the order the sheet holds them. */}
+          {!isHeld && (
+            <Section title="Extracted fields" chips={<Chip tone="neutral"><span className="tnum">{candidate.fields.length}</span> fields</Chip>}>
+              <p className="-mt-[var(--space-2)] mb-[var(--space-2)] type-data-read text-label-secondary">
+                Each value, and where in the document it came from. A held field is shown with its
+                reason and cannot be confirmed; a keyed value is carried as a manual entry, not an
+                extraction.
+              </p>
+              <div className="divide-y divide-hairline">
+                {candidate.fields.map((f) => {
+                  const held = isHeldField(f);
+                  const template = isTemplate(f);
+                  const fixed = corrected[f.label];
+                  const editing = editField === f.label;
+                  const confirmable = (!held && !template) || !!fixed;
+                  const confirmed = confirmable && (fieldOk[f.label] || confirmedAlready);
+                  const options = entityOptions(f.label);
+
+                  return (
+                    <FieldLine
+                      key={f.label}
+                      label={f.label}
+                      provenance={
+                        <>
+                          <SourceTag kind={kind} label={f.snippet} />
+                          <ConfidenceMeter
+                            agree={Math.round(f.confidence * 100)}
+                            total={100}
+                            label={readingWords(f.confidence)}
+                          />
+                        </>
+                      }
+                    >
+                      <div className="flex flex-wrap items-center gap-x-[var(--space-3)] gap-y-1">
+                        {held && !fixed ? (
+                          /* Each hold has its own reason; the value is the hold itself. */
                           <Chip tone="crit">{f.value}</Chip>
                         ) : (
-                          <span className="type-data-strong">
-                            {corrected[f.label] ?? f.value}
+                          <span className={cn("type-data-strong", template && !fixed && "italic text-label-secondary")}>
+                            {fixed ?? f.value}
                           </span>
                         )}
-                        {/* A supplied value is marked as keyed, not as extracted. The
-                            two are not the same evidence and the record has to be able
-                            to tell them apart afterwards — which is the whole reason
-                            every other value here carries where it came from. */}
-                        {corrected[f.label] && (
-                          <Chip tone={held ? "primary" : "ok"}>
-                            {held ? "keyed" : "corrected"} · {people.lead}
-                          </Chip>
-                        )}
-                        {template && <Chip tone="warn">template copy</Chip>}
+                        {/* A supplied value is marked as keyed, not as extracted: the two are
+                            not the same evidence and the record must tell them apart. */}
+                        {fixed && <Chip tone={held ? "primary" : "ok"}>{held ? "keyed" : "corrected"} · {people.lead}</Chip>}
+                        {template && !fixed && <Chip tone="warn">template copy</Chip>}
+                        {confirmed && <Chip tone="ok">confirmed</Chip>}
                       </div>
-                      <div className="mt-1 type-code text-muted-foreground">{f.snippet}</div>
-                      {held && !corrected[f.label] && (
-                        <p className="mt-2 type-meta">
+
+                      {held && !fixed && (
+                        <p className="mt-1 type-meta">
                           {"heldReason" in f && f.heldReason
                             ? String(f.heldReason)
                             : "Held here, and excluded from answers, until a person supplies what is missing."}
                         </p>
                       )}
-                      {held && corrected[f.label] && (
-                        <p className="mt-2 type-meta">
+                      {held && fixed && (
+                        <p className="mt-1 type-meta">
                           Hold cleared. Keyed by {people.lead} today, and carried as a manual entry
                           rather than as an extraction.
                         </p>
                       )}
-                      {template && (
-                        <p className="mt-2 type-meta">
-                          Excluded from corroboration; queued for enrichment.
-                        </p>
+                      {template && !fixed && (
+                        <p className="mt-1 type-meta">Excluded from corroboration; queued for enrichment.</p>
                       )}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {/* The bar carries the signal; the two-decimal probability beside it
-                          was model internals wearing a UI, and added false precision to a
-                          decision that is only ever confirm / correct / hold. */}
-                      <ConfidenceMeter
-                        agree={Math.round(f.confidence * 100)}
-                        total={100}
-                        label="extraction confidence"
-                      />
-                      {/* Held and template rows are editable — they are the rows that
-                          MOST need to be. The affordance used to be gated on
-                          `!held && !template`, so the two states the extractor could
-                          not resolve were the two a person could not fix, and the hold
-                          text promised a person would supply what was missing while
-                          offering them no way to do it. Where the machine stops is
-                          exactly where the human takes over. */}
-                      {editField === f.label ? (
+
+                      {/* The row's controls. A held row has no confirm control at all: it
+                          offers only the way to supply what is missing. */}
+                      <div className="mt-[var(--space-2)] flex flex-wrap items-center gap-[var(--space-2)] empty:hidden">
+                        {editing ? (
                           <form
-                            className="flex items-center gap-2"
+                            className="flex flex-wrap items-center gap-[var(--space-2)]"
                             onSubmit={(e) => {
                               e.preventDefault();
-                              if (editValue.trim())
-                                setCorrected((m) => ({ ...m, [f.label]: editValue.trim() }));
+                              if (editValue.trim()) setCorrected((m) => ({ ...m, [f.label]: editValue.trim() }));
                               setEditField(null);
                             }}
                           >
-                            {/* Some of these fields are ENTITIES, not text. A programme
-                                is one of the agency's partner programmes or it is not a
-                                programme — and a free-text box invites "Atelier
-                                collection", which becomes a second entity that matches
-                                nothing and quietly splits the directory this product
-                                exists to keep single. Typed fields get a list; the rest
-                                get a box. */}
-                            {entityOptions(f.label) ? (
+                            {/* Some fields are ENTITIES, not text: a programme is one of the
+                                agency's partner programmes or it is not a programme. Typed
+                                fields get a list; the rest get a box. */}
+                            {options ? (
                               <Select
                                 value={editValue}
                                 onValueChange={(v) => {
@@ -324,197 +369,208 @@ export default function CandidateDetail() {
                                   <SelectValue placeholder={`Choose ${f.label.toLowerCase()}…`} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {entityOptions(f.label)!.map((o) => (
-                                    <SelectItem key={o} value={o}>{o}</SelectItem>
-                                  ))}
+                                  {options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                                 </SelectContent>
                               </Select>
                             ) : (
-                              <>
-                                <Input
-                                  value={editValue}
-                                  onChange={(e) => setEditValue(e.target.value)}
-                                  aria-label={`Corrected value for ${f.label}`}
-                                  className="h-8 w-40 type-data"
-                                  autoFocus
-                                />
-                                <Button type="submit" variant="outline" size="sm">
-                                  Save
-                                </Button>
-                              </>
+                              <Input
+                                size="sm"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                aria-label={`Corrected value for ${f.label}`}
+                                className="w-48"
+                                autoFocus
+                              />
                             )}
+                            {!options && <Button type="submit" variant="secondary" size="sm">Save</Button>}
+                            <Button type="button" variant="link" size="sm" onClick={() => setEditField(null)}>Cancel</Button>
                           </form>
-                        ) : held && !corrected[f.label] ? (
-                          /* A held row starts empty. Prefilling it with `f.value` would
-                             seed the box with the hold's own reason — "held — converted
-                             figure without source currency" — as though that were a
-                             first draft of the number. */
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => { setEditField(f.label); setEditValue(""); }}
-                          >
-                            <Pencil className="size-3.5" aria-hidden /> Enter value
-                          </Button>
                         ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="px-2"
-                            aria-label={`Fix ${f.label}`}
-                            onClick={() => {
-                              setEditField(f.label);
-                              setEditValue(corrected[f.label] ?? f.value);
-                            }}
-                          >
-                            <Pencil className="size-3.5" aria-hidden />
-                          </Button>
+                          <>
+                            {confirmable && !confirmed && (
+                              <Button variant="secondary" size="sm" onClick={() => setFieldOk((m) => ({ ...m, [f.label]: true }))}>
+                                Confirm
+                              </Button>
+                            )}
+                            {held && !fixed ? (
+                              /* A held row starts empty. Prefilling it with `f.value` would seed
+                                 the box with the hold's own reason as though it were a draft. */
+                              <Button variant="secondary" size="sm" onClick={() => { setEditField(f.label); setEditValue(""); }}>
+                                Enter value
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="link"
+                                size="sm"
+                                aria-label={`Fix ${f.label}`}
+                                onClick={() => { setEditField(f.label); setEditValue(fixed ?? f.value); }}
+                              >
+                                Fix
+                              </Button>
+                            )}
+                          </>
                         )}
-                      {/* A keyed value is confirmable like any other. Leaving confirm
-                          gated on `!held` would have let a person supply the number and
-                          then not be able to sign it off. */}
-                      {(( !held && !template) || corrected[f.label]) &&
-                        editField !== f.label &&
-                        (fieldOk[f.label] || confirmedAlready ? (
-                          <Chip tone="ok">
-                            <Check className="size-3" aria-hidden /> confirmed
-                          </Chip>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setFieldOk((m) => ({ ...m, [f.label]: true }))}
-                          >
-                            <Check className="size-3.5" aria-hidden /> Confirm
-                          </Button>
-                        ))}
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </Section>
-        )}
+                      </div>
+                    </FieldLine>
+                  );
+                })}
+              </div>
+            </Section>
+          )}
+        </div>
 
-        {/* Actions — the held candidate gets the three the copy names */}
-        {isHeld ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" onClick={() => setSourceOpen(true)}>
-              <FileSearch className="size-3.5" aria-hidden /> Open source
-            </Button>
-            {editField === "Name" ? (
-              <form
-                className="flex items-center gap-2"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (editValue.trim())
-                    setCorrected((m) => ({ ...m, Name: editValue.trim() }));
-                  setEditField(null);
-                }}
-              >
-                <Input
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  aria-label="Corrected value for Name"
-                  placeholder="Name, keyed by hand"
-                  className="h-9 w-56 type-data"
-                  autoFocus
-                />
-                <Button type="submit" variant="outline">
-                  Save
+        {/* ── the tool that follows: what is settled, what is not, and the one action ── */}
+        <aside className="doc-rail" data-rail-label="Review">
+          <Section variant="tool" follows title="Review">
+            <Rows>
+              {isHeld ? (
+                <>
+                  <Row>
+                    <span className="row-primary">Extracted</span>
+                    <span className="row-trailing tnum">0</span>
+                  </Row>
+                  <Row>
+                    <span className="row-primary">Candidate</span>
+                    <span className="row-trailing"><Chip tone="crit">held</Chip></span>
+                  </Row>
+                  {corrected.Name && (
+                    <Row>
+                      <span className="row-primary">Name</span>
+                      <span className="row-trailing"><Chip tone="ok">keyed</Chip></span>
+                    </Row>
+                  )}
+                </>
+              ) : (
+                <>
+                  {isDup && candidate.match && (
+                    <Row>
+                      <span className="row-primary">Possible match</span>
+                      <span className="row-trailing"><Chip tone="warn">{candidate.match.target}</Chip></span>
+                    </Row>
+                  )}
+                  <Row>
+                    <span className="row-primary">Ready to confirm</span>
+                    <span className="row-trailing tnum">{readyFields.length}</span>
+                  </Row>
+                  <Row>
+                    <span className="row-primary">Confirmed</span>
+                    <span className="row-trailing">
+                      {confirmedCount > 0
+                        ? <Chip tone="ok" className="tnum">{confirmedCount} of {readyFields.length}</Chip>
+                        : <span className="tnum text-label-secondary">0 of {readyFields.length}</span>}
+                    </span>
+                  </Row>
+                  {heldOnly > 0 && (
+                    <Row>
+                      <span className="row-primary">Held</span>
+                      <span className="row-trailing"><Chip tone="crit" className="tnum">{heldOnly}</Chip></span>
+                    </Row>
+                  )}
+                  {templateOnly > 0 && (
+                    <Row>
+                      <span className="row-primary">Template copy</span>
+                      <span className="row-trailing"><Chip tone="warn" className="tnum">{templateOnly}</Chip></span>
+                    </Row>
+                  )}
+                </>
+              )}
+            </Rows>
+
+            <div className="mt-[var(--space-4)]">
+              {isHeld ? (
+                editField === "Name" ? (
+                  <form
+                    className="space-y-[var(--space-2)]"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (editValue.trim()) setCorrected((m) => ({ ...m, Name: editValue.trim() }));
+                      setEditField(null);
+                    }}
+                  >
+                    <Label htmlFor="keyed-name">Name, keyed by hand</Label>
+                    <Input
+                      id="keyed-name"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      placeholder="What the row should have said"
+                      autoFocus
+                    />
+                    <div className="flex items-center gap-[var(--space-2)]">
+                      <Button type="submit" variant="secondary" size="sm">Save</Button>
+                      <Button type="button" variant="link" size="sm" onClick={() => setEditField(null)}>Cancel</Button>
+                    </div>
+                  </form>
+                ) : (
+                  <Button className="w-full" onClick={() => { setEditField("Name"); setEditValue(corrected.Name ?? ""); }}>
+                    {corrected.Name ? "Key the name again" : "Key the name by hand"}
+                  </Button>
+                )
+              ) : isDup ? (
+                <Button className="w-full" onClick={() => { setMergeOpen(true); setReason(""); }}>
+                  Review the match
                 </Button>
-              </form>
-            ) : (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setEditField("Name");
-                  setEditValue(corrected.Name ?? "");
-                }}
-              >
-                <Pencil className="size-3.5" aria-hidden /> Fix manually
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              onClick={() => {
-                setRejectOpen(true);
-                setReason("");
-              }}
-            >
-              Reject — reason logged
-            </Button>
-          </div>
-        ) : !isDup ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <Button disabled={confirmedAlready} onClick={confirmRecord}>
-              Confirm record — stamped {people.lead}, today
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setRejectOpen(true);
-                setReason("");
-              }}
-            >
-              Reject — reason logged
-            </Button>
-          </div>
-        ) : null}
+              ) : (
+                <Button className="w-full" disabled={confirmedAlready} onClick={confirmRecord}>
+                  Confirm record — stamped {people.lead}, today
+                </Button>
+              )}
+              <p className="mt-[var(--space-2)] text-center type-meta">
+                {isHeld
+                  ? "The row stays as it arrived; what you key is attributed to you."
+                  : isDup
+                    ? "Field by field, with a reason. Nothing merges automatically."
+                    : "Live at the agency layer; held fields stay in review."}
+              </p>
+              <div className="mt-[var(--space-3)] flex justify-center">{reject}</div>
+            </div>
+          </Section>
+        </aside>
       </div>
 
       {/* Open source — the row exactly as it arrived */}
       <Sheet open={sourceOpen} onOpenChange={setSourceOpen}>
-        <SheetContent side="right" className="sm:max-w-md">
+        <SheetContent side="right">
           <SheetHeader>
             <SheetTitle>Source row</SheetTitle>
-            <SheetDescription>
-              {candidate.from} · {candidate.uri}
-            </SheetDescription>
+            <SheetDescription>{candidate.from} · {candidate.uri}</SheetDescription>
           </SheetHeader>
-          <div className="px-4">
-            <div className="type-code text-muted-foreground">{raw?.where}</div>
-            <pre className="mt-2 overflow-x-auto rounded-lg border border-border bg-subtle p-4 type-code">
-              {raw?.text}
-            </pre>
-            <p className="mt-4 type-data text-muted-foreground">{raw?.note}</p>
-            <p className="mt-4 type-meta">
+          <SheetBody>
+            <div className="type-code text-label-secondary">{raw?.where}</div>
+            <pre className="overflow-x-auto rounded-lg bg-sunken p-[var(--space-4)] type-code">{raw?.text}</pre>
+            <p className="type-data-read text-label-secondary">{raw?.note}</p>
+            <p className="type-meta">
               The source is read-only here. Ground truth stays in the sheet: a correction is keyed
               against the candidate and attributed, and the row is left as it is.
             </p>
-          </div>
-          <SheetFooter>
-            <Button variant="outline" onClick={() => setSourceOpen(false)}>
-              Close
-            </Button>
+          </SheetBody>
+          <SheetFooter className="sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={() => setSourceOpen(false)}>Close</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
 
-      {/* Reject sheet */}
+      {/* Reject sheet — the rejection carries its reason */}
       <Sheet open={rejectOpen} onOpenChange={setRejectOpen}>
         <SheetContent side="right">
           <SheetHeader>
             <SheetTitle>Reject candidate</SheetTitle>
             <SheetDescription>
-              {candidate.name} — the rejection is logged, so the pipeline&rsquo;s misses stay
-              reviewable.
+              {candidate.name} — the rejection is logged, so the pipeline&rsquo;s misses stay reviewable.
             </SheetDescription>
           </SheetHeader>
-          <div className="space-y-2 px-4">
-            <Label htmlFor="reject-reason" className="type-data">
-              Reason (required)
-            </Label>
-            <Textarea
-              id="reject-reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="e.g. Not a real property — a marketing row in the source sheet."
-              className="type-data"
-            />
-          </div>
-          <SheetFooter>
+          <SheetBody>
+            <div>
+              <Label htmlFor="reject-reason">Reason <span className="text-label-secondary">(required)</span></Label>
+              <Textarea
+                id="reject-reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="e.g. Not a real property — a marketing row in the source sheet."
+                className="mt-[var(--space-2)]"
+              />
+            </div>
+          </SheetBody>
+          <SheetFooter className="sm:flex-row sm:justify-end">
             <Button
               variant="destructive"
               disabled={!reason.trim()}
@@ -529,60 +585,52 @@ export default function CandidateDetail() {
         </SheetContent>
       </Sheet>
 
-      {/* Merge sheet */}
+      {/* Merge sheet — field by field, and a reason */}
       <Sheet open={mergeOpen} onOpenChange={setMergeOpen}>
-        <SheetContent side="right" className="sm:max-w-md">
+        <SheetContent side="right">
           <SheetHeader>
             <SheetTitle>Merge into canonical</SheetTitle>
             <SheetDescription>
               Field by field against {candidate.match?.target}. Nothing merges automatically.
             </SheetDescription>
           </SheetHeader>
-          <div className="px-4">
-            <ul className="divide-y divide-border">
+          <SheetBody>
+            <Rows>
               {candidate.fields.map((f) => (
-                <li key={f.label} className="py-2">
+                <li key={f.label} className="py-[var(--space-3)]">
                   <div className="type-meta">{f.label}</div>
-                  <div className="mt-1 flex items-center gap-2 type-data">
-                    <span className="min-w-0 flex-1 truncate">
-                      {canonicalByLabel[f.label] ?? "—"}
-                    </span>
-                    <span className="text-muted-foreground" aria-hidden>
-                      ⟷
-                    </span>
+                  <div className="mt-1 flex items-center gap-[var(--space-2)] type-data">
+                    <span className="min-w-0 flex-1 truncate">{canonicalByLabel[f.label] ?? "—"}</span>
+                    <span className="text-label-tertiary" aria-hidden>⟷</span>
                     <span className="min-w-0 flex-1 truncate text-right type-data-strong">{f.value}</span>
                   </div>
-                  <div className="mt-1 flex justify-between type-code text-muted-foreground">
+                  <div className="mt-1 flex justify-between type-micro-caps text-label-tertiary">
                     <span>canonical</span>
                     <span>incoming</span>
                   </div>
                 </li>
               ))}
-            </ul>
-            <div className="mt-4 space-y-2">
-              <Label htmlFor="merge-reason" className="type-data">
-                Merge reason (required)
-              </Label>
+            </Rows>
+            <div className="border-t border-hairline pt-[var(--space-4)]">
+              <Label htmlFor="merge-reason">Merge reason <span className="text-label-secondary">(required)</span></Label>
               <Textarea
                 id="merge-reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="e.g. Same property — the portal sync drops the accent."
-                className="type-data"
+                className="mt-[var(--space-2)]"
               />
-              <p className="type-meta">
-                The choice is stored with its reason, attributed. Nothing merges automatically.
+              <p className="mt-[var(--space-2)] type-meta">
+                The choice is stored with its reason, attributed to {people.lead}.
               </p>
             </div>
-          </div>
-          <SheetFooter>
+          </SheetBody>
+          <SheetFooter className="sm:flex-row sm:justify-end">
             <Button
               disabled={!reason.trim()}
               onClick={() => {
                 setMergeOpen(false);
-                setBanner(
-                  `Merged as an overlay on ${candidate.match?.target} — reason stored, attributed to ${people.lead}.`,
-                );
+                setBanner(`Merged as an overlay on ${candidate.match?.target} — reason stored, attributed to ${people.lead}.`);
               }}
             >
               Merge as overlay on canonical

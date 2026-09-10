@@ -1,13 +1,24 @@
 "use client";
 /**
- * Notifications — the triage space (§10b). The Ledger archetype with a different
- * row anatomy.
+ * Notifications — recomposed as a document (Pass 1.5).
  *
  * This is not the briefing. The briefing is the day's shape; this is the stream of
  * items each needing a decision. Every item is bound to its subject and carries its
  * decision, which is the difference between this and the inbox the product replaces.
- *
  * Nothing auto-dismisses (DEC-03): an item is actioned or deferred deliberately.
+ *
+ * Chapters, in order: the filters (state · tag, one row under the title) · the
+ * stream, one chapter titled by the state it shows (Waiting on you · Actioned ·
+ * Deferred). The inspector is the tool that follows: the item in full, its
+ * evidence, and the ONE primary at its bottom — the item's own action (contract:
+ * action a notification). Mark actioned · Defer are secondaries; "Put it back in
+ * the open list" is a text action.
+ *
+ * Colour means severity here and nothing else (contract taxonomies: ["severity"]).
+ * The severity chip is the only chroma on a row; triage state is a neutral chip
+ * whose word does the work. A selected row carries a 2px ink left edge and a fill.
+ *
+ * Local components (not promoted to bits): SeverityChip, StateMark.
  */
 import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
@@ -16,9 +27,9 @@ import { cn } from "@/lib/utils";
 import { useDemo, type NoticeState } from "@/lib/store";
 import { notificationsFor, type Notification, type NotifTag } from "@/data/seed";
 import { PageHeader, SplitPage } from "@/components/layouts";
-import { Chip, DataList, EmptyState, Section, Segmented, NarrationNote, SchematicBadge } from "@/components/bits";
+import { Chip, DataList, EmptyState, Section, Segmented, NarrationNote, SchematicBadge, Rows } from "@/components/bits";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Check, Clock, Info, OctagonAlert, TriangleAlert } from "lucide-react";
+import { ArrowRight, Check, Clock } from "lucide-react";
 
 const TAG_ORDER: NotifTag[] = ["Records", "Commissions", "Ingestion", "Traveller", "Connections", "Knowledge"];
 
@@ -37,36 +48,28 @@ const STATE_FILTERS: { value: StateFilter; label: string }[] = [
   { value: "actioned", label: "Actioned" },
   { value: "deferred", label: "Deferred" },
 ];
+/** The chapter's title, by the state it shows. */
+const STATE_TITLE: Record<StateFilter, string> = {
+  open: "Waiting on you",
+  actioned: "Actioned",
+  deferred: "Deferred",
+};
 
 const inStateFilter = (state: NoticeState, f: StateFilter) =>
   f === "open" ? state === "new" || state === "seen" : state === f;
 
-/* ── severity mark: shape and colour, never colour alone ────────────────────── */
-function SeverityMark({ severity }: { severity: Notification["severity"] }) {
-  const spec = {
-    Critical: { Icon: OctagonAlert, tone: "text-crit" },
-    Important: { Icon: TriangleAlert, tone: "text-warn" },
-    Info: { Icon: Info, tone: "text-muted-foreground" },
-  }[severity];
-  return (
-    <span className={cn("mt-0.5 inline-flex shrink-0", spec.tone)}>
-      <spec.Icon className="size-4" aria-hidden />
-      <span className="sr-only">{severity}</span>
-    </span>
-  );
+/* ── severity: the one thing colour means here, always with its word ─────────── */
+function SeverityChip({ severity }: { severity: Notification["severity"] }) {
+  const tone = { Critical: "crit", Important: "warn", Info: "neutral" } as const;
+  return <Chip tone={tone[severity]}>{severity}</Chip>;
 }
 
-/* Four states, one shape. "seen" used to render as bare text while the other three
-   were chips, so the column changed shape on its most common value — the same defect
-   as the vault's access column, where the one row awaiting a decision was the one that
-   looked like nothing. Quietness is a job for the tone, not for a different element:
-   `neutral` is already border-only with muted text, so "seen" still recedes without
-   leaving the column. The words distinguish it from "deferred"; the tone need not. */
+/* Four states, one shape, no chroma: severity owns the colour budget on this
+   surface, so triage state is carried by the word. "new" takes the ink outline so
+   the item that has not been looked at yet still stands forward of the rest. */
 function StateMark({ state }: { state: NoticeState }) {
-  if (state === "actioned") return <Chip tone="ok">actioned</Chip>;
-  if (state === "deferred") return <Chip tone="neutral">deferred</Chip>;
   if (state === "new") return <Chip tone="primary">new</Chip>;
-  return <Chip tone="neutral">seen</Chip>;
+  return <Chip tone="neutral">{state}</Chip>;
 }
 
 /* ── page ───────────────────────────────────────────────────────────────────── */
@@ -123,21 +126,39 @@ function Triage() {
   const header = (
     <>
       <PageHeader
-        crumb="Notifications"
         title={
           <>
             Notifications
             {openCount > 0 && (
-              <span className="rounded-full bg-primary-soft px-2 py-0.5 type-micro text-primary tnum">
-                {openCount} open
-              </span>
+              <Chip tone="neutral"><span className="tnum">{openCount}</span> open</Chip>
             )}
           </>
         }
       >
-        <p className="mt-2 max-w-[62ch] type-data text-muted-foreground">
+        <p className="mt-[var(--space-2)] max-w-[62ch] type-data-read text-label-secondary">
           What changed, and what the system noticed. Each item carries its subject and its decision.
         </p>
+
+        {/* Two controls, one row: the state on the left because it is the smaller,
+            more-used axis, the tags on the right. Clicking the live tag clears it. */}
+        <div className="mt-[var(--space-4)] flex flex-wrap items-center gap-x-[var(--space-4)] gap-y-[var(--space-2)]">
+          <Segmented
+            value={stateFilter}
+            onChange={setStateFilter}
+            options={STATE_FILTERS}
+            label="Triage state"
+          />
+          <Segmented<NotifTag | "all">
+            value={tag}
+            onChange={(v) => setTag(v === tag ? "all" : v)}
+            options={[
+              { value: "all" as const, label: "All", count: byState.length },
+              ...tagsPresent.map((t) => ({ value: t, label: t, count: tagCounts[t] })),
+            ]}
+            label="Tag"
+            className="max-w-full flex-wrap"
+          />
+        </div>
       </PageHeader>
 
       <NarrationNote>
@@ -153,130 +174,84 @@ function Triage() {
       header={header}
       panelOpen={!!active}
       onClosePanel={() => setSelected(null)}
-      /* The panel is titled with what the item is about, not which tag it filed under.
-         It read "Records" above an item concerning Hôtel Verlaine, and the tag then
-         repeated as a chip directly below it. */
+      /* The panel is titled with what the item is about, not which tag it filed under. */
       panelTitle={active ? (active.subject?.label ?? active.headline) : "Item"}
       panel={active ? <ItemPanel n={active} state={stateOf(active)} /> : null}
     >
-      {
-          <div className="min-w-0">
-            {/* Two identical segmented controls doing different jobs, stacked with a
-                sentence wedged between them, put ~90px of chrome above the first item
-                on a surface whose job is getting to zero. They now share one row: the
-                state on the left because it is the smaller, more-used axis, the tags
-                on the right. One line instead of three. */}
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-              <Segmented
-                value={stateFilter}
-                onChange={setStateFilter}
-                options={STATE_FILTERS}
-                label="Triage state"
-              />
-              <Segmented<NotifTag | "all">
-                value={tag}
-                /* Clicking the live tag clears it, as the pill row did. */
-                onChange={(v) => setTag(v === tag ? "all" : v)}
-                options={[
-                  { value: "all" as const, label: "All", count: byState.length },
-                  ...tagsPresent.map((t) => ({ value: t, label: t, count: tagCounts[t] })),
-                ]}
-                label="Tag"
-                className="max-w-full flex-wrap"
-              />
-            </div>
-
-            {/* ── the stream ── */}
-            {mine.length === 0 ? (
-              <EmptyState
-                className="mt-3"
-                title="Nothing waiting."
-                body="No item has asked for a decision today. The system is not inventing work to look busy."
-              />
-            ) : rows.length === 0 ? (
-              <EmptyState
-                className="mt-3"
-                title="Nothing waiting under this filter."
-                body="Items are still here under another tag or state."
-                action={
-                  <Button variant="outline" size="sm" onClick={() => { setTag("all"); setStateFilter("open"); }}>
-                    Show everything open
-                  </Button>
-                }
-              />
-            ) : (
-              <Section variant="list" className="mt-3">
-                <ul>
-                {rows.map((n, i) => {
-                  const st = stateOf(n);
-                  const isNew = st === "new";
-                  return (
-                    <li key={n.id} className={cn(i > 0 && "border-t border-border")}>
-                      <button
-                        type="button"
-                        onClick={() => setSelected(n.id)}
-                        aria-pressed={selected === n.id}
-                        aria-label={`${n.severity}: ${n.headline}`}
-                        /* A Critical item sat among six Important ones at identical row
-                           height and weight, separated only by a glyph and a slight hue
-                           shift. The highest-consequence row now takes a solid rail and
-                           a tinted ground — the same weight the record's critical banner
-                           carries, so severity reads the same way everywhere. */
-                        className={cn(
-                          "block w-full cursor-pointer border-l-2 px-3 pb-3 text-left transition-colors",
-                          selected === n.id ? "bg-muted/70" : "hover:bg-muted/40",
-                          n.severity === "Critical"
-                            ? "border-l-crit bg-crit/[0.04]"
-                            : isNew
-                              ? "border-l-primary"
-                              : "border-l-transparent",
-                        )}
-                      >
-                        <span className="row-grid">
-                          <span
-                            className={cn(
-                              "row-primary type-data",
-                              n.severity === "Critical"
-                                ? "font-semibold text-foreground"
-                                : isNew
-                                  ? "font-semibold text-foreground"
-                                  : "text-muted-foreground",
-                            )}
-                          >
-                            <span className="mr-2 inline-block align-text-bottom">
-                              <SeverityMark severity={n.severity} />
-                            </span>
-                            {n.headline}
-                          </span>
-                          {n.subject && <span className="row-meta type-meta">{n.subject.label}</span>}
-                          <span className="row-trailing"><StateMark state={st} /></span>
-                        </span>
-                        <span className="flex flex-wrap items-center gap-2">
-                          <Chip tone="neutral" className="border border-border bg-background">{n.tag}</Chip>
-                          <span className="type-meta">{n.when}</span>
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-                </ul>
-              </Section>
-            )}
-
-            {rows.length > 0 && (
-              <p className="mt-3 type-meta">
+      <div className="min-w-0">
+        {mine.length === 0 ? (
+          <EmptyState
+            title="Nothing waiting."
+            body="No item has asked for a decision today. The system is not inventing work to look busy."
+          />
+        ) : rows.length === 0 ? (
+          <EmptyState
+            title="Nothing waiting under this filter."
+            body="Items are still here under another tag or state."
+            action={
+              <Button variant="secondary" size="sm" onClick={() => { setTag("all"); setStateFilter("open"); }}>
+                Show everything open
+              </Button>
+            }
+          />
+        ) : (
+          <Section
+            title={STATE_TITLE[stateFilter]}
+            footer={
+              <p className="type-meta">
                 <span className="tnum">{rows.length}</span> shown · <span className="tnum">{openCount}</span> open
                 across every tag
               </p>
-            )}
-          </div>
-      }
+            }
+          >
+            <Rows>
+              {rows.map((n) => {
+                const st = stateOf(n);
+                const isNew = st === "new";
+                const isSel = selected === n.id;
+                return (
+                  /* Selected is more than a colour: a 2px ink left edge, a fill, and the
+                     row's own word. The edge sits in the gutter so the text keeps the
+                     column's left edge whether or not the row is selected. */
+                  <li
+                    key={n.id}
+                    data-state={isSel ? "selected" : undefined}
+                    className={cn(
+                      "-mx-[var(--space-3)] border-l-2 pl-[calc(var(--space-3)-2px)] pr-[var(--space-3)] transition-colors duration-200 ease-standard",
+                      isSel ? "border-l-selected bg-interactive/40" : "border-l-transparent hover:bg-interactive/60",
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setSelected(n.id)}
+                      aria-pressed={isSel}
+                      aria-label={`${n.severity}: ${n.headline}`}
+                      className="row-stack block w-full cursor-pointer text-left"
+                    >
+                      <span className="row-stack-head">
+                        <span className={cn("row-primary", isNew ? "type-data-strong" : "type-data")}>
+                          {n.headline}
+                        </span>
+                        <span className="flex shrink-0 items-center gap-[var(--space-2)]">
+                          <SeverityChip severity={n.severity} />
+                          <StateMark state={st} />
+                        </span>
+                      </span>
+                      <span className="row-stack-body type-meta">
+                        {n.subject && <>{n.subject.label} · </>}
+                        {n.tag} · {n.when}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </Rows>
+          </Section>
+        )}
+      </div>
     </SplitPage>
   );
 }
-
-/* The local EmptyState moved into `bits.tsx`, where the other three surfaces that
-   needed one can reach it. */
 
 /* ── the item, in full ──────────────────────────────────────────────────────── */
 function ItemPanel({ n, state }: { n: Notification; state: NoticeState }) {
@@ -284,17 +259,16 @@ function ItemPanel({ n, state }: { n: Notification; state: NoticeState }) {
   const set = (next: NoticeState) => d({ type: "notice", id: n.id, state: next });
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <SeverityMark severity={n.severity} />
-        <span className="type-data-strong">{n.severity}</span>
-        <Chip tone="neutral" className="border border-border bg-background">{n.tag}</Chip>
+    <div className="space-y-[var(--space-6)]">
+      <div className="flex flex-wrap items-center gap-[var(--space-2)]">
+        <SeverityChip severity={n.severity} />
+        <Chip tone="neutral">{n.tag}</Chip>
         <span className="ml-auto"><StateMark state={state} /></span>
       </div>
 
       <div>
         <h2 className="type-section">{n.headline}</h2>
-        <p className="mt-2 type-data text-muted-foreground">{n.detail}</p>
+        <p className="mt-[var(--space-2)] type-data-read text-label-secondary">{n.detail}</p>
       </div>
 
       <DataList
@@ -305,7 +279,10 @@ function ItemPanel({ n, state }: { n: Notification; state: NoticeState }) {
           {
             label: "Subject",
             value: n.subject ? (
-              <Link href={n.subject.href} className="text-primary underline underline-offset-2">
+              <Link
+                href={n.subject.href}
+                className="underline decoration-hairline underline-offset-4 hover:decoration-ink"
+              >
                 {n.subject.label}
               </Link>
             ) : null,
@@ -314,56 +291,53 @@ function ItemPanel({ n, state }: { n: Notification; state: NoticeState }) {
         ]}
       />
 
-      {/* Heavy work opens the real surface; light actions resolve here. */}
-      <div className="space-y-2">
+      {/* The one primary is the item's own action: heavy work opens the real surface.
+          An action this build only draws is a grey button with the schematic mark.
+          Recording the decision is secondary; undoing it is a text action. */}
+      <div className="space-y-[var(--space-2)] border-t border-hairline pt-[var(--space-4)]">
         {n.action &&
           (n.action.href ? (
-            <Button asChild size="sm" className="w-full">
+            <Button asChild className="w-full">
               <Link href={n.action.href}>
-                {n.action.label} <ArrowRight className="size-3.5" aria-hidden />
+                {n.action.label} <ArrowRight aria-hidden />
               </Link>
             </Button>
           ) : (
-            <Button variant="outline" size="sm" className="w-full">
-              {n.action.label} <SchematicBadge />
-            </Button>
+            <div className="flex items-center gap-[var(--space-2)]">
+              <Button variant="secondary" className="flex-1">{n.action.label}</Button>
+              <SchematicBadge />
+            </div>
           ))}
 
-        <div className="flex gap-2">
+        <div className="flex gap-[var(--space-2)]">
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             className="flex-1"
             disabled={state === "actioned"}
             onClick={() => set("actioned")}
           >
-            <Check className="size-3.5" aria-hidden /> Mark actioned
+            <Check aria-hidden /> Mark actioned
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             className="flex-1"
             disabled={state === "deferred"}
             onClick={() => set("deferred")}
           >
-            <Clock className="size-3.5" aria-hidden /> Defer
+            <Clock aria-hidden /> Defer
           </Button>
         </div>
 
         {(state === "actioned" || state === "deferred") && (
-          <button
-            type="button"
-            onClick={() => set("seen")}
-            className="w-full cursor-pointer text-center type-data text-primary underline underline-offset-2"
-          >
-            Put it back in the open list
-          </button>
+          <div className="flex justify-center pt-[var(--space-2)]">
+            <Button variant="link" size="sm" onClick={() => set("seen")}>
+              Put it back in the open list
+            </Button>
+          </div>
         )}
       </div>
-
-      {/* The "nothing expires on a timer" line is gone. It was the fifth restatement of
-          one principle across four surfaces, and the two buttons above are the proof:
-          the only way this item leaves the list is through one of them. */}
     </div>
   );
 }

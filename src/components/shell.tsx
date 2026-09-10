@@ -35,6 +35,7 @@ const sectionLabel: Record<string, string> = {
   connections: "Connections",
   review: "Confirm new records",
   settings: "Settings",
+  system: "The system",
 };
 
 /** Resolve a dynamic segment to the name of the thing it is. */

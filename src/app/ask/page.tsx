@@ -1,15 +1,39 @@
 "use client";
 /**
- * Ask — the Conversation archetype (layout-exploration §7).
+ * Ask — recomposed as a document (docs/rebuild/04-recomposition-brief.md).
  *
- * Ask is a conversation *product*, not a single conversation (review 01 §4). Landing
- * shows recent conversations beside a composer; nothing auto-opens. The composer is
- * pinned to the bottom of the thread pane and floats above the dock (DEC §10.3,
- * option A), compact by default and growing on focus.
+ * Ask is a conversation product, not one conversation (review 01 §4). The page keeps
+ * its three panes — recent conversations · the open thread · the sources that let the
+ * reader check the answer — and still sizes against its panel, but each pane is now
+ * typeset as the document it is rather than a grid of cards.
  *
- * The conversations column is page furniture — the dock owns navigation.
+ * Chapters, in the thread: one exchange is one chapter. The question is the chapter's
+ * title, in the machine's voice, because it is what you typed; the answer follows in
+ * the serif — an opening statement or a refusal in type-prose-lead, the rest in
+ * type-prose, a quoted source in type-prose-quote. The answer's state (answered ·
+ * sources disagree · refused · stale) and the way onward sit in the chapter's footer,
+ * carried by Chip / SeverityBanner / StatusDot, never a raw colour. The landing is a
+ * chapter too ("What do you need to know?") holding the entry composer.
+ *
+ * The one primary: "Ask" — the composer's send (contract: ask a question). It is the
+ * pill at the bottom of the composer, the tool that owns it, pinned at the foot of the
+ * thread pane and elevated because it follows you. Everything a thread offers —
+ * Resolve…, Forward a document to the vault, Retry, Open — is a grey secondary or a
+ * text action, because the person this page exists for is someone with a question,
+ * and the next question is always the next thing.
+ *
+ * The tool that follows: "Sources" — the numbered sources with their excerpts, each
+ * opening the document it was quoted from, and beneath them the trace of how the
+ * answer was built — so the answer can be checked while it is being read. Below xl it
+ * becomes an appendix under the thread. Text actions in the title row: Conversations
+ * (small screens) · New conversation.
+ *
+ * Local components (page-only): Exchange (a chapter whose title is the question),
+ * Foot (the footer row: state first, then actions), Mark (a numbered source mark),
+ * Cite (a citation number carrying ProvenancePopover), StateMark (StatusDot by
+ * conversation state), SheetBody (the same 24-inside body the record's sheets use).
  */
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -21,20 +45,18 @@ import {
 import { Page, PageHeader } from "@/components/layouts";
 import {
   Chip, Section, SeverityBanner, NarrationNote, ConfidenceMeter, LayerBadge, ConfirmBanner,
-  SchematicBadge,
+  SchematicBadge, StatusDot, Rows, RowStack, ProvenancePopover, SourceTag, DataList, FilterChip,
 } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  ArrowRight, CheckCircle2, XCircle, CircleDashed, Scale, Copy, Loader2, MessagesSquare,
-  Plus, SendHorizontal, ArrowUpRight, X, FileText,
-} from "lucide-react";
+import { ArrowRight, ArrowUpRight, Copy, Loader2, X } from "lucide-react";
 
 /** Threads reachable in this build: the four saved conversations plus two demo branches. */
 type ThreadId = Conversation["id"] | "stale" | "loading";
@@ -79,7 +101,6 @@ function Ask() {
     setListOpen(false);
   };
 
-  const rail = <Rail active={active} money={money} onOpenDoc={setOpenDoc} />;
   const showRail = active !== null;
 
   return (
@@ -91,39 +112,35 @@ function Ask() {
           composer ended up past the panel's bottom edge and under the dock. */}
       <div className="flex h-full min-h-0 flex-col">
         <PageHeader
-          className="mb-4 shrink-0"
-          /* Scope lives on the composer, where it is removable. One place only. */
+          className="shrink-0"
           title="Ask"
           actions={
             <>
-              {/* Starting a conversation is routine navigation, not the action this
-                  surface exists for — and while a refusal is on screen the one action
-                  that matters is its recovery. Both were filled primaries, so the
-                  ranking inside the refusal was cancelled from the header. */}
-              <Button variant="outline" size="sm" className="lg:hidden" onClick={() => setListOpen(true)}>
-                <MessagesSquare className="size-[var(--icon-md)]" aria-hidden /> Conversations
+              {/* Both are routine navigation, so both are text actions. The one action
+                  this surface exists for is asking, and that pill lives in the composer. */}
+              <Button variant="link" size="sm" className="lg:hidden" onClick={() => setListOpen(true)}>
+                Conversations
               </Button>
-              <Button variant="outline" size="sm" onClick={() => choose(null)}>
-                <Plus className="size-[var(--icon-md)]" aria-hidden /> New conversation
+              <Button variant="link" size="sm" onClick={() => choose(null)}>
+                New conversation
               </Button>
             </>
           }
         />
 
-        <div className="flex min-h-0 flex-1 gap-6">
-          {/* ── recent conversations (page furniture, not nav) ── */}
-          <Section
-            variant="list"
-            className="hidden w-[290px] shrink-0 lg:flex"
-            bodyClassName="flex min-h-0 flex-col p-0"
-          >
-            <ConversationList active={active} onPick={choose} />
-          </Section>
+        <div className="flex min-h-0 flex-1 gap-[var(--gap-3)]">
+          {/* ── recent conversations: page furniture, not nav, and not a box ── */}
+          <div className="hidden min-h-0 w-[280px] shrink-0 flex-col lg:flex">
+            <div className="shrink-0 pb-[var(--space-2)] type-micro-caps text-label-tertiary">Recent</div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <ConversationList active={active} onPick={choose} />
+            </div>
+          </div>
 
-          {/* ── the active thread ── */}
+          {/* ── the open thread ── */}
           <section className="flex min-w-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
-              <div className="mx-auto w-full max-w-[680px] min-w-0 space-y-3">
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="mx-auto w-full min-w-0 max-w-[680px]">
                 {active === null ? (
                   <Landing onPick={choose} />
                 ) : (
@@ -137,43 +154,50 @@ function Ask() {
                 )}
               </div>
 
+              {/* Below xl the sources are an appendix under the thread, as chapters. */}
               {showRail && (
-                <div className="mx-auto mt-5 w-full max-w-[680px] space-y-3 xl:hidden">{rail}</div>
+                <div className="mx-auto mt-[var(--gap-3)] w-full max-w-[680px] border-t border-hairline pt-[var(--space-6)] xl:hidden">
+                  <Rail active={active} money={money} onOpenDoc={setOpenDoc} boxed={false} />
+                </div>
               )}
             </div>
 
-            {/* The composer sits at the foot of the thread pane, above the dock. On the
-                landing state the large entry composer is the only one — two would compete. */}
+            {/* The composer is the tool that owns the one primary. It sits at the foot
+                of the thread pane, above the dock. On the landing the large entry
+                composer is the only one — two would compete. */}
             {active !== null && (
-              <div className="shrink-0 pt-3">
+              <div className="shrink-0 pt-[var(--space-4)]">
                 <div className="mx-auto w-full max-w-[680px]">
-                  <Composer />
+                  <Composer follows />
                 </div>
               </div>
             )}
           </section>
 
-          {/* ── sources rail ──
-              `[&>*]:shrink-0` is what makes the `overflow-y-auto` mean anything. As
-              flex items the rail's cards defaulted to `flex-shrink: 1`, so when the
-              sources ran past the panel they compressed to fit instead of overflowing —
-              the aside's scrollHeight equalled its clientHeight, it never scrolled, and
-              `Section`'s own `overflow-hidden` quietly cut 228px of source material off
-              the bottom of three cards. Cards keep their height; the column scrolls. */}
+          {/* ── the sources: the tool that follows ──
+              `[&>*]:shrink-0` is what makes the `overflow-y-auto` mean anything: as a
+              flex item the tool would otherwise compress to fit instead of overflowing.
+              The negative margin leaves room for the elevation's shadow inside the
+              scrolling column. */}
           {showRail && (
-            <aside className="hidden w-[320px] shrink-0 flex-col gap-3 overflow-y-auto xl:flex [&>*]:shrink-0">{rail}</aside>
+            <aside
+              aria-label="Sources"
+              className="-mx-[var(--space-4)] hidden w-[356px] shrink-0 flex-col overflow-y-auto px-[var(--space-4)] pb-[var(--space-6)] xl:flex [&>*]:shrink-0"
+            >
+              <Rail active={active} money={money} onOpenDoc={setOpenDoc} boxed />
+            </aside>
           )}
         </div>
       </div>
 
       {/* conversations, on a small screen */}
       <Sheet open={listOpen} onOpenChange={setListOpen}>
-        <SheetContent side="left" className="w-[320px] max-w-[86vw] gap-0 p-0">
-          <SheetHeader className="border-b border-border px-4 py-3">
-            <SheetTitle className="type-data-strong">Conversations</SheetTitle>
-            <SheetDescription className="type-meta">Recent questions on this desk.</SheetDescription>
+        <SheetContent side="left" className="w-[min(92vw,360px)]">
+          <SheetHeader>
+            <SheetTitle>Conversations</SheetTitle>
+            <SheetDescription>Recent questions on this desk.</SheetDescription>
           </SheetHeader>
-          <div className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 overflow-y-auto px-[var(--space-4)] py-[var(--space-3)]">
             <ConversationList active={active} onPick={choose} />
           </div>
         </SheetContent>
@@ -187,16 +211,13 @@ function Ask() {
 
 /* ── conversations column ─────────────────────────────────────────────────── */
 
+/* The conversation's outcome, in a word with a dot beside it — the "answer state"
+   taxonomy, the one thing colour may mean on this screen. */
 function StateMark({ state }: { state?: Conversation["state"] }) {
   if (!state) return null;
-  const tone = state === "conflict" ? "bg-crit" : state === "refusal" ? "bg-warn" : "bg-ok";
+  const tone = state === "conflict" ? "crit" : state === "refusal" ? "warn" : "ok";
   const word = state === "conflict" ? "sources disagree" : state === "refusal" ? "refused" : "answered";
-  return (
-    <span className="inline-flex shrink-0 items-center gap-1.5 type-micro text-muted-foreground">
-      <span className={cn("size-1.5 rounded-full", tone)} aria-hidden />
-      {word}
-    </span>
-  );
+  return <StatusDot tone={tone}>{word}</StatusDot>;
 }
 
 function ConversationList({
@@ -210,93 +231,59 @@ function ConversationList({
   const threads = conversations.filter((c) => s.world === "v2" || c.state !== "refusal");
 
   return (
-    <>
-      {/* The conversation rail is furniture. A filled, full-width primary here is the
-          third filled button on the surface and competes with whatever the open thread
-          is actually asking the reader to do. */}
-      <div className="shrink-0 border-b border-border p-2">
-        <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => onPick(null)}>
-          <Plus className="size-[var(--icon-md)]" aria-hidden /> New conversation
-        </Button>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="px-3 pt-3 type-code uppercase tracking-widest text-muted-foreground">
-          Recent
-        </div>
-        <ul className="p-2">
-          {threads.map((c) => (
-            <li key={c.id}>
-              <button
-                type="button"
-                onClick={() => onPick(c.id)}
-                aria-current={active === c.id}
-                /* Named. Six conversation cards announced as "button" six times. */
-                aria-label={`${c.title} — ${c.when}`}
-                className={cn(
-                  "w-full cursor-pointer rounded-md px-3 pb-2 text-left transition-colors",
-                  active === c.id ? "bg-muted" : "hover:bg-muted/60",
-                )}
-              >
-                <div className="row-grid">
-                  <span className="row-primary type-data-strong">{c.title}</span>
-                  <span className="row-trailing type-micro text-muted-foreground">{c.when}</span>
+    <ul role="listbox" aria-label="Recent conversations" className="divide-y divide-hairline type-data">
+      {threads.map((c) => {
+        const on = active === c.id;
+        /* The question names the restricted figure. The outcome and the transcript
+           length describe material this reader may not be able to open. Absent for
+           them, not greyed. */
+        const readable = !c.needsCommission || canViewCommissions(role);
+        return (
+          <li key={c.id} role="none">
+            <button
+              type="button"
+              role="option"
+              aria-selected={on}
+              /* Named. Six conversation rows announced as "button" six times. */
+              aria-label={`${c.title} — ${c.when}`}
+              onClick={() => onPick(c.id)}
+              className={cn(
+                "pressable block w-full cursor-pointer border-l-2 py-[var(--space-3)] pr-[var(--space-2)] pl-[var(--space-3)] text-left",
+                /* Selected is a 2px ink edge and the sunken ground — a difference that
+                   survives without colour (VIS-021). */
+                on ? "border-l-selected bg-sunken" : "border-l-transparent hover:bg-interactive",
+              )}
+            >
+              <div className="flex items-baseline gap-[var(--space-2)]">
+                <span className="min-w-0 flex-1 type-data-strong">{c.title}</span>
+                <span className="shrink-0 type-micro text-label-secondary">{c.when}</span>
+              </div>
+              {readable && <p className="mt-0.5 line-clamp-2 type-meta">{c.preview}</p>}
+              {readable && (
+                <div className="mt-[var(--space-1)] flex items-center gap-[var(--space-2)] type-micro text-label-secondary">
+                  <StateMark state={c.state} />
+                  <span className="ml-auto tnum">{c.messages} messages</span>
                 </div>
-                {/* The question names the restricted figure. Withheld with the outcome
-                    and the count, rather than shown to a reader who cannot have the answer. */}
-                {(!c.needsCommission || canViewCommissions(role)) && (
-                  <p className="line-clamp-2 type-meta">{c.preview}</p>
-                )}
-                {/* The outcome and the transcript length describe material this reader
-                    may not be able to open. Absent for them, not greyed. */}
-                {(!c.needsCommission || canViewCommissions(role)) && (
-                  <div className="mt-1 flex items-center gap-2">
-                    <StateMark state={c.state} />
-                    <span className="ml-auto type-micro text-muted-foreground tnum">{c.messages} messages</span>
-                  </div>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </>
+              )}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
-/* ── composer ─────────────────────────────────────────────────────────────── */
+/* ── composer: the tool that owns the one primary ─────────────────────────── */
 
-function Composer({ large = false }: { large?: boolean }) {
+function Composer({ large = false, follows = false }: { large?: boolean; follows?: boolean }) {
   const [focused, setFocused] = useState(false);
   const [value, setValue] = useState("");
   const { s, d } = useDemo();
   const grown = large || focused || value.length > 0;
 
-  /* Scope was dispatched from "Ask about this" on every record and read into a crumb
-     the header does not draw, so arriving from a record looked identical to arriving
-     cold. It belongs on the composer: it narrows the question about to be asked, and
-     it has to be removable, because a scope you cannot drop is a trap. */
-  const scopeChip = s.askScope ? (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted py-0.5 pl-2.5 pr-1 type-micro">
-      Scoped to {s.askScope}
-      <button
-        type="button"
-        onClick={() => d({ type: "askScope", scope: null })}
-        aria-label={`Ask across everything instead of ${s.askScope}`}
-        className="grid size-4 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
-      >
-        <X className="size-3" aria-hidden />
-      </button>
-    </span>
-  ) : null;
-
   return (
-    <form onSubmit={(e) => e.preventDefault()}>
-      <div
-        className={cn(
-          "rounded-lg border bg-card transition-colors",
-          focused ? "border-primary/60" : "border-border",
-        )}
-      >
+    <Section variant="tool" follows={follows}>
+      <form onSubmit={(e) => e.preventDefault()}>
         <Textarea
           rows={1}
           value={value}
@@ -305,106 +292,104 @@ function Composer({ large = false }: { large?: boolean }) {
           onBlur={() => setFocused(false)}
           aria-label="Ask a question"
           placeholder={COMPOSER_PLACEHOLDER}
+          /* Compact by default, growing on focus; the landing's composer starts large. */
           className={cn(
-            "max-h-[38vh] resize-none overflow-y-auto border-0 bg-transparent px-4 py-2 type-data shadow-none transition-[min-height] duration-150 focus-visible:ring-0",
-            grown ? (large ? "min-h-[120px]" : "min-h-[76px]") : "min-h-[42px]",
+            "max-h-[38vh] resize-none overflow-y-auto",
+            large ? "min-h-32" : grown ? "min-h-20" : "min-h-[var(--control-h-md)]",
           )}
         />
-        {/* No manifesto here. The composer showed a permanent claim — "every answer cites
-            sources you can open" — that a restricted reader can see is false on the very
-            screen it sits on. The scope chip below is the only thing this row needs to say:
-            it is true, and it changes. */}
-        <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
-          <span className="min-w-0 flex-1">{scopeChip}</span>
-          <Button type="submit" size="sm" disabled={!value.trim()}>
-            <SendHorizontal className="size-3.5" aria-hidden /> Ask
-          </Button>
+        {/* Scope was dispatched from "Ask about this" on every record. It belongs on
+            the composer: it narrows the question about to be asked, and it has to be
+            removable, because a scope you cannot drop is a trap. A selected filter chip
+            says both — pressing it clears it. No manifesto beside it: the scope is the
+            only thing this row needs to say, because it is true, and it changes. */}
+        <div className="mt-[var(--space-3)] flex flex-wrap items-center gap-[var(--space-2)]">
+          <span className="min-w-0 flex-1">
+            {s.askScope && (
+              <FilterChip selected onClick={() => d({ type: "askScope", scope: null })}>
+                Scoped to {s.askScope}
+                <X className="size-[var(--icon-sm)]" aria-hidden />
+                <span className="sr-only">— ask across everything instead</span>
+              </FilterChip>
+            )}
+          </span>
+          <Button type="submit" disabled={!value.trim()}>Ask</Button>
         </div>
-      </div>
-    </form>
+      </form>
+    </Section>
   );
 }
 
 /* ── landing: the entry state ─────────────────────────────────────────────── */
 
-function Landing({ onPick }: { onPick: (id: ThreadId) => void }) {
+function Landing({ onPick }: { onPick: (id: ThreadId | null) => void }) {
   return (
-    <div className="pt-6">
-      <h2 className="type-section">What do you need to know?</h2>
-      <p className="mt-1 type-data text-muted-foreground">
-        Ask about a rate, a property, a traveller. Answers are built from this desk&apos;s own
-        knowledge and carry their sources.
-      </p>
-
-      <div className="mt-4">
+    <>
+      <Section title="What do you need to know?">
+        <p className="-mt-[var(--space-2)] mb-[var(--space-4)] max-w-[62ch] type-data-read text-label-secondary">
+          Ask about a rate, a property, a traveller. Answers are built from this desk&apos;s own
+          knowledge and carry their sources.
+        </p>
         <Composer large />
-      </div>
+        <p className="mt-[var(--space-3)] hidden type-meta lg:block">
+          Or pick up one of the recent conversations on the left.
+        </p>
+      </Section>
 
-      <div className="mt-6 lg:hidden">
-        <div className="type-code uppercase tracking-widest text-muted-foreground">
-          Recent conversations
-        </div>
-        <Section variant="list" className="mt-2">
-          <ul className="divide-y divide-border">
-          {conversations.slice(0, 4).map((c) => (
-            <li key={c.id}>
-              <button
-                type="button"
-                onClick={() => onPick(c.id)}
-                className="w-full cursor-pointer px-3 pb-2 text-left hover:bg-muted/60"
-              >
-                <div className="row-grid">
-                  <span className="row-primary type-data-strong">{c.title}</span>
-                  <span className="row-trailing type-micro text-muted-foreground">{c.when}</span>
-                </div>
-                <p className="truncate type-meta">{c.preview}</p>
-              </button>
-            </li>
-          ))}
-          </ul>
-        </Section>
-      </div>
-
-      <p className="mt-6 hidden type-meta lg:block">
-        Or pick up one of the recent conversations on the left.
-      </p>
-    </div>
+      <Section title="Recent conversations" quiet className="lg:hidden">
+        <ConversationList active={null} onPick={onPick} />
+      </Section>
+    </>
   );
 }
 
-/* ── bubbles + citation marks ─────────────────────────────────────────────── */
+/* ── the exchange: one question, one answer, one chapter ─────────────────────
 
-/* The two voices, on the one surface where the distinction is load-bearing.
-
-   The type system says: sans for anything the machine computed, serif for anything a
-   person reads as prose. Every table, chip and figure in the product honours it — and
-   Ask, which is nothing but prose, was set entirely in the machine voice. The answer
-   is the sentence an advisor forwards to a client; it should not look like a cell.
-
-   The question keeps the sans. It is what you typed, not what was written for you, and
-   the contrast between the two is the point: you ask in the interface's voice and are
-   answered in a human one. The trace, the chips and the sources stay sans throughout —
-   they are the machine showing its work, and that is exactly what they should look
-   like.                                                                              */
-function Q({ children }: { children: React.ReactNode }) {
+   The two voices, on the one surface where the distinction is load-bearing. The
+   question keeps the sans: it is what you typed, not what was written for you, and
+   it is the chapter's title because it owns everything beneath it. The answer is the
+   sentence an advisor forwards to a client, and is set in the serif. The trace, the
+   chips and the sources stay sans — they are the machine showing its work.        */
+function Exchange({ q, footer, children }: { q: string; footer?: ReactNode; children: ReactNode }) {
   return (
-    <div className="ml-auto w-fit max-w-[85%] rounded-lg bg-primary px-4 py-3 type-data text-primary-foreground">
-      {children}
-    </div>
-  );
-}
-function A({ className, children }: { className?: string; children: React.ReactNode }) {
-  return (
-    <Section className={cn("px-4 py-3", className)} bodyClassName="type-prose">
+    <Section title={q} footer={footer}>
       {children}
     </Section>
   );
 }
-function Cite({ n }: { n: number }) {
+
+/** The chapter's foot: the answer's state first, then the way onward. */
+function Foot({ children }: { children: ReactNode }) {
+  return <div className="flex flex-wrap items-center gap-x-[var(--space-3)] gap-y-[var(--space-2)]">{children}</div>;
+}
+
+/** A numbered source mark, the same in the answer's rail and the held-back list. */
+function Mark({ n }: { n: number }) {
   return (
-    <span className="ml-1 inline-grid size-[17px] translate-y-[-1px] place-items-center rounded-full border border-primary/50 align-middle type-micro text-primary tnum">
+    <span className="inline-grid size-5 shrink-0 place-items-center rounded-full border border-hairline type-micro tnum text-label-secondary">
       {n}
     </span>
+  );
+}
+
+/* A citation is a value with provenance: the number opens the source's what · where ·
+   when, and the same number in the rail opens the document itself. */
+function Cite({ n, sources }: { n: number; sources: RailSource[] }) {
+  const src = sources.find((x) => x.n === n);
+  const mark = <sup className="type-micro tnum">{n}</sup>;
+  if (!src) return <span className="ml-0.5 text-label-secondary">{mark}</span>;
+  return (
+    <span className="ml-0.5">
+      <ProvenancePopover source={provenanceOf(src)}>{mark}</ProvenancePopover>
+    </span>
+  );
+}
+
+function OpenRecord({ href = "/records/maison-leandre", children = "Open the record" }: { href?: string; children?: ReactNode }) {
+  return (
+    <Button asChild variant="link" size="sm">
+      <Link href={href}>{children} <ArrowRight aria-hidden /></Link>
+    </Button>
   );
 }
 
@@ -444,103 +429,108 @@ function CommissionThread({
 }: { money: boolean; dismissed: boolean; onDismiss: () => void; onResolve: () => void }) {
   const { s } = useDemo();
   const resolved = s.conflictResolved;
+  const q = askThreads.commission.q;
 
   if (!money) {
     return (
-      <>
-        <Q>{askThreads.commission.q}</Q>
-        <A>
-          <p>
-            Commission terms sit with the owning advisor. This desk cannot answer the rate part of
-            the question, and there is no partial figure to show.
-          </p>
-          <p className="mt-2 type-meta">
-            The breakfast and credit part of the question is answerable from the record.
-          </p>
-          <Button asChild variant="ghost" size="sm" className="mt-2 px-0 text-primary">
-            <Link href="/records/maison-leandre">
-              Open the record <ArrowRight className="size-3.5" aria-hidden />
-            </Link>
-          </Button>
-        </A>
-      </>
+      <Exchange q={q} footer={<Foot><OpenRecord /></Foot>}>
+        <p className="type-prose-lead">Commission terms sit with the owning advisor.</p>
+        <p className="mt-[var(--space-2)] type-prose">
+          This desk cannot answer the rate part of the question, and there is no partial figure to show.
+        </p>
+        <p className="mt-[var(--space-3)] type-meta">
+          The breakfast and credit part of the question is answerable from the record.
+        </p>
+      </Exchange>
     );
   }
 
-  return (
-    <>
-      <Q>{askThreads.commission.q}</Q>
-
-      {!resolved && !dismissed && (
-        <A className="border-warn/60">
-          <div className="flex items-center gap-2 font-semibold">
-            <Scale className="size-4 text-warn" aria-hidden /> Sources disagree — nothing assumed.
-          </div>
-          <p className="mt-1 type-data text-muted-foreground">{commissionConflict.headline}</p>
-          <div className="mt-3 divide-y divide-border rounded-lg border border-border">
-            {commissionConflict.sources.map((src) => (
-              <div key={src.id} className="row-grid px-3">
-                <span className="row-primary type-data-strong">{src.label}</span>
-                <span className="row-meta type-meta">{src.detail} · {src.when}</span>
-                <span className="row-trailing flex items-center gap-2">
-                  <span className="type-data-strong tnum">{src.value}</span>
-                  <Chip tone={src.id === "portal" ? "ok" : src.id === "manual" ? "crit" : "warn"}>{src.status}</Chip>
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Button size="sm" onClick={onResolve}>Resolve…</Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/records/maison-leandre">
-                Open the record <ArrowRight className="size-3.5" aria-hidden />
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" onClick={onDismiss}>Dismiss (stays in conflict)</Button>
-          </div>
-          <div className="mt-3">
-            <NarrationNote>
-              A ranking rule would be wrong often enough to cost money — the advisor decides once,
-              and the decision is stored where every surface reads it.
-            </NarrationNote>
-          </div>
-        </A>
-      )}
-
-      {!resolved && dismissed && (
+  if (!resolved && dismissed) {
+    return (
+      <Exchange q={q}>
         <SeverityBanner severity="Important">
-          <div className="flex flex-wrap items-center gap-2">
-            {/* The fact, without the boast. "Nothing is assumed" was the product
-                congratulating itself for the thing the sentence before it already
-                shows. */}
+          <div className="flex flex-wrap items-center gap-[var(--space-2)]">
+            {/* The fact, without the boast. */}
             <span>The commission field stays in conflict.</span>
-            <Button size="sm" variant="outline" className="ml-auto" onClick={onResolve}>Resolve…</Button>
+            <Button variant="secondary" size="sm" className="ml-auto" onClick={onResolve}>Resolve…</Button>
           </div>
         </SeverityBanner>
-      )}
+      </Exchange>
+    );
+  }
 
-      {resolved && (
-        <A>
-          <div className="space-y-2">
-            {askThreads.commission.resolved.lines.map((l) => (
-              <p key={l.cite}>{l.text.replace("12%", keptSource(s.conflictChoice).value)}<Cite n={l.cite} /></p>
-            ))}
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3 type-meta">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-ok" aria-hidden />
-              {askThreads.commission.resolved.meta.sources} sources
-            </span>
-            <span>oldest {askThreads.commission.resolved.meta.oldest}</span>
-            <span>corroborated by {askThreads.commission.resolved.meta.corroborated}</span>
-            <Chip tone="ok" className="ml-auto">answer contract met</Chip>
-          </div>
-          <p className="mt-2 type-meta">
-            Cites the resolution stored today at the agency layer — both other sources stay reachable.
+  if (!resolved) {
+    return (
+      <Exchange
+        q={q}
+        footer={
+          <Foot>
+            <Chip tone="crit">3 sources disagree</Chip>
+            {/* The decision is offered as a secondary: the one primary on this surface is
+                the next question. Dismissing is a text action — sometimes the answer is
+                not knowable today, and the product lets you leave it that way. */}
+            <Button variant="secondary" size="sm" onClick={onResolve}>Resolve…</Button>
+            <OpenRecord />
+            <Button variant="link" size="sm" onClick={onDismiss}>Dismiss (stays in conflict)</Button>
+          </Foot>
+        }
+      >
+        <p className="type-prose-lead">{commissionConflict.headline}</p>
+        {/* Two lines per source: the subject keeps its width beside the value and its
+            standing; where it came from and when sits beneath. */}
+        <Rows className="mt-[var(--space-4)]">
+          {commissionConflict.sources.map((src) => (
+            <RowStack
+              key={src.id}
+              head={
+                <>
+                  <span className="row-primary truncate type-data-strong">{src.label}</span>
+                  <span className="flex shrink-0 items-center gap-[var(--space-2)]">
+                    <span className="type-data-strong tnum">{src.value}</span>
+                    <Chip tone={src.id === "portal" ? "ok" : src.id === "manual" ? "crit" : "warn"}>{src.status}</Chip>
+                  </span>
+                </>
+              }
+            >
+              {src.detail} · {src.when}
+            </RowStack>
+          ))}
+        </Rows>
+        <div className="mt-[var(--space-4)]">
+          <NarrationNote>
+            A ranking rule would be wrong often enough to cost money — the advisor decides once,
+            and the decision is stored where every surface reads it.
+          </NarrationNote>
+        </div>
+      </Exchange>
+    );
+  }
+
+  const meta = askThreads.commission.resolved.meta;
+  return (
+    <Exchange
+      q={q}
+      footer={
+        <Foot>
+          <Chip tone="ok">answer contract met</Chip>
+          <span className="type-meta"><StatusDot tone="ok">{meta.sources} sources</StatusDot></span>
+          <span className="type-meta">oldest {meta.oldest}</span>
+          <span className="type-meta">corroborated by {meta.corroborated}</span>
+        </Foot>
+      }
+    >
+      <div className="space-y-[var(--space-2)] type-prose">
+        {askThreads.commission.resolved.lines.map((l) => (
+          <p key={l.cite}>
+            {l.text.replace("12%", keptSource(s.conflictChoice).value)}
+            <Cite n={l.cite} sources={commissionSources} />
           </p>
-        </A>
-      )}
-    </>
+        ))}
+      </div>
+      <p className="mt-[var(--space-3)] type-meta">
+        Cites the resolution stored today at the agency layer — both other sources stay reachable.
+      </p>
+    </Exchange>
   );
 }
 
@@ -548,70 +538,69 @@ function CommissionThread({
 
 function SpaThread() {
   const { s } = useDemo();
+  const money = canViewCommissions(s.role);
   const spa = notices.find((n) => n.id === "spa");
   const noticeActive = s.world === "v2" && !!spa && !s.spaNoticeClosed;
+  const sources = sourcesFor("spa-status", s.world, money);
+
+  if (noticeActive && spa) {
+    return (
+      <Exchange
+        q={askThreads.spa.q}
+        footer={<Foot><Chip tone="warn">answer carries the notice</Chip><OpenRecord /></Foot>}
+      >
+        <SeverityBanner severity="Important" className="mb-[var(--space-4)]">
+          <b>{spa.text}</b>{" "}
+          <span>Opened {spa.openedAt} · {spa.scope} scope · {spa.owner}</span>
+        </SeverityBanner>
+        <p className="type-prose-lead">{askThreads.spa.v2}<Cite n={1} sources={sources} /></p>
+      </Exchange>
+    );
+  }
+
   return (
-    <>
-      <Q>{askThreads.spa.q}</Q>
-      {noticeActive && spa ? (
-        <>
-          <SeverityBanner severity="Important">
-            <b>Active notice: {spa.text}</b>{" "}
-            <span className="text-muted-foreground">
-              Opened {spa.openedAt} · {spa.scope} scope · {spa.owner}
-            </span>
-          </SeverityBanner>
-          <A>
-            <p>{askThreads.spa.v2}<Cite n={1} /></p>
-            <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-border pt-2">
-              <Chip tone="warn">answer carries the notice</Chip>
-              <Button asChild variant="ghost" size="sm" className="ml-auto text-primary">
-                <Link href="/records/maison-leandre">
-                  Open the record <ArrowRight className="size-3.5" aria-hidden />
-                </Link>
-              </Button>
-            </div>
-          </A>
-        </>
-      ) : (
-        <>
-          <A>
-            <p>{askThreads.spa.v1}<Cite n={1} /></p>
-            <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-border pt-2">
-              {/* The contract is named, not merely asserted. In March it checked that an
-                  answer was sourced and cited — and this answer is both, and wrong. That
-                  is the argument: the contract was real, freshness was not yet in it. */}
-              <Chip tone="ok">
-                {s.world === "v1" ? "answer contract met — sourced, cited" : "answer contract met"}
-              </Chip>
-            </div>
-          </A>
-          {s.world === "v1" && <NarrationNote>{askThreads.spa.v1Note}</NarrationNote>}
-        </>
+    <Exchange
+      q={askThreads.spa.q}
+      footer={
+        <Foot>
+          {/* The contract is named, not merely asserted. In March it checked that an
+              answer was sourced and cited — and this answer is both, and wrong. That
+              is the argument: the contract was real, freshness was not yet in it. */}
+          <Chip tone="ok">{s.world === "v1" ? "answer contract met — sourced, cited" : "answer contract met"}</Chip>
+          <OpenRecord />
+        </Foot>
+      }
+    >
+      <p className="type-prose-lead">{askThreads.spa.v1}<Cite n={1} sources={sources} /></p>
+      {s.world === "v1" && (
+        <div className="mt-[var(--space-4)]">
+          <NarrationNote>{askThreads.spa.v1Note}</NarrationNote>
+        </div>
       )}
-    </>
+    </Exchange>
   );
 }
 
 /* ── rep firm ─────────────────────────────────────────────────────────────── */
 
 function RepThread() {
+  const { s } = useDemo();
+  const sources = sourcesFor("rep-paris", s.world, canViewCommissions(s.role));
   return (
-    <>
-      <Q>{askThreads.rep.q}</Q>
-      <A>
-        {askThreads.rep.a}
-        {askThreads.rep.cites.map((n) => <Cite key={n} n={n} />)}
-        <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-border pt-2">
+    <Exchange
+      q={askThreads.rep.q}
+      footer={
+        <Foot>
           <Chip tone="ok">answer contract met</Chip>
-          <Button asChild variant="ghost" size="sm" className="ml-auto text-primary">
-            <Link href="/records/corvin-wells">
-              Open the rep firm <ArrowRight className="size-3.5" aria-hidden />
-            </Link>
-          </Button>
-        </div>
-      </A>
-    </>
+          <OpenRecord href="/records/corvin-wells">Open the rep firm</OpenRecord>
+        </Foot>
+      }
+    >
+      <p className="type-prose-lead">
+        {askThreads.rep.a}
+        {askThreads.rep.cites.map((n) => <Cite key={n} n={n} sources={sources} />)}
+      </p>
+    </Exchange>
   );
 }
 
@@ -623,95 +612,79 @@ function RefusalThread() {
   const inboundAddr = inbound ? inbound.name.replace("Inbound mail — ", "") : "the inbound address";
   const [recovery, setRecovery] = useState<"forward" | "rep" | "flag" | null>(null);
   return (
-    <>
-      <Q>{r.q}</Q>
-      <A>
-        {/* The refusal is the most human sentence the product says, and it was set in
-            the smallest machine face. It reads as prose; the contract beneath it is a
-            check the machine ran, and stays in the machine's voice. */}
-        <div className="rounded-lg border border-border bg-subtle px-3 py-3">
-          <div className="flex items-center gap-2">
-            <CircleDashed className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-            <span className="type-prose-lead">{r.headline}</span>
-          </div>
-          <p className="mt-1 type-prose">{r.body}</p>
-        </div>
-        <ul className="mt-3 space-y-2">
-          {r.contract.map((cl) => (
-            <li key={cl.clause} className="flex items-start gap-2 type-data">
-              {cl.ok
-                ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-ok" aria-hidden />
-                : <XCircle className="mt-0.5 size-4 shrink-0 text-crit" aria-hidden />}
-              <span><b>{cl.clause}</b> {cl.note}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-3 border-t border-border pt-3 type-meta">{r.policy}</p>
-        {/* Ranked, not three equal outlines.
-            A refusal's whole value is the route forward, and only one of these three
-            actually reopens the answer — forwarding a document the vault can verify.
-            Weighting all three the same offered a choice where the product has an
-            opinion, so none of them read as the recommended one. */}
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <Button size="sm" onClick={() => setRecovery("forward")}>
-            {r.ctas[0]}
-          </Button>
-          <button
-            type="button"
-            onClick={() => setRecovery("rep")}
-            className="cursor-pointer type-meta underline underline-offset-2 hover:text-foreground"
+    <Exchange q={r.q} footer={<Foot><Chip tone="warn">refused — answer contract not met</Chip></Foot>}>
+      {/* The refusal is the most human sentence the product says, so it is set in the
+          prose face. The contract beneath it is a check the machine ran, and stays in
+          the machine's voice. */}
+      <p className="type-prose-lead">{r.headline}</p>
+      <p className="mt-[var(--space-2)] type-prose">{r.body}</p>
+
+      <div className="mt-[var(--space-6)] type-micro-caps text-label-tertiary">The answer contract</div>
+      <Rows>
+        {r.contract.map((cl) => (
+          <RowStack
+            key={cl.clause}
+            head={
+              <>
+                <span className="row-primary type-data-strong">{cl.clause}</span>
+                <Chip tone={cl.ok ? "ok" : "crit"}>{cl.ok ? "passed" : "failed"}</Chip>
+              </>
+            }
           >
-            {r.ctas[1]}
-          </button>
-          <button
-            type="button"
-            onClick={() => setRecovery("flag")}
-            className="cursor-pointer type-meta underline underline-offset-2 hover:text-foreground"
-          >
-            {r.ctas[2]}
-          </button>
+            {cl.note}
+          </RowStack>
+        ))}
+      </Rows>
+      <p className="mt-[var(--space-3)] type-meta">{r.policy}</p>
+
+      {/* Ranked, not three equal controls. A refusal's whole value is the route forward,
+          and only one of these actually reopens the answer — forwarding a document the
+          vault can verify. That one is the grey secondary; the other two are text. */}
+      <div className="mt-[var(--space-6)] type-micro-caps text-label-tertiary">The way forward</div>
+      <div className="mt-[var(--space-2)] flex flex-wrap items-center gap-[var(--space-3)]">
+        <Button variant="secondary" size="sm" onClick={() => setRecovery("forward")}>{r.ctas[0]}</Button>
+        <Button variant="link" size="sm" onClick={() => setRecovery("rep")}>{r.ctas[1]}</Button>
+        <Button variant="link" size="sm" onClick={() => setRecovery("flag")}>{r.ctas[2]}</Button>
+      </div>
+      {recovery && (
+        <div className="mt-[var(--space-3)]">
+          <ConfirmBanner show>
+            {recovery === "forward" && (
+              <>Watching <span className="type-code">{inboundAddr}</span> — a verified document reopens this answer.</>
+            )}
+            {recovery === "rep" && <>Draft opened to Corvin &amp; Wells — nothing sends without review.</>}
+            {recovery === "flag" && <>Flagged — appears in Confirm new records.</>}
+          </ConfirmBanner>
         </div>
-        {recovery && (
-          <div className="mt-3">
-            <ConfirmBanner show>
-              {recovery === "forward" && (
-                <>Watching <span className="font-mono">{inboundAddr}</span> — a verified document reopens this answer.</>
-              )}
-              {recovery === "rep" && <>Draft opened to Corvin &amp; Wells — nothing sends without review.</>}
-              {recovery === "flag" && <>Flagged — appears in Confirm new records.</>}
-            </ConfirmBanner>
-          </div>
-        )}
-        <div className="mt-3">
-          <NarrationNote>
-            A refusal is a first-class outcome, not an error — what was found, which clause failed,
-            and how to recover, all stated.
-          </NarrationNote>
-        </div>
-      </A>
-    </>
+      )}
+      <div className="mt-[var(--space-4)]">
+        <NarrationNote>
+          A refusal is a first-class outcome, not an error — what was found, which clause failed,
+          and how to recover, all stated.
+        </NarrationNote>
+      </div>
+    </Exchange>
   );
 }
 
 /* ── stale ────────────────────────────────────────────────────────────────── */
 
 function StaleThread() {
+  const { s } = useDemo();
   const st = askThreads.stale;
+  const sources = sourcesFor("stale", s.world, canViewCommissions(s.role));
   return (
-    <>
-      <Q>{st.q}</Q>
-      <A>
-        <p>{st.a}<Cite n={1} /></p>
-        <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-border pt-2">
+    <Exchange
+      q={st.q}
+      footer={
+        <Foot>
           <Chip tone="warn">stale — inherits the field&apos;s warning</Chip>
-          <Button asChild variant="ghost" size="sm" className="ml-auto text-primary">
-            <Link href="/records/maison-leandre">
-              Open the record <ArrowRight className="size-3.5" aria-hidden />
-            </Link>
-          </Button>
-        </div>
-      </A>
-    </>
+          <OpenRecord />
+        </Foot>
+      }
+    >
+      <p className="type-prose-lead">{st.a}<Cite n={1} sources={sources} /></p>
+    </Exchange>
   );
 }
 
@@ -719,29 +692,26 @@ function StaleThread() {
 
 function LoadingThread() {
   return (
-    <>
-      <Q>{askThreads.commission.q}</Q>
-      <A className="border-warn/60">
-        <div className="flex items-center gap-2 type-data-strong">
-          <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
-          Building the answer
-        </div>
-        <div className="mt-3">
-          <TraceList threadId="leandre-rate" pendingStage={2} />
-        </div>
-      </A>
-      <SeverityBanner severity="Important">
-        <div className="flex flex-wrap items-center gap-2">
+    <Exchange q={askThreads.commission.q}>
+      <p className="flex items-center gap-[var(--space-2)] type-data-strong">
+        <Loader2 className="size-[var(--icon-md)] animate-spin text-label-secondary" aria-hidden />
+        Building the answer
+      </p>
+      <div className="mt-[var(--space-3)]">
+        <TraceList threadId="leandre-rate" pendingStage={2} />
+      </div>
+      <SeverityBanner severity="Important" className="mt-[var(--space-4)]">
+        <div className="flex flex-wrap items-center gap-[var(--space-2)]">
           <span>
             Retrieval timed out at the last stage. The partial trace is shown — no partial answer is
             rendered.
           </span>
-          <Button asChild size="sm" variant="outline" className="ml-auto">
+          <Button asChild variant="secondary" size="sm" className="ml-auto">
             <Link href="/ask?state=loading">Retry</Link>
           </Button>
         </div>
       </SeverityBanner>
-    </>
+    </Exchange>
   );
 }
 
@@ -750,23 +720,20 @@ function LoadingThread() {
 function UnbuiltThread({ id }: { id: ThreadId }) {
   const c = conversations.find((x) => x.id === id);
   return (
-    <>
-      <Q>{c?.preview ?? "…"}</Q>
-      <A>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="type-data-strong">{c?.title}</span>
-          <SchematicBadge />
-        </div>
-        <p className="mt-2 type-data text-muted-foreground">
-          This thread is on file with {c?.messages ?? 0} messages. Its transcript is not reconstructed
-          in this build — the conversations it demonstrates are the rate, the refusal and the notice.
-        </p>
-      </A>
-    </>
+    <Exchange q={c?.preview ?? "…"}>
+      <div className="flex flex-wrap items-center gap-[var(--space-2)]">
+        <span className="type-data-strong">{c?.title}</span>
+        <SchematicBadge />
+      </div>
+      <p className="mt-[var(--space-2)] type-data-read text-label-secondary">
+        This thread is on file with {c?.messages ?? 0} messages. Its transcript is not reconstructed
+        in this build — the conversations it demonstrates are the rate, the refusal and the notice.
+      </p>
+    </Exchange>
   );
 }
 
-/* ── rails ────────────────────────────────────────────────────────────────── */
+/* ── the trace ────────────────────────────────────────────────────────────── */
 
 function TraceList({ threadId, pendingStage }: { threadId?: string | null; pendingStage?: number }) {
   const { s } = useDemo();
@@ -783,40 +750,62 @@ function TraceList({ threadId, pendingStage }: { threadId?: string | null; pendi
   const pendingFrom = pendingStage === undefined ? undefined : Math.min(pendingStage, stages.length - 1);
 
   return (
-    <ol className="space-y-3">
+    <Rows>
       {stages.map((t, i) => {
         const pending = pendingFrom !== undefined && i >= pendingFrom;
         return (
-          <li key={t.stage} className="flex items-start gap-2 type-data">
-            {pending
-              ? <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-muted-foreground" aria-hidden />
-              : <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-ok" aria-hidden />}
-            <span>
-              <span className={cn(pending && "text-muted-foreground")}>{t.stage}</span>
-              <span className="block type-meta">{pending ? "pending" : t.detail}</span>
-            </span>
-          </li>
+          <RowStack
+            key={t.stage}
+            head={
+              pending ? (
+                <span className="inline-flex items-center gap-1.5 text-label-secondary">
+                  <Loader2 className="size-[var(--icon-sm)] shrink-0 animate-spin" aria-hidden />
+                  {t.stage}
+                </span>
+              ) : (
+                <StatusDot tone="ok">{t.stage}</StatusDot>
+              )
+            }
+          >
+            {pending ? "pending" : t.detail}
+          </RowStack>
         );
       })}
-    </ol>
+    </Rows>
   );
 }
 
-interface RailSource { n: number; label: string; detail: string; quote?: string; doc?: string }
+/* ── sources ──────────────────────────────────────────────────────────────── */
+
+type SourceKind = "portal" | "intranet" | "email" | "gdrive" | "manual";
+interface RailSource { n: number; label: string; detail: string; kind: SourceKind; quote?: string; doc?: string }
+
+/** The kind of each cited commission source, by its number: a portal PDF, an intranet page, an email. */
+const COMMISSION_KIND: Record<number, SourceKind> = { 1: "portal", 2: "intranet", 3: "email" };
+const commissionSources: RailSource[] = askThreads.commission.sources.map((src) => ({
+  ...src, kind: COMMISSION_KIND[src.n] ?? "portal",
+}));
+
+/** what · where · when for the popover, read off the source's own line. */
+function provenanceOf(src: RailSource) {
+  const parts = src.detail.split(" · ");
+  const when = parts.find((p) => /\d{4}|\d+ days/.test(p)) ?? parts[parts.length - 1];
+  const where = parts.filter((p) => p !== when).join(" · ") || src.label;
+  return { what: src.label, where, when, kind: src.kind };
+}
 
 function sourcesFor(active: ThreadId, world: string, money: boolean): RailSource[] {
-  const cs = askThreads.commission.sources;
   switch (active) {
     case "leandre-rate":
-      return money ? cs : [];
+      return money ? commissionSources : [];
     case "rep-paris":
-      return [cs[2]];
+      return [commissionSources[2]];
     case "spa-status":
       return world === "v2"
-        ? [{ n: 1, label: "Agency notice", detail: "Maison Léandre · opened 12 Jun 2026 · agency scope · MK" }]
-        : [{ n: 1, label: "Property website capture", detail: "Pool and spa hours · Maison Léandre" }];
+        ? [{ n: 1, label: "Agency notice", detail: "Maison Léandre · opened 12 Jun 2026 · agency scope · MK", kind: "manual" }]
+        : [{ n: 1, label: "Property website capture", detail: "Pool and spa hours · Maison Léandre", kind: "gdrive" }];
     case "stale":
-      return [{ n: 1, label: "Property website capture", detail: "Pool hours · 96 days unverified" }];
+      return [{ n: 1, label: "Property website capture", detail: "Pool hours · 96 days unverified", kind: "gdrive" }];
     default:
       return [];
   }
@@ -830,11 +819,11 @@ const BUILT: ThreadId[] = ["leandre-rate", "spa-status", "rep-paris", "stale"];
    surrounds it. An extract can be quoted fairly or unfairly and there is no way to
    tell from the extract; the paragraph before it is how you tell.
 
-   Paper, not product: a serif measure on a light ground, the app's own chrome kept to
-   the header and the footer. The kinds differ because the documents differ — a
-   countersigned contract and a rep's email carry different weight, and an advisor
-   deciding what to trust should see which one they are looking at before they read a
-   word of it.                                                                        */
+   Paper, not product: a serif measure on a raised sheet over the sunken ground, the
+   app's own chrome kept to the header and the footer. The kinds differ because the
+   documents differ — a countersigned contract and a rep's email carry different
+   weight, and an advisor deciding what to trust should see which one they are
+   looking at before they read a word of it.                                        */
 function DocumentSheet({
   doc, open, onOpenChange,
 }: { doc: string | null; open: boolean; onOpenChange: (v: boolean) => void }) {
@@ -845,8 +834,8 @@ function DocumentSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-[680px]">
-        <SheetHeader className="shrink-0 border-b border-border">
+      <SheetContent side="right" className="w-[min(92vw,680px)]">
+        <SheetHeader>
           <SheetTitle className="flex flex-wrap items-center gap-[var(--space-2)]">
             {d.title}
             <Chip tone="neutral">{kindLabel}</Chip>
@@ -855,13 +844,13 @@ function DocumentSheet({
           {d.subtitle && <SheetDescription>{d.subtitle}</SheetDescription>}
         </SheetHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto bg-subtle p-[var(--space-4)]">
-          <article className="mx-auto max-w-[62ch] rounded-[var(--radius-card)] border border-border bg-background p-[var(--space-6)] shadow-sm">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-sunken p-[var(--space-4)]">
+          <article className="mx-auto max-w-[62ch] rounded-lg bg-raised p-[var(--space-6)] shadow-elev-1">
             {d.header && (
-              <dl className="mb-[var(--space-4)] space-y-1 border-b border-border pb-[var(--space-4)]">
+              <dl className="mb-[var(--space-4)] space-y-1 border-b border-hairline pb-[var(--space-4)]">
                 {d.header.map((h) => (
                   <div key={h.label} className="grid grid-cols-[72px_minmax(0,1fr)] gap-[var(--space-3)]">
-                    <dt className="type-micro text-muted-foreground">{h.label}</dt>
+                    <dt className="type-micro-caps text-label-tertiary">{h.label}</dt>
                     <dd className="type-data">{h.value}</dd>
                   </div>
                 ))}
@@ -871,14 +860,14 @@ function DocumentSheet({
             <div className="space-y-[var(--space-3)]">
               {d.blocks.map((b, i) =>
                 b.heading ? (
-                  <h4 key={i} className="type-data-strong pt-[var(--space-2)]">{b.text}</h4>
+                  <h4 key={i} className="pt-[var(--space-2)] type-data-strong">{b.text}</h4>
                 ) : (
                   <p
                     key={i}
                     className={cn(
                       "type-prose",
-                      /* The passage the answer rests on, marked where it sits. */
-                      b.cited && "-mx-2 rounded border-l-2 border-primary bg-primary-soft/60 px-2 py-1",
+                      /* The passage the answer rests on, marked where it sits: an ink edge. */
+                      b.cited && "-mx-[var(--space-3)] border-l-2 border-l-selected bg-sunken py-[var(--space-1)] pr-[var(--space-3)] pl-[calc(var(--space-3)-2px)]",
                     )}
                   >
                     {b.text}
@@ -889,8 +878,8 @@ function DocumentSheet({
           </article>
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-[var(--space-2)] border-t border-border px-[var(--space-4)] py-[var(--space-3)]">
-          <span className="type-code text-muted-foreground">{d.locator}</span>
+        <div className="flex shrink-0 flex-wrap items-center gap-[var(--space-2)] border-t border-hairline px-[var(--space-6)] py-[var(--space-3)]">
+          <span className="type-code text-label-secondary">{d.locator}</span>
           <span className="ml-auto type-meta">Highlighted passage is the one this answer cites.</span>
         </div>
       </SheetContent>
@@ -898,17 +887,22 @@ function DocumentSheet({
   );
 }
 
+/* The tool that follows: the sources, then how the answer was built. `boxed` is the
+   xl rail (a tool, elevated because it follows); unboxed it is the appendix under
+   the thread on a narrower panel, as chapters. */
 function Rail({
-  active, money, onOpenDoc,
-}: { active: ThreadId | null; money: boolean; onOpenDoc: (doc: string) => void }) {
+  active, money, onOpenDoc, boxed,
+}: { active: ThreadId | null; money: boolean; onOpenDoc: (doc: string) => void; boxed: boolean }) {
   const { s } = useDemo();
   if (active === null) return null;
 
-  if (active === "third-night") return <HeldBackRail />;
+  const variant = boxed ? "tool" : "chapter";
+
+  if (active === "third-night") return <HeldBackRail boxed={boxed} />;
 
   if (!BUILT.includes(active) && active !== "loading") {
     return (
-      <Section title="Sources" chips={<SchematicBadge />}>
+      <Section variant={variant} follows={boxed} title="Sources" chips={<SchematicBadge />}>
         <p className="type-meta">
           The trace and sources for this thread are not reconstructed in this build.
         </p>
@@ -918,9 +912,9 @@ function Rail({
 
   if (active === "loading") {
     return (
-      <Section title="How this answer was built">
+      <Section variant={variant} follows={boxed} title="How this answer was built">
         <TraceList threadId={active} pendingStage={2} />
-        <p className="mt-3 border-t border-border pt-2 type-meta">
+        <p className="mt-[var(--space-3)] border-t border-hairline pt-[var(--space-3)] type-meta">
           Partial trace shown — no partial answer is rendered.
         </p>
       </Section>
@@ -928,113 +922,107 @@ function Rail({
   }
 
   const sources = sourcesFor(active, s.world, money);
+  const kept = keptSource(s.conflictChoice);
 
   return (
-    <>
-      <Section title="How this answer was built">
-        <TraceList threadId={active} />
-      </Section>
-
+    <Section
+      variant={variant}
+      follows={boxed}
+      title="Sources"
+      footer={
+        <>
+          <CopyExportMenu />
+          <p className="mt-[var(--space-2)] type-meta">
+            A client-facing export drops the trace, the layer marks and the internal notes. The advisor
+            copy keeps them.
+          </p>
+        </>
+      }
+    >
+      {/* A citation you cannot open is a footnote, and a footnote asks to be taken on
+          trust — the one thing this product refuses to ask anywhere else. The source's
+          name is the text action that opens the document. The permission guarantee is
+          not stated here: a panel that says nothing is being hidden has raised the
+          possibility. The rule holds in the code; the screen shows what it shows. */}
       {sources.length > 0 && (
-        <Section title="Sources">
-          <div className="space-y-3">
-            {/* A citation you cannot open is a footnote, and a footnote asks to be
-                taken on trust — the one thing this product refuses to ask anywhere
-                else. The whole card opens the document, so the target is the size of
-                the thing you were already reading. */}
-            {sources.map((src) => {
-              const openable = !!src.doc && !!sourceDocuments[src.doc];
-              const inner = (
-                <>
-                  <div className="flex items-center gap-2 type-data-strong">
-                    <span className="inline-grid size-[17px] shrink-0 place-items-center rounded-full border border-border type-micro tnum">
-                      {src.n}
-                    </span>
-                    {src.label}
-                    {openable && (
-                      <FileText className="ml-auto size-[var(--icon-md)] shrink-0 text-muted-foreground" aria-hidden />
+        <Rows>
+          {sources.map((src) => {
+            const openable = !!src.doc && !!sourceDocuments[src.doc];
+            return (
+              <li key={src.n} className="flex items-start gap-[var(--space-2)] py-[var(--space-3)]">
+                <span className="mt-px"><Mark n={src.n} /></span>
+                <div className="min-w-0 flex-1">
+                  <div className="type-data-strong">
+                    {openable ? (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => onOpenDoc(src.doc!)}
+                        aria-label={`Open ${src.label} — ${src.detail}`}
+                      >
+                        {src.label}
+                      </Button>
+                    ) : (
+                      src.label
                     )}
                   </div>
-                  <div className="mt-1 type-meta">{src.detail}</div>
+                  <div className="mt-0.5"><SourceTag kind={src.kind} label={src.detail} /></div>
                   {/* Someone else's words, quoted verbatim from a contract — prose, and
                       the one place the italic quote role belongs. */}
-                  {src.n === 1 && src.quote && (
-                    <blockquote className="mt-2 rounded-lg border-l-2 border-primary/60 bg-muted px-3 py-2 type-prose-quote">
+                  {src.quote && (
+                    <blockquote className="mt-[var(--space-2)] border-l-2 border-l-selected pl-[var(--space-3)] type-prose-quote">
                       {src.quote}
                     </blockquote>
                   )}
-                </>
-              );
-              const box = cn(
-                "w-full rounded-lg border p-3 text-left",
-                src.n === 1 ? "border-primary/50" : "border-border",
-              );
-              return openable ? (
-                <button
-                  key={src.n}
-                  type="button"
-                  onClick={() => onOpenDoc(src.doc!)}
-                  aria-label={`Open ${src.label} — ${src.detail}`}
-                  className={cn(box, "cursor-pointer transition-colors hover:bg-muted")}
-                >
-                  {inner}
-                </button>
-              ) : (
-                <div key={src.n} className={box}>{inner}</div>
-              );
-            })}
-          </div>
-          {active === "leandre-rate" && s.conflictResolved && (
-            <p className="mt-3 flex items-center gap-2 border-t border-border pt-2 type-meta">
-              <LayerBadge layer="agency" /> {keptSource(s.conflictChoice).value} kept from {keptSource(s.conflictChoice).label} · stored today · both other sources reachable
-            </p>
-          )}
-          {/* The permission guarantee is not stated here. It answered a question the
-              advisor had not asked and, in asking it, planted the doubt: a panel that
-              says nothing is being hidden is a panel that has raised the possibility.
-              The rule holds in the code; the screen simply shows what it shows. */}
-        </Section>
+                </div>
+              </li>
+            );
+          })}
+        </Rows>
       )}
 
-      <Section title="Copy and export" chips={<SchematicBadge />}>
-        <div className="flex flex-wrap gap-2">
-          <CopyExportMenu />
-        </div>
-        <p className="mt-2 type-meta">
-          A client-facing export drops the trace, the layer marks and the internal notes. The advisor
-          copy keeps them.
+      {active === "leandre-rate" && s.conflictResolved && (
+        <p className="mt-[var(--space-3)] flex flex-wrap items-center gap-[var(--space-2)] type-meta">
+          <LayerBadge layer="agency" /> {kept.value} kept from {kept.label} · stored today · both other sources reachable
         </p>
-      </Section>
-    </>
+      )}
+
+      <div className={cn("border-t border-hairline pt-[var(--space-4)]", sources.length > 0 ? "mt-[var(--space-6)]" : "border-t-0 pt-0")}>
+        <div className="type-section-quiet">How this answer was built</div>
+        <div className="mt-[var(--space-1)]">
+          <TraceList threadId={active} />
+        </div>
+      </div>
+    </Section>
   );
 }
 
-function HeldBackRail() {
+function HeldBackRail({ boxed }: { boxed: boolean }) {
   const r = askThreads.refusal;
   return (
-    <>
-      <Section title="Held back">
-        <p className="type-meta">
-          Both sources fail the freshness rule. They are visible here and excluded from the answer.
-        </p>
-      </Section>
-      <Section title="Sources found">
-        <div className="space-y-3">
-          {r.held.map((h, i) => (
-            <div key={h.label} className="rounded-lg border border-dashed border-border p-3">
-              <div className="flex items-center gap-2 type-data-strong">
-                <span className="inline-grid size-[17px] shrink-0 place-items-center rounded-full border border-border type-micro tnum">
-                  {i + 1}
+    <Section variant={boxed ? "tool" : "chapter"} follows={boxed} title="Held back">
+      <p className="-mt-[var(--space-2)] type-data-read text-label-secondary">
+        Both sources fail the freshness rule. They are visible here and excluded from the answer.
+      </p>
+      <Rows className="mt-[var(--space-3)]">
+        {r.held.map((h, i) => (
+          <RowStack
+            key={h.label}
+            head={
+              <>
+                <span className="row-primary flex min-w-0 items-center gap-[var(--space-2)] type-data-strong">
+                  <Mark n={i + 1} />
+                  <span className="truncate">{h.label}</span>
                 </span>
-                {h.label}
-              </div>
-              <div className="mt-1 type-meta">{h.detail}</div>
-              <Chip tone="crit" className="mt-2">{h.age}</Chip>
-            </div>
-          ))}
-        </div>
-      </Section>
-    </>
+                <Chip tone="crit">{h.age}</Chip>
+              </>
+            }
+          >
+            {h.detail}
+          </RowStack>
+        ))}
+      </Rows>
+    </Section>
   );
 }
 
@@ -1044,29 +1032,34 @@ function CopyExportMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <Copy className="size-3.5" aria-hidden /> Copy or export
+        <Button variant="secondary" size="sm">
+          <Copy aria-hidden /> Copy or export
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         <DropdownMenuItem>
-          <Copy className="size-3.5" aria-hidden /> Copy (keeps provenance footer)
+          <Copy aria-hidden /> Copy (keeps provenance footer)
         </DropdownMenuItem>
         <DropdownMenuItem>
-          <ArrowUpRight className="size-3.5" aria-hidden /> Export for client (strips internal reasoning)
+          <ArrowUpRight aria-hidden /> Export for client (strips internal reasoning)
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
+/* ── the sheet body: 24 inside, rows stacked — the record's anatomy ───────── */
+function SheetBody({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn("space-y-[var(--space-6)] overflow-y-auto px-[var(--space-6)] py-[var(--space-6)]", className)}>{children}</div>;
+}
+
 /* ── resolve sheet — the same anatomy as the record's ─────────────────────── */
 
 function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { d } = useDemo();
-  /* The same anatomy as the record's, and now the same behaviour. This door had all
-     three values on screen and only one of them selectable, which is the ranking rule
-     wearing the interface that exists to refuse it. */
+  /* The same anatomy as the record's, and the same behaviour: all three values are
+     selectable, the chosen one inverts its edge (VIS-021), and the decision carries a
+     reason, because every irreversible act in this product does. */
   const [picked, setPicked] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const chosen = commissionConflict.sources.find((c) => c.id === picked);
@@ -1078,85 +1071,87 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
     setPicked(null);
     setReason("");
   };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[540px]">
+      <SheetContent side="right" className="w-[min(92vw,560px)]">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <Scale className="size-4 text-crit" aria-hidden /> {commissionConflict.field} — 3 sources
-          </SheetTitle>
+          <SheetTitle>{commissionConflict.field} — 3 sources</SheetTitle>
           <SheetDescription>{commissionConflict.headline}</SheetDescription>
         </SheetHeader>
-        <div className="space-y-3 px-4 pb-5">
-          {commissionConflict.sources.map((src) => (
-            <div
-              key={src.id}
-              className={cn("rounded-lg border p-4", src.id === picked ? "border-primary/50 bg-primary-soft/40" : "border-border")}
-            >
-              <div className="flex flex-wrap items-start gap-3">
-                <div className="min-w-0">
-                  <div className="type-data-strong">{src.label}</div>
-                  <div className="type-meta">{src.detail} · {src.when}</div>
-                </div>
-                <span className="ml-auto type-data-strong tnum">{src.value}</span>
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-3">
-                <span className="type-data-strong">{src.status}</span>
-                <ConfidenceMeter agree={src.agree} total={src.total} />
-                <Button
-                  size="sm"
-                  variant={picked === src.id ? "default" : "outline"}
-                  className="ml-auto"
+        <SheetBody className="space-y-[var(--space-4)]">
+          <div role="radiogroup" aria-label="Sources" className="space-y-[var(--space-2)]">
+            {commissionConflict.sources.map((src) => {
+              const on = picked === src.id;
+              return (
+                <button
+                  key={src.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
                   onClick={() => setPicked(src.id)}
+                  className={cn(
+                    "pressable block w-full cursor-pointer rounded-lg border p-[var(--space-4)] text-left",
+                    on ? "border-selected bg-sunken" : "border-hairline hover:border-stroke-hover",
+                  )}
                 >
-                  {picked === src.id ? "Selected" : "Keep this value"}
-                </Button>
-              </div>
-            </div>
-          ))}
-
-          <div className="rounded-lg border border-border bg-subtle p-4">
-            <div className="type-code uppercase tracking-widest text-muted-foreground">
-              Where this value goes
-            </div>
-            <p className="mt-2 type-meta">
-              The value you keep is what the directory shows, what a quote uses, and what the chat
-              answers with.
-            </p>
-            <dl className="mt-2 space-y-1 type-data">
-              {commissionConflict.impact.map((row) => (
-                <div key={row.surface} className="flex items-baseline justify-between gap-3">
-                  <dt className="text-muted-foreground">{row.surface}</dt>
-                  <dd className="type-data-strong tnum">{chosen ? chosen.value : row.value}</dd>
-                </div>
-              ))}
-            </dl>
+                  <div className="flex flex-wrap items-start gap-[var(--space-3)]">
+                    <div className="min-w-0">
+                      <div className="type-data-strong">{src.label}</div>
+                      <div className="type-meta">{src.detail} · {src.when}</div>
+                    </div>
+                    <span className="ml-auto type-figure">{src.value}</span>
+                  </div>
+                  <div className="mt-[var(--space-2)] flex flex-wrap items-center gap-[var(--space-3)]">
+                    <span className="type-data-strong">{src.status}</span>
+                    <ConfidenceMeter agree={src.agree} total={src.total} />
+                    {on && <Chip tone="primary" className="ml-auto">Selected</Chip>}
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
           {/* The reason, required, and shown only once a value is chosen — so the sheet
               asks for a justification of a decision, not of an empty form. */}
-          {picked && (
-            <div className="rounded-lg border border-border p-4">
-              <span className="type-data-strong">Why this value</span>
-              <p className="mt-1 type-meta">Stored with the decision, so the next person sees what was kept and why.</p>
+          {chosen && (
+            <div className="border-t border-hairline pt-[var(--space-4)]">
+              <Label htmlFor="ask-resolve-reason">
+                Why {chosen.value}? <span className="text-label-secondary">(required)</span>
+              </Label>
+              <p className="mt-1 type-meta">
+                Stored with the decision, so the next person sees what was kept and why.
+              </p>
               <Textarea
-                className="mt-2"
+                id="ask-resolve-reason"
                 rows={2}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Signed terms supersede the rate feed; confirmed with the rep firm."
+                className="mt-[var(--space-3)]"
               />
-              <Button size="sm" className="mt-3" disabled={!reason.trim()} onClick={commit}>
-                Store {chosen?.value} at the agency layer
+              <Button className="mt-[var(--space-4)]" disabled={!reason.trim()} onClick={commit}>
+                Store {chosen.value} at the agency layer
               </Button>
             </div>
           )}
+
+          <div className="border-t border-hairline pt-[var(--space-4)]">
+            <div className="type-micro-caps text-label-tertiary">Where this value goes</div>
+            <p className="mt-1 type-data-read text-label-secondary">
+              The value you keep is what the directory shows, what a quote uses, and what the chat
+              answers with.
+            </p>
+            <DataList className="mt-[var(--space-2)]" rows={commissionConflict.impact.map((row) => ({
+              label: row.surface, value: <span className="type-data-strong tnum">{chosen ? chosen.value : row.value}</span>,
+            }))} />
+          </div>
 
           <p className="type-meta">
             The kept value is stored at the agency layer, attributed to {people.advisor} and dated
             today. Both other sources stay reachable.
           </p>
-        </div>
+        </SheetBody>
       </SheetContent>
     </Sheet>
   );

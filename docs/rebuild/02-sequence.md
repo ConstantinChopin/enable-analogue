@@ -1,6 +1,6 @@
 # The sequence — craft, then UX, then the narrative
 
-**Status:** working plan · **Date:** 2026-09-10 · **Supersedes** the gate order in `00-plan-revised.md` §3. Everything else in that document stands: the five tests, the eight-line decision form, the harness extensions, the assumptions.
+**Status:** working plan · **Date:** 2026-09-10 · **Progress 2026-09-10:** Pass 1.0–1.4 done (constitution, tokens, primitives, harness extensions, `/system` board); 1.5 in progress — record and briefing recomposed, the remaining fifteen surfaces underway · **Supersedes** the gate order in `00-plan-revised.md` §3. Everything else in that document stands: the five tests, the eight-line decision form, the harness extensions, the assumptions.
 
 **Source:** `01-feedback-deel.md`. The case study's context, problem framing, research and briefing were judged clear and strong. They are kept as they are. Three things failed: design decisions were not mapped to the problems framed; craft details were below the bar; and the decisions read as offloaded to the tool rather than owned. The sequence below takes them in the order that makes each one's output the input of the next.
 

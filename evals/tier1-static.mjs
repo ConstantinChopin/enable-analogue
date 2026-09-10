@@ -78,6 +78,7 @@ for (const f of files) {
 const SEMANTIC = /\b(bg|text|border)-(ok|warn|crit)\b/;
 for (const f of files) {
   if (!f.rel.startsWith("src/app/") || f.rel.endsWith(".css")) continue;
+  if (f.rel.endsWith("app/system/page.tsx")) continue; // the state matrix shows the tokens by name
   for (const { line, n } of codeLines(f.text)) {
     if (SEMANTIC.test(line)) {
       add("semantic-colour-at-call-site", f.rel, n, line.trim().slice(0, 88),
@@ -90,13 +91,20 @@ for (const f of files) {
    4·8·12·16·24·32. There is no 5th or 7th stop. `var(--space-5)` resolves to nothing
    and computes to 0 in silence, which is how a rule meant to sit 20px clear of a
    heading ended up pressed flat against it. */
-const SPACE_STOPS = new Set(["1", "2", "3", "4", "6", "8"]);
+const SPACE_STOPS = new Set(["0", "1", "2", "3", "4", "6", "8"]);
+const GAP_STOPS = new Set(["1", "2", "3", "4", "5", "6"]);
 for (const f of files) {
   for (const { line, n } of codeLines(f.text)) {
     for (const m of line.matchAll(/--space-(\d+)/g)) {
       if (!SPACE_STOPS.has(m[1])) {
         add("undefined-token", f.rel, n, `var(--space-${m[1]})`,
-          "not a stop on the scale (4·8·12·16·24·32) — resolves to nothing and computes to 0");
+          "not a stop on the inside ladder (2·4·8·12·16·24·32) — resolves to nothing and computes to 0");
+      }
+    }
+    for (const m of line.matchAll(/--gap-(d+)/g)) {
+      if (!GAP_STOPS.has(m[1])) {
+        add("undefined-token", f.rel, n, `var(--gap-${m[1]})`,
+          "not a stop on the between ladder (16·24·32·40·48·64) — resolves to nothing and computes to 0");
       }
     }
   }
@@ -153,7 +161,7 @@ const RAW_VALUE = /\brounded(-[trbl]{1,2})?-\[|\bshadow-\[|#[0-9a-fA-F]{3,8}\b|\
 for (const f of files) {
   if (f.rel.endsWith(".css") || f.rel.endsWith("components/layouts.tsx")) continue; // PropertyImage draws generated plates in hsl()
   for (const { line, n } of codeLines(f.text)) {
-    if (RAW_VALUE.test(line)) {
+    if (RAW_VALUE.test(line) && !/rounded-\[inherit\]/.test(line) && !/shadow-\[inset[^\]]*var\(--sys-/.test(line)) {
       add("raw-value", f.rel, n, line.trim().slice(0, 88),
         "radius, shadow and colour come from the scale, never an arbitrary value");
     }

@@ -1,17 +1,30 @@
 "use client";
 /**
- * Publish queue and sharing defaults — the agency lead's governance surface.
- * The Document archetype (§7): main column plus a context rail.
+ * Publish queue and sharing defaults — the agency lead's governance surface,
+ * recomposed as a document. Every kind of record arrives closed; opening one is an
+ * act somebody performs, and the log records it.
+ *
+ * Chapters, in order: Publish queue (what arrived, one row each) · Sharing defaults
+ * (what each kind of record is when it arrives) · Admin access to personal records
+ * (the break-glass log) · Who this applies to (the governed counts, quiet).
+ *
+ * The one primary — the queued item's own action, "Publish agency-wide (owner
+ * preserved)" — sits at the bottom of the tool that follows (Queue), pointed at the
+ * next item that can be published. Contract: publish a queued item. The row keeps a
+ * secondary "Publish" so the act is reachable where the item is read. "Review source"
+ * is the disclosure pattern: a secondary on the row opening the mail in a sheet.
+ * Publication state is carried by Chip only.
  */
 import React, { useState } from "react";
 import { people, publishQueue, adminPolicy, type PublishSource } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
-import { Chip, Section, NarrationNote, ConfirmBanner } from "@/components/bits";
+import {
+  Chip, Section, NarrationNote, ConfirmBanner, Rows, Row, RowStack, DataList, StatusDot,
+} from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
 } from "@/components/ui/sheet";
-import { Inbox, Mail, ShieldAlert, SlidersHorizontal } from "lucide-react";
 
 export default function AdminPublish() {
   const [published, setPublished] = useState<Record<string, boolean>>({});
@@ -20,236 +33,214 @@ export default function AdminPublish() {
   const [source, setSource] = useState<PublishSource | null>(null);
 
   const pending = publishQueue.filter((q) => !published[q.id]).length;
+  const releasedCount = publishQueue.length - pending;
+  const next = publishQueue.find((q) => !published[q.id] && q.action.startsWith("Publish"));
+
+  const publish = (id: string) => {
+    setPublished((m) => ({ ...m, [id]: true }));
+    setBanner(true);
+  };
 
   return (
     <Page width="wide">
-      <PageHeader
-        title={
-          <>
-            Publish queue and sharing defaults
-            <Chip tone="neutral">workspace policy</Chip>
-          </>
-        }
-      >
-        <p className="mt-2 max-w-[62ch] type-data text-muted-foreground">
-          Every kind of record arrives closed. Opening one is an act somebody performs, and the log
-          records it.
+      <PageHeader title="Publish queue and sharing defaults">
+        <p className="mt-[var(--space-2)] max-w-[62ch] type-data-read text-label-secondary">
+          Every kind of record arrives closed. Opening one is an act somebody performs, and the
+          log records it.
         </p>
       </PageHeader>
 
       <div className="doc-layout">
-        {/* ── Main column ── */}
-        <div className="min-w-0 space-y-4">
-          {banner && <ConfirmBanner show>Published agency-wide — owner preserved.</ConfirmBanner>}
-
-          <Section
-            variant="list"
-            title={
-              <span className="inline-flex items-center gap-2">
-                <Inbox className="size-3.5 text-muted-foreground" aria-hidden /> Publish queue
-              </span>
-            }
-            chips={
-              <Chip tone={pending > 0 ? "primary" : "ok"}>
-                <span className="tnum">{pending}</span> pending
-              </Chip>
-            }
-            footer={
-              <span className="type-meta">
-                An advisor&rsquo;s notice reaches the agency layer only through this review.
-                Publication keeps the original owner on the record.
-              </span>
-            }
-          >
-            <ul className="divide-y divide-border">
-              {publishQueue.map((q) => (
-                <li key={q.id} className="row-grid px-4">
-                  <span className="row-primary type-data">{q.text}</span>
-                  <span className="row-trailing">
-                    {published[q.id] ? (
-                      <Chip tone="ok">published · owner preserved</Chip>
-                    ) : q.action.startsWith("Publish") ? (
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setPublished((m) => ({ ...m, [q.id]: true }));
-                          setBanner(true);
-                        }}
-                      >
-                        {q.action}
-                      </Button>
-                    ) : q.source ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSource(q.source ?? null)}
-                      >
-                        {q.action}
-                      </Button>
-                    ) : null}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Section>
-
-          <Section
-            variant="list"
-            title={
-              <span className="inline-flex items-center gap-2">
-                <SlidersHorizontal className="size-3.5 text-muted-foreground" aria-hidden /> Default
-                visibility
-              </span>
-            }
-            chips={
-              <Chip tone="neutral">
-                <span className="tnum">{adminPolicy.defaults.length}</span> record kinds
-              </Chip>
-            }
-          >
-            <ul className="divide-y divide-border">
-              {adminPolicy.defaults.map((row) => (
-                <li key={row.kind} className="row-grid px-4">
-                  <span className="row-primary">
-                    <span className="block truncate type-data-strong">{row.kind}</span>
-                    <span className="block truncate type-meta">{row.detail}</span>
-                  </span>
-                  <span className="row-trailing rounded-lg border border-border bg-muted px-3 py-1 type-data">
-                    {row.value}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Section>
-
-          <Section
-            variant="list"
-            title={
-              <span className="inline-flex items-center gap-2">
-                <ShieldAlert className="size-3.5 text-muted-foreground" aria-hidden /> Admin access to
-                personal records
-              </span>
-            }
-            chips={<Chip tone="neutral">per agency policy</Chip>}
-          >
-            <p className="border-b border-border px-4 py-3 type-meta">
-              Every admin access is logged with a reason and a time limit, and the owner can be
-              notified.
-            </p>
-            <ul className="divide-y divide-border">
-              {adminPolicy.breakGlass.map((row) => (
-                <li key={row.when} className="row-grid px-4">
-                  {/* The amber dot is gone. Every row in this log carried one, so it
-                      distinguished nothing — and being unlabelled it made a colour claim
-                      it never explained. It also pushed every row title 20px right of
-                      the paragraph above, giving the card two left edges for the sake of
-                      a mark that said nothing. The rows say what happened. */}
-                  <span className="row-primary flex items-start gap-3">
-                    <span className="min-w-0">
-                      <span className="block truncate type-data-strong">
-                        {row.actor} {row.action}
-                      </span>
-                      <span className="block truncate type-meta">
-                        reason: {row.reason}
-                        {"expiry" in row && row.expiry
-                          ? ` · ${row.expiry}`
-                          : "note" in row && row.note
-                            ? ` · ${row.note}`
-                            : ""}
-                      </span>
-                    </span>
-                  </span>
-                  <span className="row-trailing tnum type-meta">{row.when}</span>
-                </li>
-              ))}
-            </ul>
-          </Section>
-        </div>
-
-        {/* ── Context rail ── */}
-        <div className="space-y-4">
-          <Section variant="list" title="Who this applies to">
-            <ul className="divide-y divide-border">
-              <li className="row-grid px-4">
-                <span className="row-primary type-data">Advisors</span>
-                <span className="row-trailing tnum type-meta">{adminPolicy.governed.advisors}</span>
-              </li>
-              <li className="row-grid px-4">
-                <span className="row-primary type-data">Admins</span>
-                <span className="row-trailing tnum type-meta">{adminPolicy.governed.admins}</span>
-              </li>
-              <li className="row-grid px-4">
-                <span className="row-primary type-data">Desks</span>
-                <span className="row-trailing tnum type-meta">{adminPolicy.governed.desks}</span>
-              </li>
-              <li className="row-grid px-4">
-                <span className="row-primary type-data-strong">Records governed</span>
-                <span className="row-trailing tnum type-data-strong">
-                  {adminPolicy.governed.records.toLocaleString("en-GB")}
-                </span>
-              </li>
-            </ul>
-          </Section>
-
+        {/* ── the body: chapters at column width ── */}
+        <div className="min-w-0">
           <NarrationNote>
             Why defaults, not exceptions: a permission model that depends on people remembering to
             close something will leak.
           </NarrationNote>
 
-          <Section title="Last change">
-            <p className="flex items-center gap-2 type-data">
-              <span className="size-2 rounded-full bg-ok" aria-hidden /> Policy saved
+          <div className="space-y-[var(--space-2)] pb-[var(--gap-2)] empty:hidden">
+            <ConfirmBanner show={banner}>Published agency-wide — owner preserved.</ConfirmBanner>
+          </div>
+
+          <Section
+            title="Publish queue"
+            chips={<Chip tone="neutral"><span className="tnum">{pending}</span> waiting</Chip>}
+            footer={
+              <p className="type-meta">
+                A submission reaches the agency layer only through this review. Publication keeps
+                the original owner on the record.
+              </p>
+            }
+          >
+            <Rows>
+              {publishQueue.map((q) => {
+                const done = !!published[q.id];
+                return (
+                  <RowStack
+                    key={q.id}
+                    head={
+                      <>
+                        <span className="row-primary type-data-strong">{q.text}</span>
+                        <span className="flex shrink-0 items-center gap-[var(--space-2)]">
+                          {done ? (
+                            <Chip tone="ok">published · owner preserved</Chip>
+                          ) : q.action.startsWith("Publish") ? (
+                            <>
+                              <Chip tone="neutral">queued</Chip>
+                              <Button variant="secondary" size="sm" onClick={() => publish(q.id)}>Publish</Button>
+                            </>
+                          ) : q.source ? (
+                            <>
+                              <Chip tone="neutral">needs reading</Chip>
+                              <Button variant="secondary" size="sm" onClick={() => setSource(q.source ?? null)}>
+                                {q.action}
+                              </Button>
+                            </>
+                          ) : null}
+                        </span>
+                      </>
+                    }
+                  >
+                    {done
+                      ? `Published by ${people.lead} today · agency-wide · the original owner stays on the record`
+                      : q.source
+                        ? `arrived by mail · ${q.source.received} · forwarded by ${q.source.forwardedBy} · in the vault at ${q.source.access} scope`
+                        : "team scope today · publishing lifts it to the agency layer with its owner"}
+                  </RowStack>
+                );
+              })}
+            </Rows>
+          </Section>
+
+          <Section
+            title="Sharing defaults"
+            deep
+            chips={<Chip tone="neutral"><span className="tnum">{adminPolicy.defaults.length}</span> record kinds</Chip>}
+          >
+            <p className="-mt-[var(--space-2)] mb-[var(--space-2)] type-data-read text-label-secondary">
+              What each kind of record is the moment it arrives. Widening any of it is a separate
+              act, by a named person, on the record.
             </p>
-            <p className="mt-1 type-meta">{people.leadShort} · 09:12 today</p>
+            <Rows>
+              {adminPolicy.defaults.map((row) => (
+                <RowStack
+                  key={row.kind}
+                  head={
+                    <>
+                      <span className="row-primary type-data-strong">{row.kind}</span>
+                      <span className="text-label-secondary">{row.value}</span>
+                    </>
+                  }
+                >
+                  {row.detail}
+                </RowStack>
+              ))}
+            </Rows>
+          </Section>
+
+          <Section title="Admin access to personal records" deep chips={<Chip tone="neutral">per agency policy</Chip>}>
+            <p className="-mt-[var(--space-2)] mb-[var(--space-2)] type-data-read text-label-secondary">
+              Every admin access is logged with a reason and a time limit, and the owner can be
+              notified.
+            </p>
+            <Rows>
+              {adminPolicy.breakGlass.map((row) => (
+                <RowStack
+                  key={row.when}
+                  head={
+                    <>
+                      <span className="row-primary type-data-strong">{row.actor} {row.action}</span>
+                      <span className="type-meta tnum">{row.when}</span>
+                    </>
+                  }
+                >
+                  reason: {row.reason}
+                  {"expiry" in row && row.expiry ? ` · ${row.expiry}` : "note" in row && row.note ? ` · ${row.note}` : ""}
+                </RowStack>
+              ))}
+            </Rows>
+          </Section>
+
+          <Section title="Who this applies to" quiet deep>
+            <DataList
+              className="max-w-md"
+              rows={[
+                { label: "Advisors", value: <span className="tnum">{adminPolicy.governed.advisors}</span> },
+                { label: "Admins", value: <span className="tnum">{adminPolicy.governed.admins}</span> },
+                { label: "Desks", value: <span className="tnum">{adminPolicy.governed.desks}</span> },
+                { label: "Records governed", value: <span className="type-data-strong tnum">{adminPolicy.governed.records.toLocaleString("en-GB")}</span> },
+              ]}
+            />
+            <p className="mt-[var(--space-3)] type-meta">
+              <StatusDot tone="ok">Policy saved · {people.leadShort} · 09:12 today</StatusDot>
+            </p>
           </Section>
         </div>
+
+        {/* ── the tool that follows: the queue's count, and the one action ── */}
+        <aside className="doc-rail" data-rail-label="Queue">
+          <Section variant="tool" follows title="Queue">
+            <Rows>
+              <Row>
+                <span className="row-primary">Waiting</span>
+                <span className="row-trailing"><Chip tone="neutral" className="tnum">{pending}</Chip></span>
+              </Row>
+              <Row>
+                <span className="row-primary">Published today</span>
+                <span className="row-trailing">
+                  {releasedCount > 0
+                    ? <Chip tone="ok" className="tnum">{releasedCount}</Chip>
+                    : <span className="tnum text-label-secondary">0</span>}
+                </span>
+              </Row>
+            </Rows>
+            <div className="mt-[var(--space-4)]">
+              {next ? (
+                <>
+                  <p className="mb-[var(--space-2)] type-meta">Next: {next.text}</p>
+                  <Button className="w-full" onClick={() => publish(next.id)}>{next.action}</Button>
+                  <p className="mt-[var(--space-2)] text-center type-meta">Attributed to {people.lead}, today. The owner stays on the record.</p>
+                </>
+              ) : (
+                <p className="type-data-read text-label-secondary">
+                  Nothing waits to be published. What arrived by mail is read before it is released.
+                </p>
+              )}
+            </div>
+          </Section>
+        </aside>
       </div>
 
       {/* Review source — the forwarded mail, as it arrived */}
       <Sheet open={source !== null} onOpenChange={(o) => { if (!o) setSource(null); }}>
-        <SheetContent side="right" className="sm:max-w-md">
+        <SheetContent side="right">
           <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <Mail className="size-3.5 text-muted-foreground" aria-hidden /> Forwarded source
-            </SheetTitle>
+            <SheetTitle>Forwarded source</SheetTitle>
             <SheetDescription>
-              {source?.subject} — read the mail before the notice reaches the agency layer.
+              {source?.subject} — read the mail before it reaches the agency layer.
             </SheetDescription>
           </SheetHeader>
           {source && (
-            <div className="px-4">
-              <dl className="divide-y divide-border">
-                <div className="row-grid">
-                  <dt className="row-primary type-data text-muted-foreground">From</dt>
-                  <dd className="row-trailing type-code">{source.from}</dd>
-                </div>
-                <div className="row-grid">
-                  <dt className="row-primary type-data text-muted-foreground">Received</dt>
-                  <dd className="row-trailing tnum type-meta">{source.received}</dd>
-                </div>
-                <div className="row-grid">
-                  <dt className="row-primary type-data text-muted-foreground">Forwarded by</dt>
-                  <dd className="row-trailing type-data">{source.forwardedBy}</dd>
-                </div>
-                <div className="row-grid">
-                  <dt className="row-primary type-data text-muted-foreground">Arrived at</dt>
-                  <dd className="row-trailing type-code">{source.via}</dd>
-                </div>
-              </dl>
-              <blockquote className="mt-4 rounded-lg border border-border bg-subtle p-4 type-data">
+            <div className="min-h-0 flex-1 space-y-[var(--space-4)] overflow-y-auto px-[var(--space-6)] py-[var(--space-6)]">
+              <DataList
+                rows={[
+                  { label: "From", value: <span className="type-code">{source.from}</span> },
+                  { label: "Received", value: <span className="tnum">{source.received}</span> },
+                  { label: "Forwarded by", value: source.forwardedBy },
+                  { label: "Arrived at", value: <span className="type-code">{source.via}</span> },
+                ]}
+              />
+              <blockquote className="rounded-lg bg-sunken px-[var(--space-4)] py-[var(--space-3)] type-prose-quote">
                 {source.body}
               </blockquote>
-              <p className="mt-4 type-meta">
-                The mail is in the vault as &ldquo;{source.doc}&rdquo;, at{" "}
-                {source.access} scope. Publishing a notice from it stays a separate act,
-                and it keeps the original owner.
+              <p className="type-meta">
+                The mail is in the vault as &ldquo;{source.doc}&rdquo;, at {source.access} scope.
+                Publishing from it stays a separate act, and it keeps the original owner.
               </p>
             </div>
           )}
-          <SheetFooter>
-            <Button variant="outline" onClick={() => setSource(null)}>
-              Close
-            </Button>
+          <SheetFooter className="sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={() => setSource(null)}>Close</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>

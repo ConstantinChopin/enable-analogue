@@ -1,131 +1,150 @@
 "use client";
 /**
- * Confirm new records — the extraction review queue. The Ledger archetype.
- * Nothing extracted becomes truth until a named person confirms it.
+ * Confirm new records — the extraction review queue, recomposed as a document
+ * (docs/rebuild/04-recomposition-brief.md). Nothing extracted becomes truth until a
+ * named person confirms it.
+ *
+ * Chapters, in order: In review (one row per candidate; the row is the link) ·
+ * Confirmed (what the queue has already closed — the floor that keeps an emptying
+ * queue from reading as a broken screen).
+ *
+ * The one primary — "Open for review" — sits at the bottom of the tool that follows
+ * (Next up), pointed at the first candidate nobody has confirmed. Contract: open a
+ * candidate for review. Every row opens its own candidate; the pill names the next.
+ * Extraction confidence is carried by Chip only: new candidate · possible duplicate ·
+ * held · confirmed.
  */
 import Link from "next/link";
 import { useDemo } from "@/lib/store";
 import { candidates, confirmedRecently } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
-import { Chip, Section, NarrationNote } from "@/components/bits";
-import { CircleDashed } from "lucide-react";
+import { Chip, Section, NarrationNote, Rows, Row, RowStack } from "@/components/bits";
+import { Button } from "@/components/ui/button";
+
+type Candidate = (typeof candidates)[number];
 
 export default function ReviewQueue() {
   const { s } = useDemo();
   const inReview = candidates.length + (s.requestFiled ? 1 : 0);
+  const isConfirmed = (c: Candidate) => c.id === "sereno" && s.candidateConfirmed;
+  const next = candidates.find((c) => !isConfirmed(c));
+
+  const stateChip = (c: Candidate) => {
+    if (isConfirmed(c)) return <Chip tone="ok">confirmed today</Chip>;
+    if (c.kind === "new") return <Chip tone="primary">new candidate</Chip>;
+    if (c.kind === "duplicate") return <Chip tone="warn">possible duplicate</Chip>;
+    return <Chip tone="crit">held · low confidence</Chip>;
+  };
 
   return (
     <Page width="wide">
-      <PageHeader
-        title={
-          <>
-            Confirm new records
-            <Chip tone="primary">
-              <span className="tnum">{inReview}</span> in review
-            </Chip>
-          </>
-        }
-      >
-        <p className="mt-2 max-w-[62ch] type-data text-muted-foreground">
-          A candidate never surfaces in answers, cards, or search until a named person confirms it.
+      <PageHeader title="Confirm new records">
+        <p className="mt-[var(--space-2)] max-w-[62ch] type-data-read text-label-secondary">
+          <span className="tnum">{inReview}</span> in review. A candidate never surfaces in
+          answers, cards or search until a named person confirms it.
         </p>
       </PageHeader>
 
-      <NarrationNote>
-        The pipeline proposes; people decide. Below the reliability bar, auto-commit destroys trust
-        faster than a missing record does.
-      </NarrationNote>
+      <div className="doc-layout">
+        <div className="min-w-0">
+          <NarrationNote>
+            The pipeline proposes; people decide. Below the reliability bar, auto-commit destroys
+            trust faster than a missing record does.
+          </NarrationNote>
 
-      <Section
-        variant="list"
-        className="mt-4"
-      >
-        <div className="row-grid px-4 type-micro uppercase tracking-widest text-muted-foreground">
-          <span className="row-primary">Candidate</span>
-          <span className="row-meta">Source</span>
-          <span className="row-trailing">State</span>
-        </div>
-        <ul>
-          {candidates.map((c) => {
-            const confirmed = c.id === "sereno" && s.candidateConfirmed;
-            return (
-              <li key={c.id} className="border-t border-border">
-                <Link
-                  href={`/admin/review/${c.id}`}
-                  className="row-grid px-4 transition-colors hover:bg-muted/40"
-                >
-                  <span className="row-primary">
-                    <span className="block truncate type-data-strong">{c.name}</span>
-                    <span className="block truncate type-code text-muted-foreground">
-                      {c.uri}
+          <Section title="In review" chips={<Chip tone="neutral"><span className="tnum">{inReview}</span> waiting</Chip>}>
+            <Rows>
+              {candidates.map((c) => (
+                <li key={c.id}>
+                  <Link
+                    href={`/admin/review/${c.id}`}
+                    className="row-grid -mx-[var(--space-2)] rounded-md px-[var(--space-2)] transition-colors duration-200 ease-standard hover:bg-interactive/60"
+                  >
+                    <span className="row-primary">
+                      <span className="block truncate type-data-strong">{c.name}</span>
+                      <span className="block truncate type-code text-label-secondary">{c.uri}</span>
                     </span>
+                    <span className="row-meta type-meta">{c.from}</span>
+                    <span className="row-trailing">{stateChip(c)}</span>
+                  </Link>
+                </li>
+              ))}
+              {s.requestFiled && (
+                <Row>
+                  <span className="row-primary">
+                    <span className="block truncate type-data-strong">Requested from directory</span>
+                    <span className="block truncate type-code text-label-secondary">advisor request · gap logged</span>
                   </span>
-                  <span className="row-meta type-meta">{c.from}</span>
-                  <span className="row-trailing">
-                    {confirmed ? (
-                      <Chip tone="ok">confirmed today</Chip>
-                    ) : c.kind === "new" ? (
-                      <Chip tone="primary">new candidate</Chip>
-                    ) : c.kind === "duplicate" ? (
-                      <Chip tone="warn">possible duplicate</Chip>
-                    ) : (
-                      <Chip tone="crit">
-                        <CircleDashed className="size-3" aria-hidden /> held: low confidence
-                      </Chip>
-                    )}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-          {s.requestFiled && (
-            <li className="row-grid border-t border-border px-4">
-              <span className="row-primary">
-                <span className="block truncate type-data-strong">Requested from directory</span>
-                <span className="block truncate type-code text-muted-foreground">
-                  advisor request · gap logged
-                </span>
-              </span>
-              <span className="row-meta type-meta">advisor request</span>
-              <span className="row-trailing">
-                <Chip tone="neutral">
-                  <CircleDashed className="size-3" aria-hidden /> awaiting extraction
-                </Chip>
-              </span>
-            </li>
-          )}
-        </ul>
-      </Section>
+                  <span className="row-meta type-meta">advisor request</span>
+                  <span className="row-trailing"><Chip tone="neutral">awaiting extraction</Chip></span>
+                </Row>
+              )}
+            </Rows>
+          </Section>
 
-      {/* The two essays that used to sit here — scope inheritance, bulk seeding — are
-          gone. One described a feature that does not exist, and both explained the
-          queue to someone already looking at it. Scope inheritance is demonstrated on
-          the candidate itself, where a private source produces a private record.
+          {/* What the queue has already cleared. An empty queue is the state this surface
+              is built to reach, and it has to look like a finished morning. */}
+          <Section
+            title="Confirmed"
+            deep
+            chips={<Chip tone="neutral"><span className="tnum">{confirmedRecently.length}</span> since yesterday</Chip>}
+          >
+            <Rows>
+              {confirmedRecently.map((c) => (
+                <RowStack
+                  key={c.id}
+                  head={
+                    <>
+                      <span className="row-primary flex min-w-0 flex-wrap items-baseline gap-x-[var(--space-3)]">
+                        <span className="type-data-strong">{c.name}</span>
+                        <span className="truncate type-code text-label-secondary">{c.uri}</span>
+                      </span>
+                      <span className="type-meta tnum">{c.by} · {c.when}</span>
+                    </>
+                  }
+                >
+                  {c.note}
+                </RowStack>
+              ))}
+            </Rows>
+          </Section>
+        </div>
 
-          What sits here instead is what the queue has already cleared: three rows above
-          an empty half-page read as a broken screen, and an empty queue is the state
-          this surface is built to reach. */}
-      <Section
-        variant="list"
-        className="mt-4"
-        title="Confirmed"
-        chips={<Chip tone="neutral"><span className="tnum">{confirmedRecently.length}</span> in the last two days</Chip>}
-      >
-        <ul>
-          {confirmedRecently.map((c, i) => (
-            <li key={c.id} className={i > 0 ? "border-t border-border" : undefined}>
-              <div className="px-4 py-3">
-                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <span className="type-data-strong">{c.name}</span>
-                  <span className="type-code text-muted-foreground">{c.uri}</span>
-                  <span className="ml-auto type-meta">{c.by} · {c.when}</span>
+        {/* The tool that follows: the next candidate, and the one action. */}
+        <aside className="doc-rail" data-rail-label="Next up">
+          <Section variant="tool" follows title="Next up">
+            {next ? (
+              <>
+                <Rows>
+                  <Row>
+                    <span className="row-primary">
+                      <span className="block truncate type-data-strong">{next.name}</span>
+                      <span className="block truncate type-meta">{next.from}</span>
+                    </span>
+                    <span className="row-trailing">{stateChip(next)}</span>
+                  </Row>
+                  {next.fields.length > 0 && (
+                    <Row>
+                      <span className="row-primary text-label-secondary">Fields extracted</span>
+                      <span className="row-trailing tnum">{next.fields.length}</span>
+                    </Row>
+                  )}
+                </Rows>
+                <div className="mt-[var(--space-4)]">
+                  <Button asChild className="w-full">
+                    <Link href={`/admin/review/${next.id}`}>Open for review</Link>
+                  </Button>
+                  <p className="mt-[var(--space-2)] text-center type-meta">
+                    Confirmed field by field, stamped with your name and the date.
+                  </p>
                 </div>
-                <p className="mt-1 type-meta">{c.note}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </Section>
+              </>
+            ) : (
+              <p className="type-data-read text-label-secondary">Nothing is waiting on you.</p>
+            )}
+          </Section>
+        </aside>
+      </div>
     </Page>
   );
 }

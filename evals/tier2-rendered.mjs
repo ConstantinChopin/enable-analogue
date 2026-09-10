@@ -159,8 +159,9 @@ async function probe(page, semantic) {
       if (!parent) continue;
       const sib = [...parent.children].find((c) => c !== el && vis(c) && c.tagName === el.tagName && !c.matches(SEL));
       if (!sib) continue;
-      const a = getComputedStyle(el), b = getComputedStyle(sib);
-      const differs = ["backgroundColor", "borderBottomWidth", "borderLeftWidth", "boxShadow", "fontWeight", "textDecorationLine", "borderColor"].some((k) => a[k] !== b[k]);
+      const KEYS = ["backgroundColor", "borderBottomWidth", "borderLeftWidth", "boxShadow", "fontWeight", "textDecorationLine", "borderColor"];
+      const pairDiffers = (x, y) => { if (!x || !y) return false; const a = getComputedStyle(x), b = getComputedStyle(y); return KEYS.some((k) => a[k] !== b[k]); };
+      const differs = pairDiffers(el, sib) || pairDiffers(el.firstElementChild, sib.firstElementChild);
       if (!differs) selectedWeak.push((el.textContent || el.getAttribute("aria-label") || "").trim().slice(0, 40));
     }
 

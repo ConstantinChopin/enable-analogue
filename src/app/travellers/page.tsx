@@ -1,8 +1,22 @@
 "use client";
 /**
- * Travellers — the Catalogue archetype (§7), with people instead of products.
+ * Travellers — recomposed as search results, with people instead of products
+ * (docs/rebuild/04-recomposition-brief.md; anatomy/surfaces/search-results.md).
  *
- * Grid is the default; the table is the alternate view. One right panel feeds both.
+ * A list of entity cards with no container: the person's initials as the plate,
+ * then a caption whose hierarchy is weight and colour only. The sharing state
+ * leads the caption, because it is the one taxonomy this surface is allowed
+ * (contract: "sharing state"). The table is the alternate view, on the ledger.
+ *
+ * Chapters, in order: the count line · the list (grid or table). Beside it, the
+ * inspector: identity, the one primary, then the profile's figures and its
+ * sharing state.
+ *
+ * The one primary: "Open full profile" (contract: open a traveller). It sits at
+ * the top of the inspector, the tool that follows the selection; with nothing
+ * selected the page has no filled button. "Request access from the owner" on the
+ * colleague's empty page is a secondary — it records a request, it grants nothing.
+ *
  * The colleague's view is the scope-isolation proof: an unshared profile is absent
  * from the list, never a locked row.
  */
@@ -12,8 +26,9 @@ import { cn } from "@/lib/utils";
 import { useDemo } from "@/lib/store";
 import { travellerCards, traveller, people, type TravellerCard } from "@/data/seed";
 import { PageHeader, SplitPage, ViewToggle } from "@/components/layouts";
-import { Absent, Chip, DataList, EmptyState, Section, NarrationNote, ConfirmBanner } from "@/components/bits";
+import { Absent, Chip, DataList, EmptyState, NarrationNote, ConfirmBanner } from "@/components/bits";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowRight, Lock, Share2, Users } from "lucide-react";
 
 /* ── initials: first token, last token ──────────────────────────────────────── */
@@ -29,14 +44,31 @@ type ShareState = "private" | "full" | "basic";
 
 function ShareChip({ state, who }: { state: ShareState; who: string | null }) {
   if (state === "private") {
-    return <Chip tone="neutral"><Lock className="size-3" aria-hidden /> private to you</Chip>;
+    return <Chip tone="neutral"><Lock className="size-[var(--icon-sm)]" aria-hidden /> private to you</Chip>;
   }
   return (
     <Chip tone="primary">
-      <Share2 className="size-3" aria-hidden />
+      <Share2 className="size-[var(--icon-sm)]" aria-hidden />
       {state === "full" ? "Collaborator Full" : "Collaborator Basic"}
       {who ? ` · ${who}` : ""}
     </Chip>
+  );
+}
+
+/* ── the identity plate: initials on sunken paper; inverse when selected ────── */
+function Initials({ name, size = "md", selected }: { name: string; size?: "sm" | "md" | "lg"; selected?: boolean }) {
+  const dims = { sm: "size-8 type-micro", md: "size-12 type-data-strong", lg: "size-16 type-figure" }[size];
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "grid shrink-0 place-items-center rounded-full",
+        dims,
+        selected ? "bg-selected text-on-selected" : "bg-sunken text-label",
+      )}
+    >
+      {initialsOf(name)}
+    </span>
   );
 }
 
@@ -81,7 +113,7 @@ export default function TravellersPage() {
         }
         actions={rows.length > 0 ? <ViewToggle value={view} onChange={setView} /> : undefined}
       >
-        <p className="mt-2 max-w-[62ch] type-data text-muted-foreground">
+        <p className="mt-[var(--space-2)] max-w-[62ch] type-data-read text-label-secondary">
           A profile is private to its owning advisor until it is shared. Sharing is explicit,
           attributed, and revocable.
         </p>
@@ -112,11 +144,10 @@ export default function TravellersPage() {
       }
     >
       {rows.length === 0 ? (
-        <div className="mt-4 space-y-4">
-          {/* It claimed the request "appears on their briefing"; nothing appeared on any
-              briefing. The confirmation now says only what is true — the request is
-              recorded and waiting on a person — which is also the honest product
-              behaviour: access arrives when the owner grants it, not on a timer. */}
+        <div className="mt-[var(--space-4)] space-y-[var(--space-4)]">
+          {/* The confirmation says only what is true — the request is recorded and
+              waiting on a person. Access arrives when the owner grants it, not on
+              a timer. */}
           {requested && (
             <ConfirmBanner show>
               Request recorded for {people.advisor} · today. Access arrives only if they share;
@@ -129,7 +160,7 @@ export default function TravellersPage() {
             body="Traveller profiles are private to their owning advisor by default. What is not shared is absent, not locked — there is nothing here to unlock."
             action={
               !requested && (
-                <Button variant="outline" size="sm" onClick={() => setRequested(true)}>
+                <Button variant="secondary" size="sm" onClick={() => setRequested(true)}>
                   Request access from the owner
                 </Button>
               )
@@ -137,75 +168,84 @@ export default function TravellersPage() {
           />
         </div>
       ) : (
-            <div className="min-w-0">
-              <p className="mt-3 type-meta">
-                <span className="tnum">{rows.length}</span>{" "}
-                {rows.length === 1 ? "traveller" : "travellers"}
-                {basic && " · name and contact only at Collaborator Basic"}
-              </p>
+        <div className="min-w-0">
+          <p className="mt-[var(--space-3)] type-meta">
+            <span className="tnum">{rows.length}</span>{" "}
+            {rows.length === 1 ? "traveller" : "travellers"}
+            {basic && " · name and contact only at Collaborator Basic"}
+          </p>
 
-              {view === "grid" ? (
-                <ul className="mt-4 grid grid-cols-1 gap-[var(--space-6)] sm:grid-cols-2 xl:grid-cols-3">
-                  {rows.map((c) => (
-                    /* h-full on the row too, or a card whose title wraps grows past its
-                       neighbours when the inspector narrows the column. */
-                    <li key={c.id} className="h-full">
-                      <TravellerCardTile
-                        c={c}
-                        basic={basic}
-                        share={shareStateFor(c)}
-                        sharedWith={sharedWithFor(c)}
-                        selected={selected === c.id}
-                        onSelect={() => setSelected(c.id)}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <Section variant="list" className="mt-4">
-                  <ul>
-                  {rows.map((c, i) => (
-                    <li key={c.id} className={cn(i > 0 && "border-t border-border")}>
-                      <button
-                        type="button"
+          {view === "grid" ? (
+            <ul className="mt-[var(--gap-2)] grid grid-cols-1 gap-x-[var(--gap-2)] gap-y-[var(--gap-4)] sm:grid-cols-2 xl:grid-cols-3">
+              {rows.map((c) => (
+                <li key={c.id}>
+                  <TravellerCardTile
+                    c={c}
+                    basic={basic}
+                    share={shareStateFor(c)}
+                    sharedWith={sharedWithFor(c)}
+                    selected={selected === c.id}
+                    onSelect={() => setSelected(c.id)}
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="mt-[var(--gap-2)]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Traveller</TableHead>
+                    <TableHead className="hidden sm:table-cell">Next trip</TableHead>
+                    <TableHead className="hidden md:table-cell">Departs</TableHead>
+                    <TableHead>Sharing</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((c) => {
+                    const on = selected === c.id;
+                    return (
+                      <TableRow
+                        key={c.id}
                         onClick={() => setSelected(c.id)}
-                        aria-pressed={selected === c.id}
-                        className={cn(
-                          "row-grid w-full cursor-pointer px-4 text-left transition-colors",
-                          selected === c.id ? "bg-muted/70" : "hover:bg-muted/40",
-                        )}
+                        aria-selected={on}
+                        data-state={on ? "selected" : undefined}
+                        className="cursor-pointer"
                       >
-                        <span className="row-primary flex items-center gap-3">
-                          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-soft type-micro text-primary">
-                            {initialsOf(c.name)}
-                          </span>
-                          <span className="min-w-0 truncate type-data-strong">{c.name}</span>
-                        </span>
-                        <span className="row-meta type-meta">
+                        <TableCell>
+                          <div className="flex items-center gap-[var(--space-3)]">
+                            <Initials name={c.name} size="sm" selected={on} />
+                            <span className="min-w-0">
+                              <span className={cn("block type-data-strong", on && "underline decoration-ink underline-offset-4")}>{c.name}</span>
+                              <span className="block type-meta">{c.relationshipStatus}</span>
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell text-label-secondary">
                           {basic ? "contact on file" : (c.nextTrip ?? "no trip on file")}
-                        </span>
-                        <span className="row-trailing flex items-center gap-2">
-                          {!basic && c.departsInDays !== null && (
-                            <span className="tnum type-meta">in {c.departsInDays}d</span>
-                          )}
-                          <Chip tone="neutral">{c.relationshipStatus}</Chip>
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                  </ul>
-                </Section>
-              )}
-
-              {/* The closing line is gone: it restated the header's sharing claim in the
-                  same viewport. The share chip on every card carries it instead. */}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell tnum text-label-secondary">
+                          {!basic && c.departsInDays !== null ? `in ${c.departsInDays}d` : "—"}
+                        </TableCell>
+                        <TableCell>
+                          {basic ? <Chip tone="primary">Collaborator Basic</Chip> : <ShareChip state={shareStateFor(c)} who={sharedWithFor(c)} />}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
+          )}
+        </div>
       )}
     </SplitPage>
   );
 }
 
-/* ── grid card ──────────────────────────────────────────────────────────────── */
+/* ── the listing card for a person: a plate plus a caption, no container ────────
+   The initials disc is the image; it inverts when selected, and the name keeps an
+   underline — selected differs by more than colour (VIS-021).                   */
 function TravellerCardTile({
   c, basic, share, sharedWith, selected, onSelect,
 }: {
@@ -221,95 +261,74 @@ function TravellerCardTile({
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
+      data-state={selected ? "selected" : undefined}
       /* Named. A screen reader reached six of these and announced "button" six times. */
       aria-label={`${c.name} — ${c.relationshipStatus}`}
-      className={cn(
-        "flex h-full w-full cursor-pointer flex-col gap-3 rounded-lg border bg-card p-4 text-left transition-colors",
-        selected ? "border-primary bg-muted/40" : "border-border hover:bg-muted/30",
-      )}
+      className="group flex w-full cursor-pointer items-start gap-[var(--space-4)] rounded-lg text-left"
     >
-      <span className="flex items-center gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary-soft type-micro text-primary">
-          {initialsOf(c.name)}
-        </span>
-        <span className="min-w-0">
-          <span className="block truncate type-data-strong">{c.name}</span>
-          <span className="block type-meta">{c.relationshipStatus}</span>
-        </span>
-      </span>
+      <Initials name={c.name} size="lg" selected={selected} />
 
-      {basic ? (
-        <span className="type-data text-muted-foreground">
-          Contact on file. Preferences, journeys and spend are absent at this tier — not masked.
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        <span
+          className={cn(
+            "truncate type-data-strong underline-offset-4 group-hover:underline group-hover:decoration-ink",
+            selected && "underline decoration-ink",
+          )}
+        >
+          {c.name}
         </span>
-      ) : (
-        <span className="type-data">
-          {c.nextTrip ?? "No trip on file"}
-          {c.departsInDays !== null && (
-            <span className="text-muted-foreground"> · departs in {c.departsInDays}d</span>
+        <span className="type-data text-label-secondary">{c.relationshipStatus}</span>
+
+        {basic ? (
+          <span className="type-data text-label-secondary">Contact on file</span>
+        ) : (
+          <span className="type-data text-label-secondary">
+            {c.nextTrip ?? "No trip on file"}
+            {c.departsInDays !== null && <> · departs in <span className="tnum">{c.departsInDays}</span>d</>}
+          </span>
+        )}
+
+        {/* Sharing leads the marks: it is the subject of this whole surface. */}
+        <span className="mt-[var(--space-2)] flex flex-wrap items-center gap-x-[var(--space-3)] gap-y-1">
+          {basic ? <Chip tone="primary">Collaborator Basic</Chip> : <ShareChip state={share} who={sharedWith} />}
+          {!basic && (
+            <span className="type-meta">
+              <span className="tnum">{c.preferences}</span> {c.preferences === 1 ? "preference" : "preferences"}
+              {" · "}Acuity{" "}
+              {c.acuityScore === null ? <Absent reason="not run" /> : <span className="tnum">{c.acuityScore}</span>}
+            </span>
           )}
         </span>
-      )}
-
-      {/* Sharing leads. It is the subject of this whole surface, and it sat last in a
-          row of otherwise identical pills — counts, a score and a permission state all
-          reading as the same kind of fact. It now sits first, on its own line. */}
-      <span className="mt-auto border-t border-border pt-3">
-        {basic ? (
-          <Chip tone="primary">Collaborator Basic</Chip>
-        ) : (
-          <>
-            <ShareChip state={share} who={sharedWith} />
-            <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 type-meta">
-              <span>
-                <span className="tnum">{c.profiles}</span>{" "}
-                {c.profiles === 1 ? "profile" : "profiles"}
-              </span>
-              <span>
-                <span className="tnum">{c.preferences}</span>{" "}
-                {c.preferences === 1 ? "preference" : "preferences"}
-              </span>
-              {/* Acuity was rendered only when it existed, so a card with no score
-                  looked identical to one where the score was withheld. */}
-              <span>
-                Acuity{" "}
-                {c.acuityScore === null
-                  ? <Absent reason="not run" />
-                  : <span className="tnum">{c.acuityScore}</span>}
-              </span>
-            </span>
-          </>
-        )}
       </span>
     </button>
   );
 }
 
-/* ── right panel ────────────────────────────────────────────────────────────── */
+/* ── the inspector: the tool that follows the selection ───────────────────────── */
 function TravellerPanel({
   c, basic, share, sharedWith,
 }: { c: TravellerCard; basic: boolean; share: ShareState; sharedWith: string | null }) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary-soft type-data-strong text-primary">
-          {initialsOf(c.name)}
-        </span>
+    <div className="space-y-[var(--space-6)]">
+      <div className="flex items-center gap-[var(--space-3)]">
+        <Initials name={c.name} size="md" />
         <div className="min-w-0">
           <h2 className="truncate type-section">{c.name}</h2>
           <p className="type-meta">{c.relationshipStatus}</p>
         </div>
       </div>
 
-      {/* The one thing you always want is always here, never scrolled to. */}
-      <Button asChild size="sm" className="w-full">
-        <Link href={`/travellers/${c.id}`}>
-          Open full profile <ArrowRight className="size-3.5" aria-hidden />
-        </Link>
-      </Button>
+      {/* The one primary: always here, never scrolled to. */}
+      <div>
+        <Button asChild size="sm">
+          <Link href={`/travellers/${c.id}`}>
+            Open full profile <ArrowRight aria-hidden />
+          </Link>
+        </Button>
+      </div>
 
       {basic ? (
-        <p className="type-data text-muted-foreground">
+        <p className="type-data-read text-label-secondary">
           Name and contact only at Collaborator Basic. Preferences, journeys, intelligence and spend
           fields are absent — not masked. The share is explicit, attributed, and revocable by{" "}
           {people.advisor}.
@@ -334,14 +353,16 @@ function TravellerPanel({
             ]}
           />
 
-          <div className="flex flex-wrap items-center gap-2">
-            <ShareChip state={share} who={sharedWith} />
+          <div>
+            <div className="type-micro-caps text-label-tertiary">Sharing</div>
+            <div className="mt-[var(--space-2)]">
+              <ShareChip state={share} who={sharedWith} />
+            </div>
+            <p className="mt-[var(--space-2)] type-meta">
+              {c.preferences} preferences, each attributed to a source and a date. Sharing, Acuity and
+              the full journey history live on the profile itself.
+            </p>
           </div>
-
-          <p className="type-meta">
-            {c.preferences} preferences, each attributed to a source and a date. Sharing, Acuity and
-            the full journey history live on the profile itself.
-          </p>
         </>
       )}
     </div>
