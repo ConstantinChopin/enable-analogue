@@ -24,11 +24,11 @@
 **Nav (8):** Sunrise (briefing — morning identity; House stays free for villa) · MessageCircle (ask) · LayoutGrid (records) · Route (itineraries) · Users (travellers) · Archive (knowledge) · SlidersHorizontal (settings) · Inbox (review queues)
 **Categories (9, `Category.icon`):** Bed hotel · Handshake DMC · UtensilsCrossed restaurant · Ship cruise · House villa · Compass experience · CarFront transfer · Sailboat yacht · Box other
 **Event types (5, Itinerary):** Bed · Compass · Plane/CarFront · UtensilsCrossed · StickyNote
-**Trust/state (10):** CheckCircle2 verified · Clock stale/freshness · AlertTriangle warn · OctagonAlert critical · XCircle contract-fail · CircleDashed held/unconfirmed · Scale conflict · ShieldCheck permission-clean · Sparkles AI-suggestion/Acuity · BadgeCheck attributed
+**Trust/state (10):** CheckCircle2 verified · Clock stale/freshness · AlertTriangle warn · OctagonAlert critical · XCircle contract-fail · CircleDashed held/unconfirmed · Scale conflict · ShieldCheck permission-clean · Sparkles AI-suggestion · BadgeCheck attributed
 **Provenance sources (URI schemes, data-model "Value sets"):** FileText intranet-doc · HardDrive gdrive · Mail email · Route axus/access/travify/safari_portal (external itinerary platforms share one mark) · Database tripsuite/booking · Globe portal/virtuoso · PenLine manual/keyed
 **Governance (7):** Lock private · Users2 team · Building2 agency · Share2 share · History audit · ShieldAlert break-glass · EyeOff **admin-only-note marker ONLY** — gated content renders nothing (GateMark rule); never a masked placeholder
 **Money (3):** BadgePercent commission/incentive · CircleDollarSign amount · CalendarDays windows/calendar (TrendingUp dropped — timeline states are words per DEC-22)
-**Actions/chrome (19):** Search, Command, Plus, X, Check, ChevronRight/Down, ArrowRight, ExternalLink, Copy, Filter, ArrowUpDown, MoreHorizontal, **Loader2** (button loading, Acuity Running, answer building), **Info** (Info severity mark), **Pencil** (edit field, candidate fix), **Paperclip** (attached source doc, B-EP3), **Upload** (vault upload, D-EP2); Download (export) and Columns2 (compare) exist but their flows are §6-schematic — do not build Compare because the icon exists
+**Actions/chrome (19):** Search, Command, Plus, X, Check, ChevronRight/Down, ArrowRight, ExternalLink, Copy, Filter, ArrowUpDown, MoreHorizontal, **Loader2** (button loading, answer building), **Info** (Info severity mark), **Pencil** (edit field, candidate fix), **Paperclip** (attached source doc, B-EP3), **Upload** (vault upload, D-EP2); Download (export) and Columns2 (compare) exist but their flows are §6-schematic — do not build Compare because the icon exists
 **Presenter (4):** Keyboard (rail) · Presentation (narration) · RefreshCw (reset/sync) · FlaskConical (schematic badge)
 **Integration health (3):** RefreshCw syncing · WifiOff down · KeyRound credentials
 
@@ -38,7 +38,7 @@
 |---|---|---|---|
 | Button | primary (commit only), outline, quiet, destructive; loading | plate-audit hierarchy fix | shadcn button |
 | Chip | neutral, ok, warn, crit, primary-soft; with-icon; removable (filter) | evidence states, filters | badge |
-| **StatusChip** | one per enum in `data-model.md` "Value sets" (Product, Program, LinkedProduct, Promotion, RepFirm, VIC, Itinerary, Event, Acuity, match_status, **dedup_candidates.status** pending/approved/rejected/merged, **extraction_log.status** applied/skipped_existing/needs_review) — words + color, never color alone | DEC contract | badge |
+| **StatusChip** | one per enum in `data-model.md` "Value sets" (Product, Program, LinkedProduct, Promotion, RepFirm, VIC, Itinerary, Event, match_status, **dedup_candidates.status** pending/approved/rejected/merged, **extraction_log.status** applied/skipped_existing/needs_review) — words + color, never color alone | DEC contract | badge |
 | **MoneyValue** | plain / **dual-currency** (source + workspace alongside) / conversion-dated / **held** (converted figure without source currency) — never silent conversion | A-E3, D-U7, C-U3, SIG-38 | custom |
 | **Breadcrumb** | every screen | plate-audit §1.1, wireframe | add: breadcrumb |
 | **ConfirmBanner** | transient ok-soft success feedback (sent / created / shared / confirmed / resolved / request filed) — distinct from NoticeBanner (an advisory object) | demo beats 2/3/6b/7; wireframe ×8 | custom or sonner |
@@ -91,7 +91,6 @@
 | **FilterChipBar + BulkBar** | applied filters ×-removable; N selected · add-to-list / compare / export | directory plate |
 | **TabSet** | ONE segmented style with counts (Hotels 209…) — resolves plate drift | plate-audit U6 |
 | **HealthRow** | connector · last-success · state (ok/syncing/down/credentials) | DEC-24, D |
-| **AcuityPanel** | 4-state machine: Not Run (CTA, gated) / Running / Complete (score badge + report) / Locked | DEC-36 |
 | **EmptyState / ErrorState / SyncPendingLabel** | per-surface guided empty; gap note "unreachable since…"; "last synced · up to 48h" | U5s, X-rules, SIG-36 |
 | **PersonaSwitcher / WorldToggle** | advisor **· colleague (J.D. — the second seeded account proving scope isolation)** · lead · ops / v1 Mar·v2 current | demo machinery; B-U3/E-AC/F-AC second-account proofs |
 | **CommandPalette (⌘K)** | records + travellers + ask handoff; stub-depth | A-EP2/E-EP2 |
@@ -112,7 +111,7 @@
 | **ResolutionQueue** | orphaned rows · match sheet (candidates + reason) | C-U1 |
 | **NoticeComposer / StaleReviewQueue / PublishQueue** | severity+scope+source; oldest-first confirm/close; lead review→publish | B |
 | **CandidateReview** | queue rows · candidate card (MatchSignalReadout + CandidateFieldRows + merge sheet + reject) · confirm with held-excluded summary | D |
-| **TravellerProfile** | header (departure + DepartureChecklist) · profile-type tabs · PreferenceCards · SuggestionCards · share sheet · AcuityPanel · gated financials · **trip-history rows (VIC→Itineraries cross-link)** · passport/loyalty (schematic) · request-access EmptyState CTA for the unshared case (owner sees the request as a briefing item) | F, DEC-36, F-U2/F4 |
+| **TravellerProfile** | header (departure + DepartureChecklist) · profile-type tabs · PreferenceCards · SuggestionCards · share sheet · gated financials · **trip-history rows (VIC→Itineraries cross-link)** · passport/loyalty (schematic) · request-access EmptyState CTA for the unshared case (owner sees the request as a briefing item) | F, DEC-36, F-U2/F4 |
 | **CommissionCalendar** | **schematic agenda list grouped by date** (due dates, incentive expiries, window closes) — deliberately NOT a month grid; C-EP3 deep-links from rows | C-EP3, DEC-22, build-scope decision |
 | **RepFirmQuickLook** | QuickLookRail variant: firm · regions · named contacts · represented-properties list ("all properties this firm represents in the Indian Ocean") | E-E3, DEC-26, directory Rep firms tab |
 | **VaultTable** | doc rows (source, updated, AccessChip) · rail (verified meter, doc detail, WideningHistory) | vault plate |

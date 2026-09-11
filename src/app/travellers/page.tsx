@@ -294,8 +294,8 @@ function TravellerCardTile({
           {!basic && (
             <span className="type-meta">
               <span className="tnum">{c.preferences}</span> {c.preferences === 1 ? "preference" : "preferences"}
-              {" · "}Acuity{" "}
-              {c.acuityScore === null ? <Absent reason="not run" /> : <span className="tnum">{c.acuityScore}</span>}
+              {" · "}
+              <span className="tnum">{c.profiles}</span> {c.profiles === 1 ? "travel profile" : "travel profiles"}
             </span>
           )}
         </span>
@@ -345,11 +345,6 @@ function TravellerPanel({
               },
               { label: "Travel profiles", value: <span className="tnum">{c.profiles}</span> },
               { label: "Preferences", value: <span className="tnum">{c.preferences}</span> },
-              {
-                label: "Acuity",
-                value: c.acuityScore === null ? null : <span className="tnum">{c.acuityScore}</span>,
-                absent: "not run",
-              },
             ]}
           />
 
@@ -359,7 +354,7 @@ function TravellerPanel({
               <ShareChip state={share} who={sharedWith} />
             </div>
             <p className="mt-[var(--space-2)] type-meta">
-              {c.preferences} preferences, each attributed to a source and a date. Sharing, Acuity and
+              {c.preferences} preferences, each attributed to a source and a date. Sharing and
               the full journey history live on the profile itself.
             </p>
           </div>

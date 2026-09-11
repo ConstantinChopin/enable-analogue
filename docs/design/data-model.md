@@ -53,12 +53,11 @@ Replaces legacy contact slots. Per product, N contacts: name · role (GM/Reserva
 entity_type (product/program/destination/general) + entity link · note_text · note_category (preference/tip/warning/contact/general) · personal_rating (1–5, private) · **shared_to_agency (boolean opt-in)** · provenance.
 
 ### VIC (advisor)
-- **Sharing model (supersedes the Mar 31 all-or-nothing decision — the documented revisit trigger fired):** Owner (full rights) · **Collaborator Full** (all fields incl. sensitive, can edit + run Acuity, cannot re-share/delete) · **Collaborator Basic** (name + contact only) · team scope (union across teams) · agency directory (opt-in, admin-managed). Non-admin sharing routes through a suggestion/approval workflow. **Policy gates:** `canViewCommissions` hides spend/value fields; `canRunAcuity` locks the Acuity tab.
+- **Sharing model (supersedes the Mar 31 all-or-nothing decision — the documented revisit trigger fired):** Owner (full rights) · **Collaborator Full** (all fields incl. sensitive, can edit, cannot re-share/delete) · **Collaborator Basic** (name + contact only) · team scope (union across teams) · agency directory (opt-in, admin-managed). Non-admin sharing routes through a suggestion/approval workflow. **Policy gate:** `canViewCommissions` hides spend/value fields.
 - **Identity:** full_name (required) · preferred_name · title · 2×email, 2×phone · preferred_contact_method · company/role · nationality · DOB + address (encrypted) · city/country/timezone/languages · avatar
 - **Relationship:** agency/assigned_advisor/secondary_advisor · client_since · referral_source/referred_by_vic · relationship_status (Prospect/Recurring/Referred/Active/Inactive) · tags/context notes · activity_timeline
 - **Preferences: 7 profile types** (Business/Leisure/Romantic/Adventure/Wellness/Cultural/Celebration), each with 6 blocks (Accommodation, Dining, Activities, Travel style, Destinations, Occasions) + **ai_confidence per preference (0–1)** + is_primary flag
 - **Documents:** passport (encrypted, masked) + expiry alerts · KTN · loyalty_programs[] · secure IDs
-- **Acuity:** status (Not Run/Running/Complete/Locked) · last_run · profile (markdown) · score (0–100 badge)
 - **Links:** linked_product_ids[] · linked_itinerary_ids[] · linked_documents[] · linked_conversations[]
 
 ### Itinerary (advisor)

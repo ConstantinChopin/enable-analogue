@@ -28,7 +28,7 @@ Two demo accounts remain: **R. Devane** (agency user, Paris desk) and **M. Kelle
 | Notifications | `/notifications` | ● | ● | ingestion, connection and publish tags exist only for her |
 | Ask | `/ask` | ● | ● | answers may cite the agency layer's held candidates as "in review" (visible to the owner, invisible to the user, Journey D E1) |
 | Records | `/records` | ● | ● | none |
-| Record | `/records/[id]` | ● | ● | the **Client intelligence** chapter (which VICs booked here, gated by each VIC's own sharing); agency-scope edits publish directly instead of going to review |
+| Record | `/records/[id]` | ● | ● | agency-scope edits publish directly instead of going to review; a user's proposed value waits here for her approval. **Client intelligence** is common, not owner-only: the seed gates it on each traveller's own sharing ("visible only for travellers shared with you"), so both types see the chapter and the owner simply sees more travellers in it |
 | Travellers | `/travellers` | ● | ● | the owner sees the agency directory (opt-in VICs) and her own; policy access to a private VIC is break-glass, logged |
 | Traveller | `/travellers/[id]` | ● | ● | break-glass banner and audit when she opens one she does not own |
 | Commissions | `/commissions` | ● | ● | her ledger is agency-wide (every advisor's bookings), with **Discrepancies** and **Reconciliation** views; the user's is her own bookings |
@@ -62,19 +62,24 @@ Each journey names its evidence in the journey specs (A–F) and the decision lo
 | U4 | **Read a record.** See each value's layer, source and age; open provenance; verify a stale field against its source; read the summary of what is unsettled. | Record | E 4a, U3 |
 | U5 | **Settle a disagreement.** Choose one of three source values for the commission, give a reason, watch it propagate to the directory, quotes and answers. | Record → Resolve sheet | E U1, DEC-02, DEC-08 |
 | U6 | **Change a value with a scope.** Edit a field for just me, my team, or the agency; the agency scope goes to the owner for review; revert my change. | Record → Edit sheet | E 4b, DEC-08 |
-| U7 | **Annotate.** Add a private, team or agency note; add a notice with a severity and scope (agency scope submits for review). | Record → Note / Notice sheets | E 4b, B §3 |
+| U7 | **Annotate.** Add a private, team or agency note; add a notice with a severity and scope (agency scope submits for release). | Record → Note / Notice sheets | E 4b, B §3 |
 | U8 | **Respect a Critical notice.** Try to shortlist a blocked property; acknowledge the notice, recorded with name and date; then shortlist. | Record (Verlaine) → Acknowledge dialog | B U2, DEC-18 |
 | U9 | **Chase money.** Open a commission; read projected → due → paid with sources; draft the reminder; edit a line; send; see the chase logged. | Commissions → Commission → Reminder tool | C §4, U4 |
 | U10 | **Handle money that came in wrong.** Accept a discrepancy with a reason, or open a dispute draft; read a credit-not-refund case. | Commission | C U2, U3 |
 | U11 | **Check a trip is ready.** Filter trips by status and window; open the day board; act on a preference conflict (swap or proceed knowingly); add a verified record to a day. | Itineraries | C E1, F U1, DEC-27 |
 | U12 | **Know a traveller.** Open a profile; read preferences with their sources; confirm a single-source preference; confirm or discard a suggestion; read the checklist and profiles. | Travellers → Traveller | F §4, U3, DEC-28 |
 | U13 | **Share a traveller.** Share with a named colleague at Full or Basic; change or revoke; a colleague requests access to one she cannot see. | Traveller → Share sheet | F E1, DEC-31 |
+| U19 | **Retire an advisory she owns.** Close her own personal or team notice when it stops being true, by name and date. The seed's one personal notice is J. Dubois's. Without this, "nothing expires on its own" holds only for the notices the owner happens to own. | Record → Notice; Notifications (review due) | B §4, DEC-03 |
+| U18 | **Read client intelligence.** On a record, who booked it last and which travellers prefer or avoid it — each one visible only through that traveller's own sharing, so the chapter is the same for both types and simply holds more for the owner. | Record → Client intelligence | E E4, DEC-27 |
 | U14 | **Clear what is waiting.** Triage notifications by state and tag; action, defer, or mark seen; follow one to its subject. | Notifications | B X2, C |
 | U15 | **Find and read a document.** Filter the vault by source; open a document; upload one; forward mail to the inbound address. | Knowledge | D §3 (advisor), DEC-14 |
 | U16 | **Tune the product.** Switch which events raise a notification. | Settings | — |
 | U17 | **Sign in and out.** | Sign in, account menu | — |
+| U20 | **Find anything by name.** The palette reaches a record, a traveller or a past question from any surface. | ⌘K, anywhere | — |
 
-Seventeen journeys. U1–U2 and U4–U5 are the demo's spine; U3, U6–U8 and U9–U13 are the daily motion; U14–U17 are furniture that must still work by the same rules.
+Twenty journeys. U1–U2 and U4–U5 are the demo's spine; U3, U6–U13, U18 and U19 are the daily motion; U14–U17 and U20 are furniture that must still work by the same rules.
+
+**Publishing and retiring are not one journey.** Publishing decides an *audience*: a thing one person wrote becomes the agency's, and its author travels with it. Retiring decides *truth*: a time-bound state is still the case, or it is not, and a named person says so on a dated day. They sit at opposite ends of one lifecycle with the surfacing in between (Journey B), and only the second one is what the case study's rewind exists to demonstrate — the v1 build let the spa notice lapse on a timer while the spa was still closed. A product that publishes well and retires by timer is the failure, not the success.
 
 ### 2.2 The agency owner
 
@@ -87,19 +92,17 @@ All of U1–U17 as herself, plus:
 | O3 | **Decide a duplicate.** Review the match against the existing record; merge with a reason, or create new. | Candidate → Merge sheet | D U2, DEC-33 |
 | O4 | **Key what could not be read.** An unreadable row: key the name by hand, carried as a manual entry. | Candidate | D U3 |
 | O5 | **Reject with a reason.** Reject a candidate; the reason is logged. | Candidate → Reject sheet | D §2 |
-| O6 | **Release to the agency.** Publish an advisor's team-scope submission agency-wide, owner preserved; review a forwarded source before publishing. | Publish queue → Source sheet | B §4, DEC-20 |
-| O7 | **Approve an agency-scope change.** A user's agency-scope field edit or notice arrives for review; approve or return it. | Publish queue (proposed edits) | E 4b, `scopeWrite` |
+| O6 | **Publish a note to the whole agency.** One person's knowledge becomes the agency's: an advisor's team-scope note or advisory, or a forwarded mail, released agency-wide with the owner preserved — after the source has been read. | Publish queue → Source sheet | B §4, DEC-20 |
+| O7 | **Approve a proposed value.** A user's agency-scope field edit is waiting; approve it in place on the record, or return it with a note. | Notification → Record (proposed field) | E 4b, `scopeWrite` |
 | O8 | **Set what the agency shares by default.** Per record kind, what a thing is the moment it arrives. | Settings → Sharing defaults | B U3, DEC-30 |
 | O9 | **Open a personal record under policy.** Break-glass into a private traveller or note: reason, time limit, audit, owner notified. | Traveller (not hers) → Break-glass sheet | DEC-29, F U2 |
-| O10 | **Grant or revoke an entitlement.** Commission visibility per user; Acuity per user. | Settings → Entitlements | schema `canViewCommissions`, `canRunAcuity` |
+| O10 | **Grant or revoke commission visibility.** The one entitlement the product has: whether a user sees money. It is the whole of what the colleague persona used to be. | Settings → Entitlements | `canViewCommissions` |
 | O11 | **Keep the sources healthy.** Add a connection through the four-step flow; reconnect a failing one; read last success per source. | Connections → Add / Reconnect sheets | D §4, U4, DEC-24 |
 | O12 | **Govern the vault.** Assign access to a document; review what is indexing; see what the assistant may answer from. | Knowledge → Access sheet | D §2, DEC-25 |
 | O13 | **Match money nobody claimed.** Match an unmatched payment to a booking with a reason; read the closed ones. | Unmatched payments → Match sheet | C U1 |
 | O14 | **Reconcile.** Read collected against outstanding across the agency; find bookings under projection; read a processor-migration note. | Commissions (Reconciliation, Discrepancies) | C U3, E2 |
-| O15 | **Publish and retire advisories.** Publish an agency notice; close a stale one from the review nudge; never let one expire on its own. | Record → Notice sheet; Notifications (Notices due) | B §4, U5, DEC-03 |
-| O16 | **Read client intelligence.** On a record, who booked it last and which of the agency's VICs prefer or avoid it, each visible only through that VIC's sharing. | Record → Client intelligence | E E4, DEC-27 |
-
-Sixteen owner journeys. O2–O6 are the demo's third journey; O8–O10 exist in the schema and the decision log but have no surface yet, which is the first thing this exercise exposes.
+| O15 | **Retire an advisory she owns.** Answer the review nudge on an agency notice — still true, or closed, by a named person on a dated day. Every agency notice in the seed is hers; two are past their review at 76 and 90 days open. Nothing expires on a timer. | Record → Notice; Notifications (review due) | B §4, U5, DEC-03 |
+Fifteen owner journeys, on top of the eighteen she performs as a user. O2–O6 are the demo's third journey; O7–O10 exist in the schema and the decision log but have no surface yet, which is the first thing this exercise exposes.
 
 ---
 
@@ -161,8 +164,8 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 | Secondary | Resolve 3 sources (on the row) · Verify against source · Show all N amenities · Edit (per field, in edit mode) · Change again · Submit for review (notice, agency scope) · Remove my change | same, except a notice at agency scope **Publishes** directly |
 | Tertiary | Edit · Add note · Add notice (title row) · canonical beneath · each value's provenance | same |
 | Sheets | Resolve: **Store 14% at the agency layer** · Edit field: **Save change** / **Submit for review** · Note: **Save note** · Acknowledge: **Acknowledge (recorded)** | Edit field at agency scope: **Save change** (direct) |
-| Absent | editing a canonical value in place (Enable's layer is overlaid, never overwritten — DEC-08); deleting a note (scope regret is a scope change — E U6); dismissing a Critical notice (B U2) | same |
-| Chapters | canonical · agency overlay · personal · amenities · contacts · promotion | + **Client intelligence** (O16) |
+| Absent | editing a canonical value in place (Enable's layer is overlaid, never overwritten — DEC-08); deleting a note (scope regret is a scope change — E U6); dismissing a Critical notice (B U2); approving your own agency-scope proposal | same, minus the last |
+| Chapters | canonical · agency overlay · personal · amenities · contacts · promotion · **client intelligence** (the travellers she can see) | the same chapters; client intelligence holds more travellers, and a proposed field carries **Approve** / **Return with a note** |
 
 ### Travellers `/travellers`
 
@@ -264,12 +267,11 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 
 | | Agency owner |
 |---|---|
-| For | releasing what arrived, and setting what the agency shares by default |
+| For | releasing one person's note to the whole agency, and setting what the agency shares by default |
 | Primary | **Publish agency-wide (owner preserved)** (Queue tool, the next publishable item) |
 | Secondary | Publish (on the row) · Review source · Close |
 | Tertiary | none |
-| Absent | publishing a "needs reading" item before its source is opened; publishing without the owner preserved (DEC-20: source, timestamp, owner travel with the advisory) |
-| Adds (O7) | proposed agency-scope field edits arrive here with **Approve** as a row secondary and **Return with a note** as tertiary; the primary stays the next publishable item |
+| Absent | publishing a "needs reading" item before its source is opened; publishing without the owner preserved (DEC-20: source, timestamp, owner travel with the advisory); **approving a field's value** — a note is commentary and is additive, a value is what the product answers with, and the two do not share a queue |
 
 ### Connections `/admin/connections` — owner only
 
@@ -306,8 +308,8 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 
 ## 4. What the exercise exposes
 
-1. **Three owner journeys have no surface.** Sharing defaults exist on the publish page as a read-only chapter; per-user entitlements (O10) and break-glass (O9) exist in the schema and the decision log and nowhere on screen. Settings for the owner is where the first two belong; the traveller profile is where the third belongs.
-2. **The user's request paths are thin.** "Request a record" (E U5) and "Request access from the owner" (F U2) both record a request and nothing receives it. The owner's queue should list them: they are the user's only way to reach the agency layer.
+1. **Four owner journeys have no surface.** Approving a proposed value (O7) leaves a chip on a field that nothing tells the owner to look at. Sharing defaults exist on the publish page as a read-only chapter; per-user entitlements (O10) and break-glass (O9) are in the schema and the decision log and nowhere on screen. Settings is where the middle two belong, the traveller profile is where break-glass belongs, and a proposal belongs on the field it proposes — reached by a notification, not by a queue.
+2. **The user's request paths are thin.** "Request a record" (E U5) and "Request access from the owner" (F U2) both record a request and nothing receives it. They are the user's only way to reach the agency layer, and like a proposed value they should arrive as notifications rather than as a new page.
 3. **Two surfaces have a primary with nothing under it.** Itineraries' "Open the trip" anchors to a schematic board; the generic record's "Evidence" tool has no action. Both are honest today and both are the first candidates for a scope decision in Pass 2.
 4. **The colleague's absence-not-mask rule survives as a policy gate.** It needs one switch in the owner's settings and one line in the store. The rule itself (absent, never masked) does not change.
 5. **The dock tells the type at a glance.** Seven tiles or ten. That is the whole permission story a panellist can see without a slide.
@@ -317,7 +319,7 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 - `Persona` → `"user" | "owner"`; `people`, `personas`, `roleLabel`, `widgetsFor`, `notificationsFor`, `dockTiles`, `ROUTE_ROLES` (shell and contracts) collapse to two.
 - `canViewCommissions(role)` → `canViewCommissions(user)` reading the entitlement from the store, defaulted on; the owner's settings gain the Entitlements chapter that writes it.
 - `scopeWrite`: owner → `direct`; user → `review` at agency scope (unchanged in effect).
-- The publish queue lists proposed field edits and requests (O7, §4.2) alongside submissions.
+- A proposed agency-scope value, a record request and an access request each raise a notification for the owner, whose action opens the thing itself — the record at the proposed field, the directory, the traveller. No new page (O7, §4.2).
 - The traveller profile gains the break-glass sheet for the owner on a profile she does not own (O9).
 - `contracts.mjs`: one contract per surface with `for`, `primary` and `why`, `secondary`, `tertiary`, `absent` and `states` per type, straight from §3; tier 2 checks the ladder renders as declared.
 - The demo script's four journeys re-keyed to two accounts: keys 1–7 as R. Devane, key 8 as M. Keller.

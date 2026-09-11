@@ -403,17 +403,17 @@ export const notificationsFor = (role: Persona) => notifications.filter((n) => n
 export interface TravellerCard {
   id: string; name: string; relationshipStatus: string;
   nextTrip: string | null; departsInDays: number | null;
-  profiles: number; preferences: number; acuityScore: number | null;
+  profiles: number; preferences: number;
   shared: string | null;
 }
 
 export const travellerCards: TravellerCard[] = [
-  { id: "s-marchetti", name: "S. Marchetti", relationshipStatus: "Active", nextTrip: "Kyoto & Kansai", departsInDays: 12, profiles: 3, preferences: 6, acuityScore: 82, shared: null },
-  { id: "osei", name: "R. & M. Osei", relationshipStatus: "Recurring", nextTrip: "Patagonia crossing", departsInDays: 21, profiles: 2, preferences: 4, acuityScore: 74, shared: "J. Dubois" },
-  { id: "whitfield", name: "A. Whitfield", relationshipStatus: "Active", nextTrip: "Lisbon, four nights", departsInDays: 3, profiles: 1, preferences: 3, acuityScore: null, shared: null },
-  { id: "grandin", name: "L. Grandin", relationshipStatus: "Recurring", nextTrip: "Paris, thirtieth anniversary", departsInDays: 96, profiles: 2, preferences: 5, acuityScore: 68, shared: null },
-  { id: "lindqvist", name: "D. Lindqvist", relationshipStatus: "Prospect", nextTrip: "Nile, dahabiya", departsInDays: 142, profiles: 1, preferences: 2, acuityScore: null, shared: null },
-  { id: "achebe", name: "N. Achebe", relationshipStatus: "Active", nextTrip: "Serengeti, green season", departsInDays: 138, profiles: 2, preferences: 4, acuityScore: 79, shared: null },
+  { id: "s-marchetti", name: "S. Marchetti", relationshipStatus: "Active", nextTrip: "Kyoto & Kansai", departsInDays: 12, profiles: 3, preferences: 6, shared: null },
+  { id: "osei", name: "R. & M. Osei", relationshipStatus: "Recurring", nextTrip: "Patagonia crossing", departsInDays: 21, profiles: 2, preferences: 4, shared: "J. Dubois" },
+  { id: "whitfield", name: "A. Whitfield", relationshipStatus: "Active", nextTrip: "Lisbon, four nights", departsInDays: 3, profiles: 1, preferences: 3, shared: null },
+  { id: "grandin", name: "L. Grandin", relationshipStatus: "Recurring", nextTrip: "Paris, thirtieth anniversary", departsInDays: 96, profiles: 2, preferences: 5, shared: null },
+  { id: "lindqvist", name: "D. Lindqvist", relationshipStatus: "Prospect", nextTrip: "Nile, dahabiya", departsInDays: 142, profiles: 1, preferences: 2, shared: null },
+  { id: "achebe", name: "N. Achebe", relationshipStatus: "Active", nextTrip: "Serengeti, green season", departsInDays: 138, profiles: 2, preferences: 4, shared: null },
 ];
 
 export const traveller = {
@@ -439,7 +439,6 @@ export const traveller = {
   ],
   signalsBySource: [["Email extracts", 4], ["Call transcripts", 2], ["Booking platform", 2], ["Keyed by hand", 1]] as [string, number][],
   sharing: { state: "private" as "private" | "full" | "basic", with: "J. Dubois" },
-  acuity: { status: "Complete" as const, score: 82, lastRun: "14 Aug" },
   trips: [
     { title: "Kyoto & Kansai", dates: "12–19 Oct 2026", status: "Booked" },
     { title: "Amalfi coast", dates: "May 2025", status: "Traveled" },

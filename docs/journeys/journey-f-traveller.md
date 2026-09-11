@@ -12,7 +12,7 @@ The traveller (VIC) profile is the most sensitive record type in the product, an
 
 ## 2. Profile anatomy
 
-Identity and contact; **preferences organized in up to 7 travel-profile types** (Business / Leisure / Romantic / Adventure / Wellness / Cultural / Celebration), each with six blocks and an `is_primary` default [DEC-36] — every preference carrying its source (stated by client, observed on a trip, imported from a system, inferred-and-confirmed) and date [DEC-28; DEC-23 attribution], with a per-preference `ai_confidence` score surfacing confident preferences first [DEC-36]; constraints and dislikes; trip history via the cross-link triangle [DEC-36]; advisor notes with the standard scope choice [SIG-46; Journey E D3]; the Acuity intelligence tab with its four-state machine (Not Run / Running / Complete / Locked), locked behind `canRunAcuity` [DEC-31, DEC-36]. Financial aggregates (lifetime spend, ADR) render only behind `canViewCommissions` [DEC-31; SIG-46].
+Identity and contact; **preferences organized in up to 7 travel-profile types** (Business / Leisure / Romantic / Adventure / Wellness / Cultural / Celebration), each with six blocks and an `is_primary` default [DEC-36] — every preference carrying its source (stated by client, observed on a trip, imported from a system, inferred-and-confirmed) and date [DEC-28; DEC-23 attribution], with a per-preference `ai_confidence` score surfacing confident preferences first [DEC-36]; constraints and dislikes; trip history via the cross-link triangle [DEC-36]; advisor notes with the standard scope choice [SIG-46; Journey E D3]. Financial aggregates (lifetime spend, ADR) render only behind `canViewCommissions` [DEC-31; SIG-46].
 
 ## 3. Entry points
 
@@ -27,7 +27,7 @@ Identity and contact; **preferences organized in up to 7 travel-profile types** 
 1. Advisor opens a traveller from a departure item (EP2). Profile renders; the departing trip sits on top with its checklist [DEC-27 trip-reminder; checklist contents F1].
 2. She adds a preference learned on a call — "no contemporary interiors" — choosing its source ("stated by client, 2026-08-27 call") [DEC-28].
 3. She adds a note; scope choice as everywhere (private preselected) [SIG-46, DEC-09].
-4. A colleague will cover her leave: she **shares the VIC** at a chosen tier [DEC-31, superseding DEC-01]: **Collaborator Full** (all fields, can edit and run Acuity, cannot re-share or delete) or **Collaborator Basic** (name + contact only, for limited intros); team scope and the admin-managed agency directory are the wider rungs [DEC-30]. As a non-admin, her share routes through the suggestion/approval workflow [DEC-31]. The share is explicit, attributed, revocable, and audited [DEC-09, DEC-29]. Spend fields stay behind `canViewCommissions` regardless of tier [DEC-31].
+4. A colleague will cover her leave: she **shares the VIC** at a chosen tier [DEC-31, superseding DEC-01]: **Collaborator Full** (all fields including the sensitive ones, can edit, cannot re-share or delete) or **Collaborator Basic** (name + contact only, for limited intros); team scope and the admin-managed agency directory are the wider rungs [DEC-30]. As a non-admin, her share routes through the suggestion/approval workflow [DEC-31]. The share is explicit, attributed, revocable, and audited [DEC-09, DEC-29]. Spend fields stay behind `canViewCommissions` regardless of tier [DEC-31].
 
 **Exit criteria:** every preference on the profile can answer "who says so, and when" [DEC-28].
 

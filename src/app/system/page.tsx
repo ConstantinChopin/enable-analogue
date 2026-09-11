@@ -224,7 +224,7 @@ export default function SystemPage() {
                 <RowStack head={<><span className="row-primary type-data-strong">Hôtel Verlaine</span><Chip tone="crit">Critical</Chip></>}>Water damage on floors 2–3 — do not confirm bookings until the property confirms reopening.</RowStack>
               </Rows>
               <div className="mt-[var(--space-6)] mb-[var(--space-2)] type-micro-caps text-label-tertiary">data list</div>
-              <DataList rows={[{ label: "Rooms", value: <span className="tnum">42</span> }, { label: "Rep firm", value: "Corvin & Wells" }, { label: "Acuity", value: null, absent: "not run" }]} />
+              <DataList rows={[{ label: "Rooms", value: <span className="tnum">42</span> }, { label: "Rep firm", value: "Corvin & Wells" }, { label: "Quality score", value: null, absent: "not run" }]} />
             </div>
             <div>
               <div className="mb-[var(--space-2)] type-micro-caps text-label-tertiary">table · one selected row</div>

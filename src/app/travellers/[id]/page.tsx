@@ -13,7 +13,7 @@
  * Preferences (attributed rows; the single-source one asks to be confirmed) ·
  * Suggestions (labelled, outside the preferences until confirmed or discarded) ·
  * Where these come from (quiet) · Departure checklist · Travel profiles · Trips ·
- * Financials (entitlement-gated, absent otherwise) · Acuity.
+ * Financials (entitlement-gated, absent otherwise).
  *
  * The one primary: "Share with J. Dubois" / "Change sharing" (the owner's act that
  * Journey F is about), at the bottom of the Sharing tool; a colleague at
@@ -138,7 +138,7 @@ function MarchettiProfile() {
     s.shareTier === "private"
       ? "Private to you. Nobody else at the agency can read this profile."
       : s.shareTier === "full"
-        ? `Shared with ${people.colleague} — Collaborator Full. All fields; can edit and run Acuity; cannot re-share or delete.`
+        ? `Shared with ${people.colleague} — Collaborator Full. All fields, including the sensitive ones; can edit; cannot re-share or delete.`
         : `Shared with ${people.colleague} — Collaborator Basic. Name and contact only.`;
 
   function applyShare() {
@@ -407,18 +407,6 @@ function MarchettiProfile() {
               </p>
             </Section>
           )}
-
-          {/* Acuity */}
-          <Section title="Acuity" deep chips={<Chip tone="ok">{traveller.acuity.status}</Chip>}>
-            <div className="flex items-baseline gap-[var(--space-3)]">
-              <span className="type-figure">{traveller.acuity.score}</span>
-              <span className="type-meta">last run {traveller.acuity.lastRun}</span>
-            </div>
-            <p className="mt-[var(--space-2)] max-w-[60ch] type-data-read text-label-secondary">
-              Four states — Not Run, Running, Complete, Locked. Running it is gated on the
-              entitlement, not on the sharing tier.
-            </p>
-          </Section>
         </div>
 
         {/* ── the tool that follows you: who can see this, and the one action ── */}
@@ -479,7 +467,7 @@ function MarchettiProfile() {
             >
               {([
                 ["private", "Private to you", "Nobody else at the agency can read it."],
-                ["full", "Collaborator — Full", "All fields; can edit and run Acuity. Cannot re-share or delete."],
+                ["full", "Collaborator — Full", "All fields, including the sensitive ones; can edit. Cannot re-share or delete."],
                 ["basic", "Collaborator — Basic", "Name and contact only, for a limited introduction."],
               ] as const).map(([v, label, hint]) => (
                 <div key={v} className="flex items-start gap-[var(--space-3)]">
@@ -590,18 +578,8 @@ function GenericProfile({ id }: { id: string }) {
                     value: card.departsInDays === null ? null : <span className="tnum">{card.departsInDays} days</span>,
                     absent: "not applicable",
                   },
-                  {
-                    label: "Acuity",
-                    value: card.acuityScore === null ? null : <span className="tnum">{card.acuityScore} · complete</span>,
-                    absent: "not run",
-                  },
                 ]}
               />
-              {card.acuityScore === null && (
-                <p className="mt-[var(--space-3)] type-meta">
-                  Acuity has not been run for this profile. The score is absent rather than estimated.
-                </p>
-              )}
             </Section>
 
             <Section title="Next journey" deep>
