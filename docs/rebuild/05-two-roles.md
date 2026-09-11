@@ -46,7 +46,7 @@ Fourteen surfaces in common, four for the owner alone, eighteen in all. The four
 
 **Connecting a source shares nothing, for either type.** The add flow has no "who can read it" step, and its own header says that absence is the policy: an audience picker would be a bulk share made at the moment someone is thinking about folders and OAuth scopes. That rule needed no change to reach users. The index arrives closed to whoever connected it — a user's mailbox to her, an agency drive to the administrators — and a document opens to anyone else only when a named person opens it in the vault. It is the layer model at the ingestion boundary, which is Journey D's argument.
 
-**Creating a trip is not building an itinerary** (reading to confirm). DEC-10, hardened 22 April, refuses an itinerary builder: Enable *writes to* itinerary tools. So a trip is created here — its traveller, dates, destinations, and the verified records attached — and written out to Axus or Travify, where its days are built. If creating is meant to include composing the days inside Enable, DEC-10 is withdrawn and the case study loses one of its four refusals.
+**Itineraries are built in Enable** (decided 2026-09-11, design deferred). Both types create a trip and compose its days here — events, transfers, dining, accommodation — rather than handing it to Axus or Travify. This withdraws DEC-10's refusal of an itinerary builder, so the case study's account of what Enable chose not to build must be rewritten. The builder is designed after the rest of this document is settled; until then the itinerary rows below say *deferred* rather than guess.
 
 **What the cut removes.** The colleague's briefing, the ops briefing, the route-role table's four-way split, two sign-in rows, and every `role !== "colleague"` branch in the pages. What it adds: one entitlement switch in the owner's settings, and the break-glass path on a traveller profile, which the journeys already specify (DEC-29) and no surface yet draws.
 
@@ -71,7 +71,7 @@ Each journey names its evidence in the journey specs (A–F) and the decision lo
 | U9 | **Chase money.** Open a commission; read projected → due → paid with sources; draft the reminder; edit a line; send; see the chase logged. | Commissions → Commission → Reminder tool | C §4, U4 |
 | U10 | **Handle money that came in wrong.** Accept a discrepancy with a reason, or open a dispute draft; read a credit-not-refund case. | Commission | C U2, U3 |
 | U11 | **Check a trip is ready.** Filter trips by status and window; open the day board; act on a preference conflict (swap or proceed knowingly); add a verified record to a day. | Itineraries | C E1, F U1, DEC-27 |
-| U21 | **Create a trip.** From a traveller, or from the trips list: pick the traveller, dates and destinations, attach verified records, and write it to the itinerary tool, where its days are built. | Traveller / Itineraries → New trip sheet | DEC-10, schema Itinerary |
+| U21 | **Build an itinerary.** Start a trip from a traveller or from the trips list, and compose its days in Enable. *Design deferred.* | Traveller / Itineraries → the builder | withdraws DEC-10 |
 | U12 | **Know a traveller.** Open a profile; read preferences with their sources; confirm a single-source preference; confirm or discard a suggestion; read the checklist and profiles. | Travellers → Traveller | F §4, U3, DEC-28 |
 | U13 | **Share a traveller.** Share with a named colleague at Full or Basic; change or revoke; a colleague requests access to one she cannot see. | Traveller → Share sheet | F E1, DEC-31 |
 | U19 | **Retire an advisory she owns.** Close her own personal or team notice when it stops being true, by name and date. The seed's one personal notice is J. Dubois's. Without this, "nothing expires on its own" holds only for the notices the owner happens to own. | Record → Notice; Notifications (review due) | B §4, DEC-03 |
@@ -224,8 +224,8 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 | Primary | **Open the trip** (inspector; today an in-page anchor to the day board) — the daily act is checking, not starting | same |
 | Secondary | **New trip** · Add Kikunoi Honten to Day 1 · Show every trip (empty state) | same |
 | Tertiary | Open the traveller · swap the property · status chips · the 30-day chip · day tabs | same |
-| Sheets | New trip: **Create and send to the itinerary tool** | same |
-| Absent | composing a trip's days inside Enable (DEC-10: a trip is created here and written out; its days are built in the itinerary tool); booking from here | same |
+| Absent | booking from here | same |
+| Deferred | the builder itself — composing days, and every action inside it | same |
 
 ### Knowledge `/knowledge`
 
@@ -328,7 +328,7 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 - `canViewCommissions(role)` → `canViewCommissions(user)` reading the entitlement from the store, defaulted on; the owner's settings gain the Entitlements chapter that writes it.
 - `scopeWrite`: owner → `direct`; user → `review` at agency scope (unchanged in effect).
 - `/admin/connections` → `/connections`, open to both; a user's list holds the sources she connected, the owner's adds the agency's. The add flow is unchanged — no scope step — but its header comment ("the path an administrator actually walks", "administrators only") is rewritten to say the index arrives closed to whoever connected it.
-- A **New trip** sheet on `/itineraries` and a **Start a trip** secondary on the traveller profile: traveller, dates, destinations, attached records; the commit writes to the itinerary tool.
+- A **New trip** secondary on `/itineraries` and a **Start a trip** secondary on the traveller profile, both opening the itinerary builder. The builder is deferred.
 - A proposed agency-scope value, a record request and an access request each raise a notification for the owner, whose action opens the thing itself — the record at the proposed field, the directory, the traveller. No new page (O7, §4.2).
 - The traveller profile gains the break-glass sheet for the owner on a profile she does not own (O9).
 - `contracts.mjs`: one contract per surface with `for`, `primary` and `why`, `secondary`, `tertiary`, `absent` and `states` per type, straight from §3; tier 2 checks the ladder renders as declared.
