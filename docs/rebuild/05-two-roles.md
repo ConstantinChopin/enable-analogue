@@ -44,6 +44,8 @@ Two demo accounts remain: **R. Devane** (agency user, Paris desk) and **M. Kelle
 
 Fourteen surfaces in common, four for the owner alone, eighteen in all. The four are three acts: confirming a record (the list and the candidate), publishing to the agency, and matching money nobody claimed. The dock shows seven tiles to the user and ten to the owner (the user's seven, plus Confirm records, Publish queue, Unmatched payments); Connections and Settings live behind the account for both.
 
+**Everything created starts private** (decided 2026-09-11). A record added by hand is private to whoever made it, the owner included, and is shared only by a deliberate act. Confirm records stays for what arrives from sources; it is not the route by which a hand-made record reaches the agency.
+
 **Connecting a source shares nothing, for either type.** The add flow has no "who can read it" step, and its own header says that absence is the policy: an audience picker would be a bulk share made at the moment someone is thinking about folders and OAuth scopes. That rule needed no change to reach users. The index arrives closed to whoever connected it — a user's mailbox to her, an agency drive to the administrators — and a document opens to anyone else only when a named person opens it in the vault. It is the layer model at the ingestion boundary, which is Journey D's argument.
 
 **Itineraries are built in Enable** (decided 2026-09-11, design deferred). Both types create a trip and compose its days here — events, transfers, dining, accommodation — rather than handing it to Axus or Travify. This withdraws DEC-10's refusal of an itinerary builder, so the case study's account of what Enable chose not to build must be rewritten. The builder is designed after the rest of this document is settled; until then the itinerary rows below say *deferred* rather than guess.
@@ -63,7 +65,7 @@ Each journey names its evidence in the journey specs (A–F) and the decision lo
 | U1 | **Open the day.** Read the brief, see what is owed, leaving and open, and go to the first thing. | Brief → Commissions / Itineraries / Notifications | C §4 |
 | U2 | **Ask and check.** Ask a question; read a cited answer; open a source; resolve a conflict from the answer; accept a refusal and take one of its three exits (forward a document, ask the rep firm, flag for review). | Ask → Sources → Resolve sheet / Document sheet | A §4, U1–U5 |
 | U3 | **Find a record.** Filter the directory by category and facets, switch grid and table, select, open. | Records → Record | E §3 |
-| U23 | **Add a record by hand.** Like raising a ticket: a short form — name, category, city, and whatever she knows — with a check for an existing record of that name and place before it is created. It is live for her at once, marked *added by hand*; it joins the agency directory when the owner confirms it, on the same confirm screen as an extracted candidate. The owner's own additions go live for everyone. | Records → New record sheet → (owner) Confirm records | schema dedup; D §2 |
+| U23 | **Add a record by hand.** Like raising a ticket: a short form — name, category, city, and whatever she knows — with a check for an existing record of that name and place before it is created. It is **private to her** when created, marked *added by hand*, and nobody else sees it until she shares it — with her team or the whole agency, the same three choices as a note. The same holds for the owner. | Records → New record sheet → Share | schema dedup; D §2 |
 | U4 | **Read a record.** See each value's layer, source and age; open provenance; verify a stale field against its source; read the summary of what is unsettled. | Record | E 4a, U3 |
 | U5 | **Settle a disagreement.** Choose one of three source values for the commission, give a reason, watch it propagate to the directory, quotes and answers. | Record → Resolve sheet | E U1, DEC-02, DEC-08 |
 | U6 | **Change a value with a scope.** Edit a field for just me, my team, or the agency; the agency scope goes to the owner for review; revert my change. | Record → Edit sheet | E 4b, DEC-08 |
@@ -160,8 +162,8 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 | Primary | **Open full record** (inspector, once a card is selected); none with nothing selected | same |
 | Secondary | **New record** · Ask about this · Clear all filters (empty state) | same |
 | Tertiary | Clear all · facet chips · view toggle · category band | same |
-| Sheets | New record: **Create record** — after the duplicate check | same |
-| On create | live for her, marked *added by hand*; joins the agency directory when the owner confirms it | live for everyone |
+| Sheets | New record: **Create record** — after the duplicate check · Share: **Share record** — just me, my team, the whole agency | same |
+| On create | private to her, marked *added by hand*; shared only when she chooses — her team or the whole agency | same: the owner's new records are private too |
 | Absent | creating a record that already exists (the form checks name and place first) | same |
 
 ### Record `/records/[id]`
@@ -320,7 +322,7 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 ## 4. What the exercise exposes
 
 1. **Four owner journeys have no surface.** Approving a proposed value (O7) leaves a chip on a field that nothing tells the owner to look at. Sharing defaults exist on the publish page as a read-only chapter; per-user entitlements (O10) and break-glass (O9) are in the schema and the decision log and nowhere on screen. Settings is where the middle two belong, the traveller profile is where break-glass belongs, and a proposal belongs on the field it proposes — reached by a notification, not by a queue.
-2. **The user's request paths are thin.** "Request access from the owner" (F U2) records a request and nothing receives it. ("Request a record" is gone: a user adds the record herself, and the owner's confirm screen receives it.) They are the user's only way to reach the agency layer, and like a proposed value they should arrive as notifications rather than as a new page.
+2. **The user's request paths are thin.** "Request access from the owner" (F U2) records a request and nothing receives it. ("Request a record" is gone: a user adds the record herself, privately, and shares it when she is ready.) They are the user's only way to reach the agency layer, and like a proposed value they should arrive as notifications rather than as a new page.
 3. **Two surfaces have a primary with nothing under it.** Itineraries' "Open the trip" anchors to a schematic board; the generic record's "Evidence" tool has no action. Both are honest today and both are the first candidates for a scope decision in Pass 2.
 4. **The colleague's absence-not-mask rule survives as a policy gate.** It needs one switch in the owner's settings and one line in the store. The rule itself (absent, never masked) does not change.
 5. **The dock tells the type at a glance.** Seven tiles or ten. That is the whole permission story a panellist can see without a slide.
