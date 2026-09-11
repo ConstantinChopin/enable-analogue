@@ -11,7 +11,7 @@
 
 **Three consequences, stated as assumptions (correct any that are wrong).**
 
-1. **The owner is a superset.** She reaches every user surface as herself (her own travellers, her own bookings) and five governance surfaces the user never sees. Nothing is hidden from the owner that a user can see.
+1. **The owner is a superset.** She reaches every user surface as herself (her own travellers, her own bookings) and three governance acts, on four screens, that the user never sees: confirming a record, publishing to the agency, and matching money nobody claimed. Nothing is hidden from the owner that a user can see.
 2. **The colleague's differences become states, not a type.** "Cannot see commissions" is the schema's `canViewCommissions` policy gate, set per user by the owner (default on). "Sees only shared travellers" is what any user sees on a profile she does not own: the collaborator tier, or nothing. Neither needs a third login.
 3. **Ops folds into the owner.** The unmatched-payments desk and reconciliation are the owner's money chapter. A larger agency would split it back out; that split is the schema's `agency_id` + a role flag, not a new surface.
 
@@ -33,16 +33,20 @@ Two demo accounts remain: **R. Devane** (agency user, Paris desk) and **M. Kelle
 | Traveller | `/travellers/[id]` | ● | ● | break-glass banner and audit when she opens one she does not own |
 | Commissions | `/commissions` | ● | ● | her ledger is agency-wide (every advisor's bookings), with **Discrepancies** and **Reconciliation** views; the user's is her own bookings |
 | Commission | `/commissions/[id]` | ● | ● | none (a reminder is drafted by whoever owns the booking) |
-| Itineraries | `/itineraries` | ● | ● | none |
+| Itineraries | `/itineraries` | ● | ● | none — both create a trip and both check it is ready |
 | Knowledge | `/knowledge` | ● | ● | the owner **assigns access** and sees indexing; the user finds and reads |
-| Settings | `/settings` | ● | ● | the owner's settings carry the agency chapters: sharing defaults, admin access, entitlements per user, connections |
+| Settings | `/settings` | ● | ● | the owner's settings carry the agency chapters: sharing defaults, admin access, entitlements per user |
+| Connections | `/connections` | ● | ● | a user connects her own mailbox or Drive; the owner also connects the agency's sources — the shared drive, the intranet, a partner portal. Either way what a source indexes arrives closed to whoever connected it, and is opened one document at a time in the vault |
 | Confirm records | `/admin/review` | — | ● | owner only |
 | Candidate review | `/admin/review/[id]` | — | ● | owner only |
 | Publish queue | `/admin/publish` | — | ● | owner only |
-| Connections | `/admin/connections` | — | ● | owner only |
 | Unmatched payments | `/ops/resolution` | — | ● | owner only |
 
-Thirteen surfaces in common, five for the owner alone, seventeen in all. The dock shows seven tiles to the user and ten to the owner (the user's seven, plus Confirm records, Publish queue, Unmatched payments); Connections and Settings live behind the account, as today.
+Fourteen surfaces in common, four for the owner alone, eighteen in all. The four are three acts: confirming a record (the list and the candidate), publishing to the agency, and matching money nobody claimed. The dock shows seven tiles to the user and ten to the owner (the user's seven, plus Confirm records, Publish queue, Unmatched payments); Connections and Settings live behind the account for both.
+
+**Connecting a source shares nothing, for either type.** The add flow has no "who can read it" step, and its own header says that absence is the policy: an audience picker would be a bulk share made at the moment someone is thinking about folders and OAuth scopes. That rule needed no change to reach users. The index arrives closed to whoever connected it — a user's mailbox to her, an agency drive to the administrators — and a document opens to anyone else only when a named person opens it in the vault. It is the layer model at the ingestion boundary, which is Journey D's argument.
+
+**Creating a trip is not building an itinerary** (reading to confirm). DEC-10, hardened 22 April, refuses an itinerary builder: Enable *writes to* itinerary tools. So a trip is created here — its traveller, dates, destinations, and the verified records attached — and written out to Axus or Travify, where its days are built. If creating is meant to include composing the days inside Enable, DEC-10 is withdrawn and the case study loses one of its four refusals.
 
 **What the cut removes.** The colleague's briefing, the ops briefing, the route-role table's four-way split, two sign-in rows, and every `role !== "colleague"` branch in the pages. What it adds: one entitlement switch in the owner's settings, and the break-glass path on a traveller profile, which the journeys already specify (DEC-29) and no surface yet draws.
 
@@ -67,17 +71,19 @@ Each journey names its evidence in the journey specs (A–F) and the decision lo
 | U9 | **Chase money.** Open a commission; read projected → due → paid with sources; draft the reminder; edit a line; send; see the chase logged. | Commissions → Commission → Reminder tool | C §4, U4 |
 | U10 | **Handle money that came in wrong.** Accept a discrepancy with a reason, or open a dispute draft; read a credit-not-refund case. | Commission | C U2, U3 |
 | U11 | **Check a trip is ready.** Filter trips by status and window; open the day board; act on a preference conflict (swap or proceed knowingly); add a verified record to a day. | Itineraries | C E1, F U1, DEC-27 |
+| U21 | **Create a trip.** From a traveller, or from the trips list: pick the traveller, dates and destinations, attach verified records, and write it to the itinerary tool, where its days are built. | Traveller / Itineraries → New trip sheet | DEC-10, schema Itinerary |
 | U12 | **Know a traveller.** Open a profile; read preferences with their sources; confirm a single-source preference; confirm or discard a suggestion; read the checklist and profiles. | Travellers → Traveller | F §4, U3, DEC-28 |
 | U13 | **Share a traveller.** Share with a named colleague at Full or Basic; change or revoke; a colleague requests access to one she cannot see. | Traveller → Share sheet | F E1, DEC-31 |
 | U19 | **Retire an advisory she owns.** Close her own personal or team notice when it stops being true, by name and date. The seed's one personal notice is J. Dubois's. Without this, "nothing expires on its own" holds only for the notices the owner happens to own. | Record → Notice; Notifications (review due) | B §4, DEC-03 |
 | U18 | **Read client intelligence.** On a record, who booked it last and which travellers prefer or avoid it — each one visible only through that traveller's own sharing, so the chapter is the same for both types and simply holds more for the owner. | Record → Client intelligence | E E4, DEC-27 |
 | U14 | **Clear what is waiting.** Triage notifications by state and tag; action, defer, or mark seen; follow one to its subject. | Notifications | B X2, C |
 | U15 | **Find and read a document.** Filter the vault by source; open a document; upload one; forward mail to the inbound address. | Knowledge | D §3 (advisor), DEC-14 |
+| U22 | **Connect her own source.** Her mailbox or her Drive, through the same four steps: choose the source, authorise at the provider, pick what to index, review. What it indexes is private to her. Reconnect it when it fails. | Connections → Add / Reconnect sheets | D §4, U4, DEC-24 |
 | U16 | **Tune the product.** Switch which events raise a notification. | Settings | — |
 | U17 | **Sign in and out.** | Sign in, account menu | — |
 | U20 | **Find anything by name.** The palette reaches a record, a traveller or a past question from any surface. | ⌘K, anywhere | — |
 
-Twenty journeys. U1–U2 and U4–U5 are the demo's spine; U3, U6–U13, U18 and U19 are the daily motion; U14–U17 and U20 are furniture that must still work by the same rules.
+Twenty-two journeys. U1–U2 and U4–U5 are the demo's spine; U3, U6–U13, U18, U19 and U21 are the daily motion; U14–U17, U20 and U22 are furniture that must still work by the same rules.
 
 **Publishing and retiring are not one journey.** Publishing decides an *audience*: a thing one person wrote becomes the agency's, and its author travels with it. Retiring decides *truth*: a time-bound state is still the case, or it is not, and a named person says so on a dated day. They sit at opposite ends of one lifecycle with the surfacing in between (Journey B), and only the second one is what the case study's rewind exists to demonstrate — the v1 build let the spa notice lapse on a timer while the spa was still closed. A product that publishes well and retires by timer is the failure, not the success.
 
@@ -97,7 +103,7 @@ All of U1–U17 as herself, plus:
 | O8 | **Set what the agency shares by default.** Per record kind, what a thing is the moment it arrives. | Settings → Sharing defaults | B U3, DEC-30 |
 | O9 | **Open a personal record under policy.** Break-glass into a private traveller or note: reason, time limit, audit, owner notified. | Traveller (not hers) → Break-glass sheet | DEC-29, F U2 |
 | O10 | **Grant or revoke commission visibility.** The one entitlement the product has: whether a user sees money. It is the whole of what the colleague persona used to be. | Settings → Entitlements | `canViewCommissions` |
-| O11 | **Keep the sources healthy.** Add a connection through the four-step flow; reconnect a failing one; read last success per source. | Connections → Add / Reconnect sheets | D §4, U4, DEC-24 |
+| O11 | **Connect the agency's sources and keep them healthy.** The shared drive, the intranet, a partner portal, through the same four steps as a user; what they index arrives closed to the administrators. Reconnect a failing one; read last success per source. | Connections → Add / Reconnect sheets | D §4, U4, DEC-24 |
 | O12 | **Govern the vault.** Assign access to a document; review what is indexing; see what the assistant may answer from. | Knowledge → Access sheet | D §2, DEC-25 |
 | O13 | **Match money nobody claimed.** Match an unmatched payment to a booking with a reason; read the closed ones. | Unmatched payments → Match sheet | C U1 |
 | O14 | **Reconcile.** Read collected against outstanding across the agency; find bookings under projection; read a processor-migration note. | Commissions (Reconciliation, Discrepancies) | C U3, E2 |
@@ -183,7 +189,7 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 |---|---|---|
 | For | the owner of the profile; a collaborator at her tier | the same, or the principal under policy |
 | Primary | **Share with J. Dubois** / **Change sharing** (Sharing tool, owner only); none for a collaborator | same on her own; **Open under policy** on one she does not own |
-| Secondary | Proceed knowingly (recorded) · Confirm as preference · Request access from the owner · Open the itinerary · Back to travellers | same |
+| Secondary | Proceed knowingly (recorded) · Confirm as preference · **Start a trip** (the trip's core link is its traveller) · Request access from the owner · Open the itinerary · Back to travellers | same |
 | Tertiary | swap the property · confirm this · Discard · Marchetti cross-link | same |
 | Sheets | Share: **Apply sharing** | Break-glass: **Open for 1 hour — reason logged, owner notified** |
 | Absent | re-sharing by a collaborator (DEC-31); guessing a preference into the profile (DEC-28); deleting a preference (attributed history stays) | same |
@@ -214,11 +220,12 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 
 | | Agency user | Agency owner |
 |---|---|---|
-| For | checking a trip is ready to travel | same |
-| Primary | **Open the trip** (inspector; today an in-page anchor to the day board) | same |
-| Secondary | Add Kikunoi Honten to Day 1 · Show every trip (empty state) | same |
+| For | checking a trip is ready to travel, and starting one | same |
+| Primary | **Open the trip** (inspector; today an in-page anchor to the day board) — the daily act is checking, not starting | same |
+| Secondary | **New trip** · Add Kikunoi Honten to Day 1 · Show every trip (empty state) | same |
 | Tertiary | Open the traveller · swap the property · status chips · the 30-day chip · day tabs | same |
-| Absent | building or editing an itinerary (DEC-10: Enable writes *to* itinerary tools, it does not build them); booking from here | same |
+| Sheets | New trip: **Create and send to the itinerary tool** | same |
+| Absent | composing a trip's days inside Enable (DEC-10: a trip is created here and written out; its days are built in the itinerary tool); booking from here | same |
 
 ### Knowledge `/knowledge`
 
@@ -226,8 +233,8 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 |---|---|---|
 | For | finding and reading a document | deciding what the assistant is allowed to answer from |
 | Primary | **Open document** (inspector) | **Assign access** (inspector) |
-| Secondary | Manage access (her own uploads only) · Review (indexing) | Review · Open connections · Manage access |
-| Tertiary | Upload · Open review · source tabs | + New connection |
+| Secondary | Manage access (her own uploads and her own sources) · Review (indexing) · Open connections | Review · Open connections · Manage access |
+| Tertiary | Upload · New connection · Open review · source tabs | same |
 | Sheets | — | Access: **Apply and log** |
 | Absent | deleting a document (it is withdrawn from access, and the withdrawal is logged); widening access on a document she did not upload (DEC-25) | same |
 
@@ -237,10 +244,22 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 |---|---|---|
 | For | changing how the product behaves for her | the same, and how it behaves for the agency |
 | Primary | none — a switch *is* the act | none |
-| Secondary | none | Open connections |
+| Secondary | Open connections | same |
 | Tertiary | none | none |
-| Chapters | Profile · Notifications | + Sharing defaults (O8) · Admin access (O9 policy) · Entitlements per user (O10) · Connections |
+| Chapters | Profile · Notifications | + Sharing defaults (O8) · Admin access (O9 policy) · Entitlements per user (O10) |
 | Absent | changing name, role or address (an administrator's act, from the directory) | changing her own role |
+
+### Connections `/connections`
+
+| | Agency user | Agency owner |
+|---|---|---|
+| For | connecting her own mailbox or Drive, so her documents can answer her | the same, and connecting the agency's sources and keeping them healthy |
+| Primary | **Reconnect** the first failing source she connected; with none failing, **Connect a source** | **Reconnect partner portal** — the first failing source, hers or the agency's |
+| Secondary | Reconnect… (on the row) · Close | same |
+| Tertiary | Disconnect · Use another account (in the add flow) | same |
+| Sheets | Add: **Continue** / **Connect source** / **Done**, with Back, Cancel and the provider handoff as secondary · Reconnect: **Request re-authorisation** | same |
+| What arrives | closed to her; opened to others document by document in the vault | closed to the administrators; opened document by document in the vault |
+| Absent | a "who can read it" step (connecting indexes, it never shares — the add flow's own policy); entering a password inside the product (the provider's flow does it — D §4); deleting a connection (it is disconnected, and confirmed records keep their provenance — D X2); seeing another advisor's personal sources | the same, minus nothing: a user's personal source is hers, and reaching into it is break-glass (O9), not a connections view |
 
 ### Confirm records `/admin/review` — owner only
 
@@ -272,17 +291,6 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 | Secondary | Publish (on the row) · Review source · Close |
 | Tertiary | none |
 | Absent | publishing a "needs reading" item before its source is opened; publishing without the owner preserved (DEC-20: source, timestamp, owner travel with the advisory); **approving a field's value** — a note is commentary and is additive, a value is what the product answers with, and the two do not share a queue |
-
-### Connections `/admin/connections` — owner only
-
-| | Agency owner |
-|---|---|
-| For | keeping the sources the answers are built from healthy |
-| Primary | **Reconnect partner portal** (Needs attention tool, the first failing source) |
-| Secondary | Reconnect… (on the row) · Close |
-| Tertiary | Add connection |
-| Sheets | Reconnect: **Request re-authorisation** · Add: **Continue** / **Connect source** / **Done** with Back, Cancel, the provider handoff as secondary and "Use another account" as tertiary |
-| Absent | entering a password inside the product (the provider's flow does it — D §4); deleting a connection (it is disconnected, and confirmed records keep their provenance — D X2) |
 
 ### Unmatched payments `/ops/resolution` — owner only
 
@@ -319,6 +327,8 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 - `Persona` → `"user" | "owner"`; `people`, `personas`, `roleLabel`, `widgetsFor`, `notificationsFor`, `dockTiles`, `ROUTE_ROLES` (shell and contracts) collapse to two.
 - `canViewCommissions(role)` → `canViewCommissions(user)` reading the entitlement from the store, defaulted on; the owner's settings gain the Entitlements chapter that writes it.
 - `scopeWrite`: owner → `direct`; user → `review` at agency scope (unchanged in effect).
+- `/admin/connections` → `/connections`, open to both; a user's list holds the sources she connected, the owner's adds the agency's. The add flow is unchanged — no scope step — but its header comment ("the path an administrator actually walks", "administrators only") is rewritten to say the index arrives closed to whoever connected it.
+- A **New trip** sheet on `/itineraries` and a **Start a trip** secondary on the traveller profile: traveller, dates, destinations, attached records; the commit writes to the itinerary tool.
 - A proposed agency-scope value, a record request and an access request each raise a notification for the owner, whose action opens the thing itself — the record at the proposed field, the directory, the traveller. No new page (O7, §4.2).
 - The traveller profile gains the break-glass sheet for the owner on a profile she does not own (O9).
 - `contracts.mjs`: one contract per surface with `for`, `primary` and `why`, `secondary`, `tertiary`, `absent` and `states` per type, straight from §3; tier 2 checks the ladder renders as declared.
