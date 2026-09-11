@@ -35,7 +35,7 @@ Two demo accounts remain: **R. Devane** (agency user, Paris desk) and **M. Kelle
 | Commission | `/commissions/[id]` | ● | ● | none (a reminder is drafted by whoever owns the booking) |
 | Itineraries | `/itineraries` | ● | ● | none — both create a trip and both check it is ready |
 | Knowledge | `/knowledge` | ● | ● | the owner **assigns access** and sees indexing; the user finds and reads |
-| Settings | `/settings` | ● | ● | the owner's settings carry the agency chapters: sharing defaults, admin access, entitlements per user |
+| Settings | `/settings` | ● | ● | the owner's settings carry the agency chapters: admin access, entitlements per user |
 | Connections | `/connections` | ● | ● | a user connects her own mailbox or Drive; the owner also connects the agency's sources — the shared drive, the intranet, a partner portal. Either way what a source indexes arrives closed to whoever connected it, and is opened one document at a time in the vault |
 | Confirm records | `/admin/review` | — | ● | owner only |
 | Candidate review | `/admin/review/[id]` | — | ● | owner only |
@@ -44,7 +44,7 @@ Two demo accounts remain: **R. Devane** (agency user, Paris desk) and **M. Kelle
 
 Fourteen surfaces in common, four for the owner alone, eighteen in all. The four are three acts: confirming a record (the list and the candidate), publishing to the agency, and matching money nobody claimed. The dock shows seven tiles to the user and ten to the owner (the user's seven, plus Confirm records, Publish queue, Unmatched payments); Connections and Settings live behind the account for both.
 
-**Everything created starts private** (decided 2026-09-11). A record added by hand is private to whoever made it, the owner included, and is shared only by a deliberate act. Confirm records stays for what arrives from sources; it is not the route by which a hand-made record reaches the agency.
+**Everything created starts private** (decided 2026-09-11). A property record, a trip, a note, an uploaded document, a forwarded email, a traveller profile: each is private to whoever made or received it, the owner included, and reaches anyone else only by a deliberate share. There are no per-kind defaults to set, so the owner's *sharing defaults* setting is removed. Today two defaults say otherwise — trips open to the whole agency and uploads to the uploader's team — and both become private. Confirm records stays for what arrives from sources; it is not the route by which anything someone made reaches the agency.
 
 **Connecting a source shares nothing, for either type.** The add flow has no "who can read it" step, and its own header says that absence is the policy: an audience picker would be a bulk share made at the moment someone is thinking about folders and OAuth scopes. That rule needed no change to reach users. The index arrives closed to whoever connected it — a user's mailbox to her, an agency drive to the administrators — and a document opens to anyone else only when a named person opens it in the vault. It is the layer model at the ingestion boundary, which is Journey D's argument.
 
@@ -103,7 +103,6 @@ All of U1–U17 as herself, plus:
 | O5 | **Reject with a reason.** Reject a candidate; the reason is logged. | Candidate → Reject sheet | D §2 |
 | O6 | **Publish a note to the whole agency.** One person's knowledge becomes the agency's: an advisor's team-scope note or advisory, or a forwarded mail, released agency-wide with the owner preserved — after the source has been read. | Publish queue → Source sheet | B §4, DEC-20 |
 | O7 | **Approve a proposed value.** A user's agency-scope field edit is waiting; approve it in place on the record, or return it with a note. | Notification → Record (proposed field) | E 4b, `scopeWrite` |
-| O8 | **Set what the agency shares by default.** Per record kind, what a thing is the moment it arrives. | Settings → Sharing defaults | B U3, DEC-30 |
 | O9 | **Open a personal record under policy.** Break-glass into a private traveller or note: reason, time limit, audit, owner notified. | Traveller (not hers) → Break-glass sheet | DEC-29, F U2 |
 | O10 | **Grant or revoke commission visibility.** The one entitlement the product has: whether a user sees money. It is the whole of what the colleague persona used to be. | Settings → Entitlements | `canViewCommissions` |
 | O11 | **Connect the agency's sources and keep them healthy.** The shared drive, the intranet, a partner portal, through the same four steps as a user; what they index arrives closed to the administrators. Reconnect a failing one; read last success per source. | Connections → Add / Reconnect sheets | D §4, U4, DEC-24 |
@@ -111,7 +110,7 @@ All of U1–U17 as herself, plus:
 | O13 | **Match money nobody claimed.** Match an unmatched payment to a booking with a reason; read the closed ones. | Unmatched payments → Match sheet | C U1 |
 | O14 | **Reconcile.** Read collected against outstanding across the agency; find bookings under projection; read a processor-migration note. | Commissions (Reconciliation, Discrepancies) | C U3, E2 |
 | O15 | **Retire an advisory she owns.** Answer the review nudge on an agency notice — still true, or closed, by a named person on a dated day. Every agency notice in the seed is hers; two are past their review at 76 and 90 days open. Nothing expires on a timer. | Record → Notice; Notifications (review due) | B §4, U5, DEC-03 |
-Fifteen owner journeys, on top of the eighteen she performs as a user. O2–O6 are the demo's third journey; O7–O10 exist in the schema and the decision log but have no surface yet, which is the first thing this exercise exposes.
+Fourteen owner journeys, on top of every journey she performs as a user (O8, setting sharing defaults, was removed when everything became private by default). O2–O6 are the demo's third journey; O7, O9 and O10 exist in the schema and the decision log but have no surface yet, which is the first thing this exercise exposes.
 
 ---
 
@@ -251,7 +250,7 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 | Primary | none — a switch *is* the act | none |
 | Secondary | Open connections | same |
 | Tertiary | none | none |
-| Chapters | Profile · Notifications | + Sharing defaults (O8) · Admin access (O9 policy) · Entitlements per user (O10) |
+| Chapters | Profile · Notifications | + Admin access (O9 policy) · Entitlements per user (O10) |
 | Absent | changing name, role or address (an administrator's act, from the directory) | changing her own role |
 
 ### Connections `/connections`
@@ -291,7 +290,7 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 
 | | Agency owner |
 |---|---|
-| For | releasing one person's note to the whole agency, and setting what the agency shares by default |
+| For | releasing one person's note to the whole agency |
 | Primary | **Publish agency-wide (owner preserved)** (Queue tool, the next publishable item) |
 | Secondary | Publish (on the row) · Review source · Close |
 | Tertiary | none |
@@ -321,7 +320,7 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 
 ## 4. What the exercise exposes
 
-1. **Four owner journeys have no surface.** Approving a proposed value (O7) leaves a chip on a field that nothing tells the owner to look at. Sharing defaults exist on the publish page as a read-only chapter; per-user entitlements (O10) and break-glass (O9) are in the schema and the decision log and nowhere on screen. Settings is where the middle two belong, the traveller profile is where break-glass belongs, and a proposal belongs on the field it proposes — reached by a notification, not by a queue.
+1. **Three owner journeys have no surface.** Approving a proposed value (O7) leaves a chip on a field that nothing tells the owner to look at. Per-user entitlements (O10) and break-glass (O9) are in the schema and the decision log and nowhere on screen. Settings is where entitlements belong, the traveller profile is where break-glass belongs, and a proposal belongs on the field it proposes — reached by a notification, not by a queue.
 2. **The user's request paths are thin.** "Request access from the owner" (F U2) records a request and nothing receives it. ("Request a record" is gone: a user adds the record herself, privately, and shares it when she is ready.) They are the user's only way to reach the agency layer, and like a proposed value they should arrive as notifications rather than as a new page.
 3. **Two surfaces have a primary with nothing under it.** Itineraries' "Open the trip" anchors to a schematic board; the generic record's "Evidence" tool has no action. Both are honest today and both are the first candidates for a scope decision in Pass 2.
 4. **The colleague's absence-not-mask rule survives as a policy gate.** It needs one switch in the owner's settings and one line in the store. The rule itself (absent, never masked) does not change.
@@ -332,6 +331,7 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 - `Persona` → `"user" | "owner"`; `people`, `personas`, `roleLabel`, `widgetsFor`, `notificationsFor`, `dockTiles`, `ROUTE_ROLES` (shell and contracts) collapse to two.
 - `canViewCommissions(role)` → `canViewCommissions(user)` reading the entitlement from the store, defaulted on; the owner's settings gain the Entitlements chapter that writes it.
 - `scopeWrite`: owner → `direct`; user → `review` at agency scope (unchanged in effect).
+- Every create action defaults to private — record, trip, note, upload, forwarded email, traveller. `adminPolicy.defaults` is deleted, and so is the read-only *Sharing defaults* chapter on `/admin/publish`.
 - `/admin/connections` → `/connections`, open to both; a user's list holds the sources she connected, the owner's adds the agency's. The add flow is unchanged — no scope step — but its header comment ("the path an administrator actually walks", "administrators only") is rewritten to say the index arrives closed to whoever connected it.
 - A **New trip** secondary on `/itineraries` and a **Start a trip** secondary on the traveller profile, both opening the itinerary builder. The builder is deferred.
 - A proposed agency-scope value, a record request and an access request each raise a notification for the owner, whose action opens the thing itself — the record at the proposed field, the directory, the traveller. No new page (O7, §4.2).
