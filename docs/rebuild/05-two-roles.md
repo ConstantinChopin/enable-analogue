@@ -75,6 +75,7 @@ Each journey names its evidence in the journey specs (A–F) and the decision lo
 | U10 | **Handle money that came in wrong.** Accept a discrepancy with a reason, or open a dispute draft; read a credit-not-refund case. | Commission | C U2, U3 |
 | U11 | **Check a trip is ready.** Filter trips by status and window; open the day board; act on a preference conflict (swap or proceed knowingly); add a verified record to a day. | Itineraries | C E1, F U1, DEC-27 |
 | U21 | **Build an itinerary.** Start a trip from a traveller or from the trips list, and compose its days in Enable. *Design deferred.* | Traveller / Itineraries → the builder | withdraws DEC-10 |
+| U24 | **Add a traveller by hand.** A prospect met before any booking: name, contact, and whatever she already knows, with a check for an existing traveller first. Private to her. Each preference she types carries her name and the date, like any other source. | Travellers → New traveller sheet | F, DEC-28 |
 | U12 | **Know a traveller.** Open a profile; read preferences with their sources; confirm a single-source preference; confirm or discard a suggestion; read the checklist and profiles. | Travellers → Traveller | F §4, U3, DEC-28 |
 | U13 | **Share a traveller.** Share with a named colleague at Full or Basic; change or revoke; a colleague requests access to one she cannot see. | Traveller → Share sheet | F E1, DEC-31 |
 | U19 | **Retire an advisory she owns.** Close her own personal or team notice when it stops being true, by name and date. The seed's one personal notice is J. Dubois's. Without this, "nothing expires on its own" holds only for the notices the owner happens to own. | Record → Notice; Notifications (review due) | B §4, DEC-03 |
@@ -183,9 +184,11 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 |---|---|---|
 | For | finding a traveller | same, across the agency directory |
 | Primary | **Open full profile** (inspector, once selected) | same |
-| Secondary | Request access from the owner (a profile she cannot open) | Open under policy (break-glass, O9) |
+| Secondary | **New traveller** · Request access from the owner (a profile she cannot open) | **New traveller** · Open under policy (break-glass, O9) |
 | Tertiary | view toggle | same |
-| Absent | creating a traveller by hand on this list (a VIC arrives from a booking or an import and is held as suggestions until confirmed — F X1, DEC-19); seeing a private VIC's fields (absent, not masked — F U2) | same |
+| Sheets | New traveller: **Create traveller** — after a check for an existing traveller with that name and email | same |
+| On create | private to her; what she types is attributed to her and dated, never presented as the client's own statement | same |
+| Absent | seeing a private traveller's fields (absent, not masked — F U2); a preference entered without a source | same |
 
 ### Traveller `/travellers/[id]`
 
