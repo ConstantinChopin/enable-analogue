@@ -32,7 +32,7 @@ Two demo accounts remain: **R. Devane** (agency user, Paris desk) and **M. Kelle
 | Travellers | `/travellers` | ● | ● | the owner sees the agency directory (opt-in VICs) and her own; policy access to a private VIC is break-glass, logged |
 | Traveller | `/travellers/[id]` | ● | ● | break-glass banner and audit when she opens one she does not own |
 | Commissions | `/commissions` | ● | ● | her ledger is agency-wide (every advisor's bookings), with **Discrepancies** and **Reconciliation** views; the user's is her own bookings |
-| Commission | `/commissions/[id]` | ● | ● | none (a reminder is drafted by whoever owns the booking) |
+| Commission | `/commissions/[id]` | ● | ● | the owner can chase any agency commission, not only her own; her reminder goes out in her name and sits in the same chase log as the advisor's |
 | Itineraries | `/itineraries` | ● | ● | none — both create a trip and both check it is ready |
 | Knowledge | `/knowledge` | ● | ● | the owner **assigns access** and sees indexing; the user finds and reads |
 | Settings | `/settings` | ● | ● | the owner's settings carry the agency chapters: admin access, entitlements per user |
@@ -109,9 +109,10 @@ All of U1–U17 as herself, plus:
 | O11 | **Connect the agency's sources and keep them healthy.** The shared drive, the intranet, a partner portal, through the same four steps as a user; what they index arrives closed to the administrators. Reconnect a failing one; read last success per source. | Connections → Add / Reconnect sheets | D §4, U4, DEC-24 |
 | O12 | **Govern the vault.** Assign access to a document; review what is indexing; see what the assistant may answer from. | Knowledge → Access sheet | D §2, DEC-25 |
 | O13 | **Match money nobody claimed.** Match an unmatched payment to a booking with a reason; read the closed ones. | Unmatched payments → Match sheet | C U1 |
+| O16 | **Chase a commission on someone else's booking.** Open any overdue commission in the agency, draft the reminder, edit it, send it in her own name; the chase log shows hers beside the advisor's. | Commissions → Commission → Reminder tool | C §4, U4 |
 | O14 | **Reconcile.** Read collected against outstanding across the agency; find bookings under projection; read a processor-migration note. | Commissions (Reconciliation, Discrepancies) | C U3, E2 |
 | O15 | **Retire an advisory she owns.** Answer the review nudge on an agency notice — still true, or closed, by a named person on a dated day. Every agency notice in the seed is hers; two are past their review at 76 and 90 days open. Nothing expires on a timer. | Record → Notice; Notifications (review due) | B §4, U5, DEC-03 |
-Fourteen owner journeys, on top of every journey she performs as a user (O8, setting sharing defaults, was removed when everything became private by default). O2–O6 are the demo's third journey; O7, O9 and O10 exist in the schema and the decision log but have no surface yet, which is the first thing this exercise exposes.
+Fifteen owner journeys, on top of every journey she performs as a user (O8, setting sharing defaults, was removed when everything became private by default). O2–O6 are the demo's third journey; O7, O9 and O10 exist in the schema and the decision log but have no surface yet, which is the first thing this exercise exposes.
 
 ---
 
@@ -216,8 +217,8 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 
 | | Agency user | Agency owner |
 |---|---|---|
-| For | the advisor who owns the booking | same |
-| Primary | **Draft a reminder** → **Send** (Reminder tool) | same |
+| For | the advisor who owns the booking | the principal, on any agency booking |
+| Primary | **Draft a reminder** → **Send** (Reminder tool), on her own bookings | the same, on any booking; sent in her name |
 | Secondary | Discard · Accept with reason · Open dispute draft · Back to the ledger | same |
 | Tertiary | Open that record (sibling booking) | same |
 | Sheets | Accept: **Accept and log** · Dispute: **Open the draft** | same |
