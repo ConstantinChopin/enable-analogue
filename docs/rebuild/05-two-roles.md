@@ -46,6 +46,8 @@ Fourteen surfaces in common, four for the owner alone, eighteen in all. The four
 
 **Everything created starts private** (decided 2026-09-11). A property record, a trip, a note, an uploaded document, a forwarded email, a traveller profile: each is private to whoever made or received it, the owner included, and reaches anyone else only by a deliberate share. Working inside an agency does not hand an advisor's personal layer to the agency: the owner cannot widen, re-scope or share anything an advisor made or brought in, and cannot open it either (decided 2026-09-11). There is no policy access and no logged look: DEC-29's break-glass is withdrawn. When an advisor is away, her travellers are covered because she shared them before she left (Journey F), which keeps sharing the only way in. There are no per-kind defaults to set, so the owner's *sharing defaults* setting is removed. Today two defaults say otherwise — trips open to the whole agency and uploads to the uploader's team — and both become private. Confirm records stays for what arrives from sources; it is not the route by which anything someone made reaches the agency.
 
+**One sharing rule, for everything** (decided 2026-09-11). Sharing with a named colleague or with your own team takes effect at once. Sharing with **the whole agency** waits in the owner's publish queue until she releases it — a note, a property, a trip, a document, an advisory, a traveller profile alike — and it goes out with its author kept. The owner's own agency-wide shares go out directly, since she is the one who would release them. The publish queue is therefore the single place where the owner decides what the entire agency sees.
+
 **Connecting a source shares nothing, for either type.** The add flow has no "who can read it" step, and its own header says that absence is the policy: an audience picker would be a bulk share made at the moment someone is thinking about folders and OAuth scopes. That rule needed no change to reach users. The index arrives closed to whoever connected it — a user's mailbox to her, an agency drive to the administrators — and a document opens to anyone else only when a named person opens it in the vault. It is the layer model at the ingestion boundary, which is Journey D's argument.
 
 **Itineraries are built in Enable** (decided 2026-09-11, design deferred). Both types create a trip and compose its days here — events, transfers, dining, accommodation — rather than handing it to Axus or Travify. This withdraws DEC-10's refusal of an itinerary builder, so the case study's account of what Enable chose not to build must be rewritten. The builder is designed after the rest of this document is settled; until then the itinerary rows below say *deferred* rather than guess.
@@ -65,11 +67,11 @@ Each journey names its evidence in the journey specs (A–F) and the decision lo
 | U1 | **Open the day.** Read the brief, see what is owed, leaving and open, and go to the first thing. | Brief → Commissions / Itineraries / Notifications | C §4 |
 | U2 | **Ask and check.** Ask a question; read a cited answer; open a source; resolve a conflict from the answer; accept a refusal and take one of its three exits (forward a document, ask the rep firm, flag for review). | Ask → Sources → Resolve sheet / Document sheet | A §4, U1–U5 |
 | U3 | **Find a record.** Filter the directory by category and facets, switch grid and table, select, open. | Records → Record | E §3 |
-| U23 | **Add a record by hand.** Like raising a ticket: a short form — name, category, city, and whatever she knows — with a check for an existing record of that name and place before it is created. It is **private to her** when created, marked *added by hand*, and nobody else sees it until she shares it — with her team or the whole agency, the same three choices as a note. The same holds for the owner. | Records → New record sheet → Share | schema dedup; D §2 |
+| U23 | **Add a record by hand.** Like raising a ticket: a short form — name, category, city, and whatever she knows — with a check for an existing record of that name and place before it is created. It is **private to her** when created, marked *added by hand*, and nobody else sees it until she shares it: with her team at once, or with the whole agency through the owner's publish queue. The owner's records are private too, and her agency-wide shares go out directly. | Records → New record sheet → Share | schema dedup; D §2 |
 | U4 | **Read a record.** See each value's layer, source and age; open provenance; verify a stale field against its source; read the summary of what is unsettled. | Record | E 4a, U3 |
 | U5 | **Settle a disagreement.** Choose one of three source values for the commission, give a reason, watch it propagate to the directory, quotes and answers. | Record → Resolve sheet | E U1, DEC-02, DEC-08 |
 | U6 | **Change a value with a scope.** Edit a field for just me, my team, or the agency; the agency scope goes to the owner for review; revert my change. | Record → Edit sheet | E 4b, DEC-08 |
-| U7 | **Annotate.** Add a private, team or agency note; add a notice with a severity and scope (agency scope submits for release). | Record → Note / Notice sheets | E 4b, B §3 |
+| U7 | **Annotate.** Add a note or a notice, private by default; share it with her team at once, or with the whole agency, which waits for the owner to release it. | Record → Note / Notice sheets | E 4b, B §3 |
 | U8 | **Respect a Critical notice.** Try to shortlist a blocked property; acknowledge the notice, recorded with name and date; then shortlist. | Record (Verlaine) → Acknowledge dialog | B U2, DEC-18 |
 | U9 | **Chase money.** Open a commission; read projected → due → paid with sources; draft the reminder; edit a line; send; see the chase logged. | Commissions → Commission → Reminder tool | C §4, U4 |
 | U10 | **Handle money that came in wrong.** Accept a discrepancy with a reason, or open a dispute draft; read a credit-not-refund case. | Commission | C U2, U3 |
@@ -77,7 +79,7 @@ Each journey names its evidence in the journey specs (A–F) and the decision lo
 | U21 | **Build an itinerary.** Start a trip from a traveller or from the trips list, and compose its days in Enable. *Design deferred.* | Traveller / Itineraries → the builder | withdraws DEC-10 |
 | U24 | **Add a traveller by hand.** A prospect met before any booking: name, contact, and whatever she already knows, with a check for an existing traveller first. Private to her. Each preference she types carries her name and the date, like any other source. | Travellers → New traveller sheet | F, DEC-28 |
 | U12 | **Know a traveller.** Open a profile; read preferences with their sources; confirm a single-source preference; confirm or discard a suggestion; read the checklist and profiles. | Travellers → Traveller | F §4, U3, DEC-28 |
-| U13 | **Share a traveller.** Share with a named colleague at Full or Basic; change or revoke; a colleague requests access to one she cannot see. | Traveller → Share sheet | F E1, DEC-31 |
+| U13 | **Share a traveller.** Share with a named colleague at Full or Basic, at once; share with the whole agency, which waits for the owner; change or revoke; a colleague requests access to one she cannot see. | Traveller → Share sheet | F E1, DEC-31 |
 | U19 | **Retire an advisory she owns.** Close her own personal or team notice when it stops being true, by name and date. The seed's one personal notice is J. Dubois's. Without this, "nothing expires on its own" holds only for the notices the owner happens to own. | Record → Notice; Notifications (review due) | B §4, DEC-03 |
 | U18 | **Read client intelligence.** On a record, who booked it last and which travellers prefer or avoid it — each one visible only through that traveller's own sharing, so the chapter is the same for both types and simply holds more for the owner. | Record → Client intelligence | E E4, DEC-27 |
 | U14 | **Clear what is waiting.** Triage notifications by state and tag; action, defer, or mark seen; follow one to its subject. | Notifications | B X2, C |
@@ -102,7 +104,7 @@ All of U1–U17 as herself, plus:
 | O3 | **Decide a duplicate.** Review the match against the existing record; merge with a reason, or create new. | Candidate → Merge sheet | D U2, DEC-33 |
 | O4 | **Key what could not be read.** An unreadable row: key the name by hand, carried as a manual entry. | Candidate | D U3 |
 | O5 | **Reject with a reason.** Reject a candidate; the reason is logged. | Candidate → Reject sheet | D §2 |
-| O6 | **Publish a note to the whole agency.** One person's knowledge becomes the agency's: an advisor's team-scope note or advisory, or a forwarded mail, released agency-wide with the owner preserved — after the source has been read. | Publish queue → Source sheet | B §4, DEC-20 |
+| O6 | **Release what an advisor shared with the whole agency.** Anything an advisor has shared agency-wide waits here — a note, an advisory, a property, a trip, a document, a traveller profile, a forwarded mail. She reads it, and its source where it has one, and releases it with its author kept, or returns it. | Publish queue → Source sheet | B §4, DEC-20 |
 | O7 | **Approve a proposed value.** A user's agency-scope field edit is waiting; approve it in place on the record, or return it with a note. | Notification → Record (proposed field) | E 4b, `scopeWrite` |
 | O10 | **Grant or revoke commission visibility.** The one entitlement the product has: whether a user sees money. It is the whole of what the colleague persona used to be. | Settings → Entitlements | `canViewCommissions` |
 | O11 | **Connect the agency's sources and keep them healthy.** The shared drive, the intranet, a partner portal, through the same four steps as a user; what they index arrives closed to the administrators. Reconnect a failing one; read last success per source. | Connections → Add / Reconnect sheets | D §4, U4, DEC-24 |
@@ -162,8 +164,8 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 | Primary | **Open full record** (inspector, once a card is selected); none with nothing selected | same |
 | Secondary | **New record** · Ask about this · Clear all filters (empty state) | same |
 | Tertiary | Clear all · facet chips · view toggle · category band | same |
-| Sheets | New record: **Create record** — after the duplicate check · Share: **Share record** — just me, my team, the whole agency | same |
-| On create | private to her, marked *added by hand*; shared only when she chooses — her team or the whole agency | same: the owner's new records are private too |
+| Sheets | New record: **Create record** — after the duplicate check · Share: **Share record** — just me, my team (at once), the whole agency (waits for the owner) | Share: the whole agency goes out directly |
+| On create | private to her, marked *added by hand*; shared only when she chooses | same: the owner's new records are private too |
 | Absent | creating a record that already exists (the form checks name and place first) | same |
 
 ### Record `/records/[id]`
@@ -293,9 +295,9 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 
 | | Agency owner |
 |---|---|
-| For | releasing one person's note to the whole agency |
+| For | deciding what the whole agency sees: releasing anything an advisor has shared agency-wide |
 | Primary | **Publish agency-wide (owner preserved)** (Queue tool, the next publishable item) |
-| Secondary | Publish (on the row) · Review source · Close |
+| Secondary | Publish (on the row) · Review source · **Return with a note** · Close |
 | Tertiary | none |
 | Absent | publishing a "needs reading" item before its source is opened; publishing without the owner preserved (DEC-20: source, timestamp, owner travel with the advisory); **approving a field's value** — a note is commentary and is additive, a value is what the product answers with, and the two do not share a queue |
 
