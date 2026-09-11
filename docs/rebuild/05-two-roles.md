@@ -44,7 +44,7 @@ Two demo accounts remain: **R. Devane** (agency user, Paris desk) and **M. Kelle
 
 Fourteen surfaces in common, four for the owner alone, eighteen in all. The four are three acts: confirming a record (the list and the candidate), publishing to the agency, and matching money nobody claimed. The dock shows seven tiles to the user and ten to the owner (the user's seven, plus Confirm records, Publish queue, Unmatched payments); Connections and Settings live behind the account for both.
 
-**Everything created starts private** (decided 2026-09-11). A property record, a trip, a note, an uploaded document, a forwarded email, a traveller profile: each is private to whoever made or received it, the owner included, and reaches anyone else only by a deliberate share. There are no per-kind defaults to set, so the owner's *sharing defaults* setting is removed. Today two defaults say otherwise — trips open to the whole agency and uploads to the uploader's team — and both become private. Confirm records stays for what arrives from sources; it is not the route by which anything someone made reaches the agency.
+**Everything created starts private** (decided 2026-09-11). A property record, a trip, a note, an uploaded document, a forwarded email, a traveller profile: each is private to whoever made or received it, the owner included, and reaches anyone else only by a deliberate share. Working inside an agency does not hand an advisor's personal layer to the agency: the owner cannot widen, re-scope or share anything an advisor made or brought in. There are no per-kind defaults to set, so the owner's *sharing defaults* setting is removed. Today two defaults say otherwise — trips open to the whole agency and uploads to the uploader's team — and both become private. Confirm records stays for what arrives from sources; it is not the route by which anything someone made reaches the agency.
 
 **Connecting a source shares nothing, for either type.** The add flow has no "who can read it" step, and its own header says that absence is the policy: an audience picker would be a bulk share made at the moment someone is thinking about folders and OAuth scopes. That rule needed no change to reach users. The index arrives closed to whoever connected it — a user's mailbox to her, an agency drive to the administrators — and a document opens to anyone else only when a named person opens it in the vault. It is the layer model at the ingestion boundary, which is Journey D's argument.
 
@@ -239,12 +239,12 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 
 | | Agency user | Agency owner |
 |---|---|---|
-| For | finding and reading a document | deciding what the assistant is allowed to answer from |
-| Primary | **Open document** (inspector) | **Assign access** (inspector) |
+| For | finding and reading a document | deciding what the assistant is allowed to answer from, across the agency's own sources |
+| Primary | **Open document** (inspector) | **Assign access** (inspector) — on documents from the agency's sources only |
 | Secondary | Manage access (her own uploads and her own sources) · Review (indexing) · Open connections | Review · Open connections · Manage access |
 | Tertiary | Upload · New connection · Open review · source tabs | same |
 | Sheets | — | Access: **Apply and log** |
-| Absent | deleting a document (it is withdrawn from access, and the withdrawal is logged); widening access on a document she did not upload (DEC-25) | same |
+| Absent | deleting a document (it is withdrawn from access, and the withdrawal is logged); widening access on a document she did not upload (DEC-25) | the same, and **changing who sees an advisor's own document** — one she uploaded or indexed from her own mailbox or Drive. That is the personal layer: it belongs to the advisor even inside an agency, and only she shares it |
 
 ### Settings `/settings`
 
