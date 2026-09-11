@@ -323,23 +323,46 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 
 ---
 
-## 4. What the exercise exposes
+## 4. What is still open
 
-1. **Two owner journeys have no surface.** Approving a proposed value (O7) leaves a chip on a field that nothing tells the owner to look at. Per-user commission visibility (O10) is in the schema and nowhere on screen. Settings is where the switch belongs, and a proposal belongs on the field it proposes — reached by a notification, not by a queue.
-2. **The user's request paths are thin.** "Request access from the owner" (F U2) records a request and nothing receives it. ("Request a record" is gone: a user adds the record herself, privately, and shares it when she is ready.) They are the user's only way to reach the agency layer, and like a proposed value they should arrive as notifications rather than as a new page.
-3. **Two surfaces have a primary with nothing under it.** Itineraries' "Open the trip" anchors to a schematic board; the generic record's "Evidence" tool has no action. Both are honest today and both are the first candidates for a scope decision in Pass 2.
-4. **The colleague's absence-not-mask rule survives as a policy gate.** It needs one switch in the owner's settings and one line in the store. The rule itself (absent, never masked) does not change.
-5. **The dock tells the type at a glance.** Seven tiles or ten. That is the whole permission story a panellist can see without a slide.
+Decided during the walkthrough of 2026-09-11 and not yet on screen, in the order they block other work.
+
+1. **The itinerary builder.** Decided: both types compose a trip's days in Enable. Design deferred until everything else here is settled. It withdraws DEC-10, so the case study's account of what Enable chose not to build must be rewritten.
+2. **The publish queue receives six kinds of thing and draws two.** Today it shows an advisory and a forwarded mail. Under the one sharing rule it also receives notes, properties, trips, documents and traveller profiles shared with the whole agency, each needing its own row, a way to read what is being released, and **Return with a note**.
+3. **Two owner acts have no screen.** Approving a user's proposed value (O7) leaves a chip on a field that nothing points her to; it should arrive as a notification that opens the record at that field. Who can see money, per user (O10), is in the schema and nowhere on screen; it belongs in her settings.
+4. **Asking for access goes nowhere.** A user who cannot open a traveller can ask for access, and the request is recorded and received by nobody. It should reach the traveller's advisor — not the owner, who has no way in either — as a notification.
+5. **The generic record's Evidence panel has no action.** Honest today; a candidate for a scope decision in Pass 2.
+6. **Two withdrawn decisions change the case study.** DEC-10 (no itinerary builder) and DEC-29 (policy access to personal records) are both withdrawn. The case study currently narrates the first as a refusal; both need rewriting in Pass 3.
+
+Holding, and worth saying in a review:
+
+- **The dock tells the type at a glance.** Seven tiles or ten; the whole permission story, visible without a slide.
+- **The colleague persona was two switches.** One survives, who can see money, as a per-user setting. The other, which travellers she can see, was never a role: it is what sharing already does.
+- **The personal layer is the advisor's, full stop.** The owner cannot open it, widen it, re-scope it or share it. Everything created starts there, and only its maker moves it.
 
 ## 5. Implementation deltas (not executed; for the build after review)
 
-- `Persona` → `"user" | "owner"`; `people`, `personas`, `roleLabel`, `widgetsFor`, `notificationsFor`, `dockTiles`, `ROUTE_ROLES` (shell and contracts) collapse to two.
-- `canViewCommissions(role)` → `canViewCommissions(user)` reading the entitlement from the store, defaulted on; the owner's settings gain the Entitlements chapter that writes it.
-- `scopeWrite`: owner → `direct`; user → `review` at agency scope (unchanged in effect).
-- Every create action defaults to private — record, trip, note, upload, forwarded email, traveller. `adminPolicy.defaults` is deleted, and so is the read-only *Sharing defaults* chapter on `/admin/publish`.
-- `/admin/connections` → `/connections`, open to both; a user's list holds the sources she connected, the owner's adds the agency's. The add flow is unchanged — no scope step — but its header comment ("the path an administrator actually walks", "administrators only") is rewritten to say the index arrives closed to whoever connected it.
-- A **New trip** secondary on `/itineraries` and a **Start a trip** secondary on the traveller profile, both opening the itinerary builder. The builder is deferred.
-- A proposed agency-scope value, a record request and an access request each raise a notification for the owner, whose action opens the thing itself — the record at the proposed field, the directory, the traveller. No new page (O7, §4.2).
-- `adminPolicy.breakGlass` and its two logged openings are deleted, with the *Admin access to personal records* chapter on `/admin/publish`. Nothing in the product lets the owner open an advisor's private work.
+**Roles**
+- `Persona` → `"user" | "owner"`; `people`, `personas`, `roleLabel`, `widgetsFor`, `notificationsFor`, `dockTiles` and `ROUTE_ROLES` (shell and contracts) collapse to two. Sign-in keeps two accounts: R. Devane (user) and M. Keller (owner).
+- `canViewCommissions(role)` → `canViewCommissions(user)`, reading a per-user switch defaulted on; the owner's settings gain the chapter that writes it.
+- `/admin/connections` → `/connections`, open to both. A user's list holds the sources she connected; the owner's adds the agency's. The add flow keeps its four steps and no scope step; its header comment is rewritten to say the index arrives closed to whoever connected it.
+
+**Sharing**
+- Every create action defaults to private: record, trip, note, notice, upload, forwarded email, traveller. `adminPolicy.defaults` is deleted, with the *Sharing defaults* chapter on `/admin/publish`.
+- One share control everywhere: just me · a named colleague or my team (at once) · the whole agency (to the publish queue). `scopeWrite` becomes: owner → direct at every scope; user → direct below agency, queue at agency.
+- `adminPolicy.breakGlass` and its two logged openings are deleted, with the *Admin access to personal records* chapter. Nothing lets the owner open an advisor's private work.
+- `publishQueue` takes an item kind (note, notice, record, trip, document, traveller, forwarded mail), a per-kind preview, and **Return with a note** beside **Publish**.
+
+**New acts**
+- **New record** on `/records` and **New traveller** on `/travellers`: a short form, a duplicate check (name and place; name and email), private on create, then the share control.
+- **New trip** on `/itineraries` and **Start a trip** on the traveller profile, both opening the builder. The builder is deferred.
+- **Retire** on a notice, for whoever owns it, answering the review nudge.
+- The owner's **Draft a reminder** works on any agency commission, sent in her name, logged beside the advisor's.
+- A proposed agency-scope value notifies the owner and opens the record at that field with **Approve** and **Return with a note**. An access request notifies the traveller's advisor.
+
+**Harness and demo**
 - `contracts.mjs`: one contract per surface with `for`, `primary` and `why`, `secondary`, `tertiary`, `absent` and `states` per type, straight from §3; tier 2 checks the ladder renders as declared.
-- The demo script's four journeys re-keyed to two accounts: keys 1–7 as R. Devane, key 8 as M. Keller.
+- The demo script re-keyed to two accounts: keys 1–7 as R. Devane, key 8 as M. Keller.
+
+**Already done**
+- Acuity removed from the product and the live specs (commit 2970df1).
