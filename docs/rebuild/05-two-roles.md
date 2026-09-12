@@ -296,7 +296,7 @@ Where the two types differ the row says so. Where a row says "same", the owner s
 | | Agency owner |
 |---|---|
 | For | deciding what the whole agency sees: releasing anything an advisor has shared agency-wide |
-| Primary | **Publish agency-wide (owner preserved)** (Queue tool, the next publishable item) |
+| Primary | **Publish to the whole agency** (Queue tool, the next publishable item) |
 | Secondary | Publish (on the row) · Review source · **Return with a note** · Close |
 | Tertiary | none |
 | Absent | publishing a "needs reading" item before its source is opened; publishing without the owner preserved (DEC-20: source, timestamp, owner travel with the advisory); **approving a field's value** — a note is commentary and is additive, a value is what the product answers with, and the two do not share a queue |
@@ -364,5 +364,11 @@ Holding, and worth saying in a review:
 - `contracts.mjs`: one contract per surface with `for`, `primary` and `why`, `secondary`, `tertiary`, `absent` and `states` per type, straight from §3; tier 2 checks the ladder renders as declared.
 - The demo script re-keyed to two accounts: keys 1–7 as R. Devane, key 8 as M. Keller.
 
-**Already done**
+**Already done** (2026-09-12)
 - Acuity removed from the product and the live specs (commit 2970df1).
+- The spine: `Persona` is `user | owner`; two sign-ins; the dock is seven tiles or ten; `/connections` shared, each source scoped; the store carries the money entitlement, hand-made records and travellers, the release decision, retiring, access requests, document shares, approving or returning a proposed value; signing out keeps the day (commit 5ccba07).
+- Every surface: New record and New traveller (private on create, duplicate check, the share control with the wait-for-owner wording); the publish queue reading every kind from the store with Publish and Return with a note; Approve / Return on a proposed value, reached from the owner's inbox; Retire on a notice its owner holds; the owner chasing any commission in her name; Assign access confined to agency documents; the money switch in the owner's settings; one inbox that includes what happened this session; totals that count only what the signed-in person can reach.
+- Harness: contracts declare a job for both types on every shared surface (24 screen/type pairs); `evals/flows-two-roles.mjs` walks the four cross-account handoffs.
+
+**Not done, by decision**
+- New trip / Start a trip: both open the itinerary builder, which is deferred, so neither is drawn.

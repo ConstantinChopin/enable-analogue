@@ -14,6 +14,13 @@
  * action a notification). Mark actioned · Defer are secondaries; "Put it back in
  * the open list" is a text action.
  *
+ * Whose items: `inboxFor(s)` — the seeded day for the signed-in type plus what happened
+ * this session (a proposed value, a share waiting in the queue, a return, an access
+ * request). A live item is an item like any other: its action is the panel's primary.
+ * Tags are the ones present — the user's Records · Commissions · Traveller; the owner's
+ * add Ingestion · Connections · Knowledge. A user without the money entitlement has no
+ * Commissions items at all (absent, not masked).
+ *
  * Colour means severity here and nothing else (contract taxonomies: ["severity"]).
  * The severity chip is the only chroma on a row; triage state is a neutral chip
  * whose word does the work. A selected row carries a 2px ink left edge and a fill.
@@ -24,8 +31,8 @@ import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useDemo, type NoticeState } from "@/lib/store";
-import { notificationsFor, type Notification, type NotifTag } from "@/data/seed";
+import { useDemo, inboxFor, canViewCommissions, type NoticeState } from "@/lib/store";
+import type { Notification, NotifTag } from "@/data/seed";
 import { PageHeader, SplitPage } from "@/components/layouts";
 import { Chip, DataList, EmptyState, Section, Segmented, NarrationNote, SchematicBadge, Rows } from "@/components/bits";
 import { Button } from "@/components/ui/button";
@@ -35,8 +42,10 @@ const TAG_ORDER: NotifTag[] = ["Records", "Commissions", "Ingestion", "Traveller
 
 const SEVERITY_RANK = { Critical: 0, Important: 1, Info: 2 } as const;
 
-/** "Today 08:12" / "Yesterday 18:20" → a comparable number. Newest is largest. */
+/** "Today 08:12" / "Yesterday 18:20" → a comparable number. Newest is largest.
+    "Just now" is what happened this session, so it sorts above the seeded day. */
 function recency(when: string) {
+  if (when === "Just now") return 100000;
   const m = /^(Today|Yesterday)\s+(\d{1,2}):(\d{2})$/.exec(when);
   if (!m) return 0;
   return (m[1] === "Today" ? 10000 : 0) + Number(m[2]) * 60 + Number(m[3]);
@@ -93,7 +102,16 @@ function Triage() {
   const [stateFilter, setStateFilter] = useState<StateFilter>("open");
   const [selected, setSelected] = useState<string | null>(null);
 
-  const mine = useMemo(() => notificationsFor(s.role), [s.role]);
+  /* The money gate applies to the stream as it does everywhere else: a user the owner
+     has not entitled has no commission items, rather than items with figures hidden.
+     A Records item about a commission rate (the three-source conflict) is money too.
+     The seed carries no flag for it yet, so the headline is read. */
+  const money = canViewCommissions(s);
+  const mine = useMemo(
+    () => inboxFor(s).filter((n) => money || !(n.tag === "Commissions" || /commission/i.test(n.headline))),
+    // inboxFor reads the session's mutations; `s` is a new object on every one of them.
+    [s, money],
+  );
   const stateOf = (n: Notification): NoticeState => s.notices[n.id] ?? n.defaultState;
 
   const byState = useMemo(

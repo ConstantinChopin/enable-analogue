@@ -16,20 +16,35 @@
  * secondary "Resolve…" so the decision is reachable from the field too (VIS-072).
  * Text actions (Edit · Add note · Add notice) sit in the title row.
  *
+ * Two sign-ins read the same record (docs/rebuild/05-two-roles.md). A value the
+ * advisor proposes for the whole agency waits on its field for the owner, who
+ * approves it in place (secondary) or returns it with a note (text action → a sheet
+ * whose filled action returns it); a returned value comes back to its author on the
+ * same field, not applied. `?review=<key>` scrolls to that field on arrival. Neither
+ * is a second pill: "Resolve 3 sources" stays the page's one primary. An edit written
+ * for just me or my team is absent for the other type, never masked.
+ *
+ * A notice with its review due offers its owner "Still true" (text action) and
+ * "Retire" (secondary → a sheet with a required reason, "Retire notice"). A retired
+ * notice leaves the record and says so once. A notice someone else owns has neither.
+ *
  * Maison Léandre carries the whole anatomy; Hôtel Verlaine the Critical gate; every
- * other id renders a real record from its own seed fields.
+ * other id renders a real record from its own seed fields. A record added by hand
+ * renders a plain page for whoever it is visible to — its one action, in the rail, is
+ * "Share record", for its maker only — and "Not in the directory" for anyone else.
  */
-import { Suspense, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  useDemo, canViewCommissions, scopeWrite, scopeAudience, type EditScope,
+  useDemo, canViewCommissions, scopeWrite, scopeAudience,
+  type CreatedRecord, type DemoState, type EditScope, type ShareScope,
 } from "@/lib/store";
 import {
   products, productById, leandreFields, leandreContext, commissionConflict,
   notices, promotions, people, personName,
-  type Field, type Layer, type Product, keptSource,
+  type Field, type Layer, type Notice, type Persona, type Product, keptSource,
 } from "@/data/seed";
 import { Page, PageHeader, PropertyGallery } from "@/components/layouts";
 import {
@@ -81,10 +96,14 @@ function EditFieldSheet({
 
   const key = field?.key ?? "";
   const [seeded, setSeeded] = useState("");
+  /* Seed from an edit this person may see: her own, or one applied for the whole agency. */
+  const existing = s.fieldEdits[key];
+  const mine = existing?.by === s.role;
+  const seedFrom = existing && (mine || (existing.scope === "agency" && !existing.pending && !existing.returned)) ? existing : undefined;
   if (open && key && seeded !== key) {
     setSeeded(key);
-    setValue(s.fieldEdits[key]?.value ?? field?.value ?? "");
-    setScope(s.fieldEdits[key]?.scope ?? (field?.layer === "agency" ? "agency" : "personal"));
+    setValue(seedFrom?.value ?? field?.value ?? "");
+    setScope(seedFrom?.scope ?? (field?.layer === "agency" ? "agency" : "personal"));
     setReason("");
   }
 
@@ -153,7 +172,7 @@ function EditFieldSheet({
                       <span className="type-data">{label}</span>
                       <span className="type-meta">
                         {scopeAudience(v, s.role)}
-                        {needsReview && " · goes to a lead for review"}
+                        {needsReview && ` · waits for ${people.owner} to release it`}
                       </span>
                     </Label>
                   </div>
@@ -183,7 +202,7 @@ function EditFieldSheet({
             <div className="type-micro-caps text-label-tertiary">On save</div>
             <p className="mt-1 type-data-read text-label-secondary">
               {mode === "review" ? (
-                <>Queued for {people.owner} to approve. Until then the record answers with the value it has now.</>
+                <>Waits for {people.owner} to release it to the whole agency. Until she does, the record answers with the value it has now.</>
               ) : (
                 <>Live immediately · {scopeAudience(scope, s.role)} · as {personName[s.role]}, today.</>
               )}
@@ -194,7 +213,7 @@ function EditFieldSheet({
             <Button disabled={!dirty || !reason.trim()} onClick={commit}>
               {mode === "review" ? "Submit for review" : "Save change"}
             </Button>
-            {s.fieldEdits[field.key] && (
+            {mine && (
               <Button
                 variant="secondary"
                 onClick={() => { d({ type: "revertField", key: field.key }); onOpenChange(false); }}
@@ -338,8 +357,23 @@ function LeandreRecord() {
   const [noteScope, setNoteScope] = useState<"private" | "team" | "agency">("private");
   const [noteText, setNoteText] = useState("");
   const [savedScope, setSavedScope] = useState<"private" | "team" | "agency">("private");
+  const [returnKey, setReturnKey] = useState<string | null>(null);
+  const [reviewed, setReviewed] = useState<{ label: string; outcome: "approved" | "returned" } | null>(null);
   const spaNotice = notices.find((n) => n.id === "spa");
   const promo = promotions.find((x) => x.id === "atelier-credit");
+
+  /* A notification about a proposed value opens the record at that field. */
+  const reviewKey = search?.get("review") ?? null;
+  useEffect(() => {
+    if (!reviewKey) return;
+    document.getElementById(`field-${reviewKey}`)?.scrollIntoView({ block: "center" });
+  }, [reviewKey]);
+
+  const approve = (f: Field) => {
+    d({ type: "reviewEdit", key: f.key, outcome: "approved" });
+    setReviewed({ label: f.label, outcome: "approved" });
+  };
+  const returnField = leandreFields.find((f) => f.key === returnKey) ?? null;
 
   const groups: { layer: Layer; title: string }[] = [
     { layer: "canonical", title: "Enable canonical" },
@@ -354,7 +388,11 @@ function LeandreRecord() {
         (s.role === "user" || f.key !== "note-rd")
     );
 
-  const scopeLabel = { private: "private to " + people.advisor, team: "team · Paris desk", agency: "agency-wide" }[savedScope];
+  const scopeLabel = {
+    private: "private to " + personName[s.role],
+    team: "team · Paris desk",
+    agency: s.role === "owner" ? "agency-wide" : `shared with the whole agency, waiting for ${people.owner} to release it`,
+  }[savedScope];
   const staleField = leandreFields.find((f) => f.state === "stale");
   const kept = keptSource(s.conflictChoice);
 
@@ -389,15 +427,16 @@ function LeandreRecord() {
           </NarrationNote>
 
           <div className="space-y-[var(--space-2)] pb-[var(--gap-2)] empty:hidden">
-            {s.world === "v2" && spaNotice && !s.spaNoticeClosed && (
-              <SeverityBanner severity="Important">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span><b>{spaNotice.text}</b> Opened {spaNotice.openedAt} · {spaNotice.scope} scope · {spaNotice.owner}</span>
-                  <span className="ml-auto" />
-                  {spaNotice.staleReviewDue && <Chip tone="warn">Still true? review due · {spaNotice.ageDays}d open</Chip>}
-                </div>
-              </SeverityBanner>
+            {s.world === "v2" && spaNotice && (
+              s.retired[spaNotice.id]
+                ? <RetiredBanner n={spaNotice} />
+                : !s.spaNoticeClosed && <NoticeBanner n={spaNotice} />
             )}
+            <ConfirmBanner show={!!reviewed}>
+              {reviewed?.outcome === "approved"
+                ? `Approved — ${people.advisor}’s value for ${reviewed.label.toLowerCase()} is now the agency’s, attributed to her.`
+                : `Returned to ${people.advisor} with your note. The record keeps the value it has.`}
+            </ConfirmBanner>
             <ConfirmBanner show={s.noteSaved}>Note saved — {scopeLabel} · attributed and dated.</ConfirmBanner>
             {editing && (
               <div className="rounded-lg bg-sunken px-[var(--space-4)] py-[var(--space-3)]">
@@ -407,7 +446,7 @@ function LeandreRecord() {
                   stays readable underneath. Every change picks who it is for: just you, your team, or the
                   whole agency.{" "}
                   {scopeWrite(s.role, "agency") === "review"
-                    ? `Agency-wide changes go to ${people.owner} for review before anyone else sees them.`
+                    ? `Agency-wide changes wait for ${people.owner} to release them before anyone else sees them.`
                     : "You can publish agency-wide changes directly."}
                 </p>
               </div>
@@ -426,6 +465,8 @@ function LeandreRecord() {
                     onResolve={() => setResolveOpen(true)}
                     editing={editing}
                     onEdit={() => setEditField(f)}
+                    onApprove={() => approve(f)}
+                    onReturn={() => setReturnKey(f.key)}
                   />
                 ))}
                 {g.layer === "personal" && s.noteSaved && s.role === "user" && (
@@ -563,6 +604,13 @@ function LeandreRecord() {
 
       <ResolveSheet open={resolveOpen} onOpenChange={setResolveOpen} />
       <EditFieldSheet field={editField} open={!!editField} onOpenChange={(v) => !v && setEditField(null)} />
+      <ReturnEditSheet
+        key={returnKey ?? "none"}
+        field={returnField}
+        open={!!returnField}
+        onOpenChange={(v) => !v && setReturnKey(null)}
+        onReturned={(label) => setReviewed({ label, outcome: "returned" })}
+      />
 
       {/* ── all amenities: the sheet reuses the page's rows ── */}
       <Sheet open={amenitiesOpen} onOpenChange={setAmenitiesOpen}>
@@ -589,12 +637,16 @@ function LeandreRecord() {
         <SheetContent side="right">
           <SheetHeader>
             <SheetTitle>Add a note</SheetTitle>
-            <SheetDescription>Attributed to {people.advisor}, dated today. The scope is chosen at creation.</SheetDescription>
+            <SheetDescription>Attributed to {personName[s.role]}, dated today. It starts private to you; the scope is chosen at creation.</SheetDescription>
           </SheetHeader>
           <SheetBody>
             <Textarea placeholder="What should the record remember?" aria-label="Note text" value={noteText} onChange={(e) => setNoteText(e.target.value)} />
             <RadioGroup value={noteScope} onValueChange={(v) => setNoteScope(v as typeof noteScope)}>
-              {([["private", "Private", `Only ${people.advisor}`], ["team", "Team", "Paris desk"], ["agency", "Agency-wide", "Every advisor"]] as const).map(([v, l, hint]) => (
+              {([
+                ["private", "Just me", `Only ${personName[s.role]}`],
+                ["team", "My team", "Paris desk · at once"],
+                ["agency", "The whole agency", s.role === "owner" ? "Every advisor · at once" : `Every advisor · waits for ${people.owner} to release it`],
+              ] as const).map(([v, l, hint]) => (
                 <div key={v} className="flex items-start gap-[var(--space-3)]">
                   <RadioGroupItem value={v} id={`scope-${v}`} className="mt-px" />
                   <Label htmlFor={`scope-${v}`} className="flex flex-col items-start gap-0.5">
@@ -630,7 +682,7 @@ function LeandreRecord() {
                 <Chip tone="neutral">Personal</Chip><Chip tone="neutral">Team</Chip><Chip tone="primary">Agency</Chip>
               </div>
             </div>
-            <Button variant="secondary">Submit for review</Button>
+            <Button variant="secondary">{s.role === "owner" ? "Publish" : "Submit for review"}</Button>
           </SheetBody>
         </SheetContent>
       </Sheet>
@@ -640,19 +692,31 @@ function LeandreRecord() {
 
 /* ── one field row, all states ── */
 function FieldRow({
-  f, resolved, onResolve, editing, onEdit,
+  f, resolved, onResolve, editing, onEdit, onApprove, onReturn,
 }: {
   f: Field; resolved: boolean; onResolve: () => void;
   editing?: boolean; onEdit?: () => void;
+  onApprove?: () => void; onReturn?: () => void;
 }) {
   const [verified, setVerified] = useState(false);
-  const { s } = useDemo();
+  const { s, d } = useDemo();
   const kept = keptSource(s.conflictChoice);
   const reason = s.conflictReason;
-  const edit = s.fieldEdits[f.key];
+
+  /* An edit is seen by its author, and by everyone once it is written for the whole
+     agency. Personal and team edits are absent for the other type, never masked. */
+  const raw = s.fieldEdits[f.key];
+  const mine = raw?.by === s.role;
+  const edit = raw && (mine || raw.scope === "agency") ? raw : undefined;
+  const applied = edit && !edit.pending && !edit.returned ? edit : undefined;
+  const waiting = edit && edit.pending && mine ? edit : undefined;
+  const returned = edit && edit.returned && mine ? edit : undefined;
+  /* The owner's to decide: an advisor's proposal for the whole agency. */
+  const proposal = edit && edit.pending && !mine && s.role === "owner" ? edit : undefined;
+
   if (f.state === "conflict") {
     return (
-      <FieldGrid label={f.label}>
+      <FieldGrid id={`field-${f.key}`} label={f.label}>
         {resolved ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <ProvenancePopover source={f.source}><span className="type-data-strong tnum">{kept.value}</span></ProvenancePopover>
@@ -683,6 +747,7 @@ function FieldRow({
 
   return (
     <FieldGrid
+      id={`field-${f.key}`}
       label={f.label}
       provenance={
         <>
@@ -699,32 +764,68 @@ function FieldRow({
             className={cn(
               "type-data", f.key === "rooms" && "tnum",
               f.state === "template" && "italic text-label-secondary",
-              edit && !edit.pending && "line-through text-label-secondary",
+              applied && "line-through text-label-secondary",
             )}
           >
             {f.value}
           </span>
         </ProvenancePopover>
-        {edit && !edit.pending && <span className="type-data-strong">{edit.value}</span>}
-        {edit && <Chip tone={edit.pending ? "warn" : "primary"}>
-          {edit.pending ? "proposed · agency-wide · awaiting review" : `${edit.scope} · edited by ${personName[edit.by]} today`}
-        </Chip>}
-        {f.state === "edited-overlay" && !edit && <Chip tone="primary">agency overlay</Chip>}
-        {f.state === "stale" && verified && <Chip tone="ok">verified today · {people.advisor}</Chip>}
+        {applied && <span className="type-data-strong">{applied.value}</span>}
+        {applied && <Chip tone="primary">{applied.scope} · edited by {personName[applied.by]} today</Chip>}
+        {waiting && <Chip tone="warn">waiting for {people.owner}</Chip>}
+        {returned && <Chip tone="warn">returned by {people.owner}</Chip>}
+        {proposal && <Chip tone="warn">proposed by {personName[proposal.by]}</Chip>}
+        {f.state === "edited-overlay" && !applied && <Chip tone="primary">agency overlay</Chip>}
+        {f.state === "stale" && verified && <Chip tone="ok">verified today · {personName[s.role]}</Chip>}
         {f.state === "stale" && !verified && <Chip tone="warn" className="tnum">{f.staleDays}d unverified</Chip>}
         {f.state === "template" && <Chip tone="warn">template copy — needs editorial</Chip>}
       </div>
 
-      {edit && (
+      {applied && <p className="mt-1 type-meta">Reason: “{applied.reason}”</p>}
+
+      {waiting && (
         <p className="mt-1 type-meta">
-          {edit.pending ? <>Proposed value “{edit.value}” · </> : null}
-          Reason: “{edit.reason}”
+          Proposed “{waiting.value}” for the whole agency · Reason: “{waiting.reason}” · the record answers with its
+          current value until {people.owner} releases it.
         </p>
       )}
 
-      {editing && onEdit && (
+      {/* Returned to its author: not applied, with the owner's note. */}
+      {returned && (
+        <div className="mt-[var(--space-2)]">
+          <p className="type-meta">
+            Your proposed “{returned.value}” was not applied.{" "}
+            {returned.returned?.note ? <>{people.owner}’s note: “{returned.returned.note}”</> : <>Returned without a note.</>}
+          </p>
+          <div className="mt-[var(--space-2)] flex flex-wrap items-center gap-[var(--space-3)]">
+            <Button variant="secondary" size="sm" onClick={() => d({ type: "revertField", key: f.key })}>
+              Remove my change
+            </Button>
+            {onEdit && <Button variant="link" size="sm" onClick={onEdit}>Edit again</Button>}
+          </div>
+        </div>
+      )}
+
+      {/* The owner decides in place. Approve is a secondary: the page's primary stays
+          in the Summary. */}
+      {proposal && (
+        <div className="mt-[var(--space-3)] border-t border-hairline pt-[var(--space-3)]">
+          <div className="type-micro-caps text-label-tertiary">Proposed for the whole agency</div>
+          <div className="mt-1 type-data-strong">{proposal.value}</div>
+          <p className="mt-1 type-meta">
+            By {personName[proposal.by]}, today · Reason: “{proposal.reason}”
+          </p>
+          <p className="mt-1 type-meta">The record answers with its current value until you approve.</p>
+          <div className="mt-[var(--space-3)] flex flex-wrap items-center gap-[var(--space-3)]">
+            <Button variant="secondary" size="sm" onClick={onApprove}>Approve</Button>
+            <Button variant="link" size="sm" onClick={onReturn}>Return with a note</Button>
+          </div>
+        </div>
+      )}
+
+      {editing && onEdit && !proposal && !returned && (
         <Button variant="secondary" size="sm" className="mt-[var(--space-2)]" onClick={onEdit}>
-          {edit ? "Change again" : "Edit"}
+          {applied && mine ? "Change again" : "Edit"}
         </Button>
       )}
 
@@ -749,10 +850,10 @@ function FieldRow({
 
 /* ── the field row's shape: label · value · provenance on one shared track ── */
 function FieldGrid({
-  label, provenance, children,
-}: { label: string; provenance?: React.ReactNode; children: React.ReactNode }) {
+  id, label, provenance, children,
+}: { id?: string; label: string; provenance?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="field-row">
+    <div id={id} className="field-row">
       <div className="type-data text-label-secondary">{label}</div>
       <div className="min-w-0">{children}</div>
       {provenance && (
@@ -883,13 +984,18 @@ function GenericRecord({ id }: { id: string }) {
   const p = productById(id);
   const reviewer = s.role === "owner";
 
+  /* A record added by hand, for whoever it has reached. For anyone else it is not in
+     the directory: the same page an id nobody carries gets. */
+  const made = s.createdRecords.find((r) => r.id === id);
+  if (made && createdVisible(s, made)) return <CreatedRecordPage r={made} />;
+
   if (!p) {
     return (
       <Page width="wide">
         <PageHeader back="/records" crumb="Records" title="Not in the directory" />
         <Section>
           <p className="type-data-read text-label-secondary">
-            No record carries this id. A missing property can be requested from the directory — the extraction pipeline creates a candidate for review.
+            No record carries this id. A property that is missing can be added by hand from Records.
           </p>
           <Button asChild variant="secondary" size="sm" className="mt-[var(--space-3)]">
             <Link href="/records">Back to records <ArrowRight aria-hidden /></Link>
@@ -916,7 +1022,8 @@ function GenericRecord({ id }: { id: string }) {
     );
   }
 
-  const productNotices = notices.filter((n) => n.productId === p.id);
+  /* A personal or team notice reaches only whoever wrote it; the agency's reach everyone. */
+  const productNotices = notices.filter((n) => n.productId === p.id && (n.scope === "agency" || ownsNotice(n, s.role)));
   const productPromo = promotions.find((x) => x.productId === p.id);
 
   return (
@@ -933,14 +1040,9 @@ function GenericRecord({ id }: { id: string }) {
         <div className="min-w-0">
           {productNotices.length > 0 && (
             <div className="space-y-[var(--space-2)] pb-[var(--gap-2)]">
-              {productNotices.map((n) => (
-                <SeverityBanner key={n.id} severity={n.severity}>
-                  <div>{n.text}</div>
-                  <div className="mt-1 type-meta">
-                    Opened {n.openedAt} · {n.scope} scope · {n.owner} · <span className="tnum">{n.ageDays}d</span> open
-                  </div>
-                </SeverityBanner>
-              ))}
+              {productNotices.map((n) =>
+                s.retired[n.id] ? <RetiredBanner key={n.id} n={n} /> : <NoticeBanner key={n.id} n={n} />,
+              )}
             </div>
           )}
 
@@ -1014,5 +1116,313 @@ function DlRow({ k, children, tnum }: { k: string; children: ReactNode; tnum?: b
       <dt className="type-data text-label-secondary">{k}</dt>
       <dd className={cn("min-w-0 type-data", tnum && "tnum")}>{children}</dd>
     </div>
+  );
+}
+
+/* ═══════════════ Return a proposed value ═══════════════
+   The owner sends an advisor's agency-wide value back. The note is required: it is
+   the only thing the advisor gets, and the value is not applied.                    */
+function ReturnEditSheet({
+  field, open, onOpenChange, onReturned,
+}: {
+  field: Field | null;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onReturned: (label: string) => void;
+}) {
+  const { s, d } = useDemo();
+  const [note, setNote] = useState("");
+  const edit = field ? s.fieldEdits[field.key] : undefined;
+  if (!field || !edit) return null;
+  const author = personName[edit.by];
+
+  const commit = () => {
+    if (!note.trim()) return;
+    d({ type: "reviewEdit", key: field.key, outcome: "returned", note: note.trim() });
+    onReturned(field.label);
+    onOpenChange(false);
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right">
+        <SheetHeader>
+          <SheetTitle>Return {field.label.toLowerCase()} to {author}</SheetTitle>
+          <SheetDescription>
+            The value is not applied. The record keeps the value it has, and your note goes back to {author} on the field.
+          </SheetDescription>
+        </SheetHeader>
+        <SheetBody>
+          <DataList rows={[
+            { label: "Current value", value: field.value },
+            { label: "Proposed", value: edit.value },
+            { label: "Their reason", value: `“${edit.reason}”` },
+          ]} />
+          <div>
+            <Label htmlFor="return-note">
+              Your note <span className="text-label-secondary">(required)</span>
+            </Label>
+            <Textarea
+              id="return-note"
+              rows={3}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="e.g. the property’s site still shows the old hours — confirm with them first"
+              className="mt-[var(--space-2)]"
+            />
+          </div>
+          <Button disabled={!note.trim()} onClick={commit}>Return to {author}</Button>
+        </SheetBody>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+/* ═══════════════ Notices: still true, or retired ═══════════════
+   Nothing expires on a timer. When a notice's review is due, its owner answers: still
+   true (the nudge goes for this session), or retired with a reason, by name, today. A
+   notice someone else owns carries no control.                                       */
+const initialsFor: Record<Persona, string> = { user: people.advisorShort, owner: people.ownerShort };
+function ownsNotice(n: Notice, role: Persona) {
+  return n.owner === initialsFor[role];
+}
+
+function NoticeBanner({ n }: { n: Notice }) {
+  const { s } = useDemo();
+  const [stillTrue, setStillTrue] = useState(false);
+  const [retireOpen, setRetireOpen] = useState(false);
+  const owns = ownsNotice(n, s.role);
+  const due = !!n.staleReviewDue && !stillTrue;
+
+  return (
+    <>
+      <SeverityBanner severity={n.severity}>
+        <div className="flex flex-wrap items-start gap-x-[var(--space-3)] gap-y-[var(--space-2)]">
+          <div className="min-w-0 flex-1">
+            <div className="type-data-strong">{n.text}</div>
+            <div className="mt-1 type-meta">
+              Opened {n.openedAt} · {n.scope} scope · {n.owner} · <span className="tnum">{n.ageDays}d</span> open
+            </div>
+          </div>
+          {due && <Chip tone="warn">{owns ? "Still true? " : ""}review due</Chip>}
+          {owns && stillTrue && <Chip tone="ok">still true · {personName[s.role]}, today</Chip>}
+        </div>
+        {owns && due && (
+          <div className="mt-[var(--space-3)] flex flex-wrap items-center gap-[var(--space-3)]">
+            <Button variant="secondary" size="sm" onClick={() => setRetireOpen(true)}>Retire</Button>
+            <Button variant="link" size="sm" onClick={() => setStillTrue(true)}>Still true</Button>
+          </div>
+        )}
+      </SeverityBanner>
+      {owns && <RetireNoticeSheet n={n} open={retireOpen} onOpenChange={setRetireOpen} />}
+    </>
+  );
+}
+
+/* Said once, where the notice was. */
+function RetiredBanner({ n }: { n: Notice }) {
+  const { s } = useDemo();
+  const r = s.retired[n.id];
+  if (!r) return null;
+  return (
+    <ConfirmBanner show>
+      “{n.text}” Retired by {personName[r.by]} today — {r.reason}
+    </ConfirmBanner>
+  );
+}
+
+function RetireNoticeSheet({ n, open, onOpenChange }: { n: Notice; open: boolean; onOpenChange: (v: boolean) => void }) {
+  const { s, d } = useDemo();
+  const [reason, setReason] = useState("");
+
+  const commit = () => {
+    if (!reason.trim()) return;
+    d({ type: "retireNotice", id: n.id, reason: reason.trim() });
+    onOpenChange(false);
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right">
+        <SheetHeader>
+          <SheetTitle>Retire this notice</SheetTitle>
+          <SheetDescription>
+            Retiring says it is no longer true. It is recorded with your name and today’s date; nothing expires on its own.
+          </SheetDescription>
+        </SheetHeader>
+        <SheetBody>
+          <DataList rows={[
+            { label: "Notice", value: n.text },
+            { label: "Opened", value: `${n.openedAt} · ${n.ageDays}d open` },
+            { label: "Scope", value: n.scope },
+          ]} />
+          <div>
+            <Label htmlFor={`retire-${n.id}`}>
+              Why is it no longer true? <span className="text-label-secondary">(required)</span>
+            </Label>
+            <Textarea
+              id={`retire-${n.id}`}
+              rows={3}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="e.g. confirmed with the property on today’s call"
+              className="mt-[var(--space-2)]"
+            />
+          </div>
+          <div className="border-t border-hairline pt-[var(--space-4)]">
+            <div className="type-micro-caps text-label-tertiary">On retire</div>
+            <p className="mt-1 type-data-read text-label-secondary">
+              It leaves this record for everyone who could see it · as {personName[s.role]}, today, with your reason.
+            </p>
+          </div>
+          <Button disabled={!reason.trim()} onClick={commit}>Retire notice</Button>
+        </SheetBody>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+/* ═══════════════ A record added by hand ═══════════════
+   Who sees it follows the one sharing rule, mirrored from /records: its maker always;
+   anyone else once it has reached the whole agency — the owner's share at once, an
+   advisor's once the owner releases it. A team share reaches the Paris desk, which
+   has no other sign-in. This belongs beside queueItems in the store.                */
+function createdVisible(s: DemoState, r: CreatedRecord) {
+  if (r.by === s.role) return true;
+  if (r.share !== "agency") return false;
+  return r.by === "owner" || s.released[`rec-${r.id}`]?.outcome === "published";
+}
+
+function shareStatus(s: DemoState, r: CreatedRecord): { chip: string; tone: "neutral" | "warn"; line: string } {
+  const maker = personName[r.by];
+  const decided = s.released[`rec-${r.id}`];
+  const releaser = s.role === "owner" ? "you" : people.owner;
+  if (r.by !== s.role) {
+    return {
+      chip: "shared with the whole agency", tone: "neutral",
+      line: `Added by hand by ${maker}${r.by === "user" ? `, released by ${releaser}` : ""}. Only ${maker} can change who sees it.`,
+    };
+  }
+  if (r.share === "private") return { chip: "private to you", tone: "neutral", line: "Nobody else sees it until you share it." };
+  if (r.share === "team") return { chip: "shared with your team", tone: "neutral", line: `${scopeAudience("team", s.role)} see it. Nobody else does.` };
+  if (r.by === "owner") return { chip: "shared with the whole agency", tone: "neutral", line: "Every advisor in the agency sees it, with your name kept." };
+  if (decided?.outcome === "published") {
+    return { chip: "shared with the whole agency", tone: "neutral", line: `Released by ${people.owner}. Every advisor in the agency sees it, with your name kept.` };
+  }
+  if (decided?.outcome === "returned") {
+    return {
+      chip: `returned by ${people.owner}`, tone: "warn",
+      line: decided.note ? `${people.owner} returned it: “${decided.note}” Nobody else sees it.` : `${people.owner} returned it without a note. Nobody else sees it.`,
+    };
+  }
+  return { chip: `waiting for ${people.owner}`, tone: "warn", line: `In ${people.owner}’s publish queue. Nobody else sees it until she releases it.` };
+}
+
+function onShareLine(role: Persona, scope: ShareScope) {
+  if (scope === "private") return "Only you see it. Anyone it was shared with loses it.";
+  if (scope === "team") return `${scopeAudience("team", role)} see it at once.`;
+  if (role === "owner") return "Every advisor in the agency sees it at once, with your name kept.";
+  return `It goes to ${people.owner}’s publish queue. Nobody else sees it until she releases it, and your name travels with it.`;
+}
+
+/* The plain page: what was typed, who typed it, and — for its maker — the one action,
+   deciding who else sees it. */
+function CreatedRecordPage({ r }: { r: CreatedRecord }) {
+  const { s, d } = useDemo();
+  const mine = r.by === s.role;
+  const status = shareStatus(s, r);
+  const [scope, setScope] = useState<ShareScope>(r.share);
+  const [shared, setShared] = useState<ShareScope | null>(null);
+
+  const commit = () => {
+    if (scope === r.share) return;
+    d({ type: "shareCreated", kind: "record", id: r.id, scope });
+    setShared(scope);
+  };
+
+  const options: { v: ShareScope; label: string; hint: string }[] = [
+    { v: "private", label: "Just me", hint: `Only ${personName[s.role]}` },
+    { v: "team", label: "My team", hint: `${scopeAudience("team", s.role)} · at once` },
+    {
+      v: "agency", label: "The whole agency",
+      hint: s.role === "owner"
+        ? "Every advisor in the agency · at once"
+        : `Every advisor in the agency · waits for ${people.owner} to release it`,
+    },
+  ];
+
+  return (
+    <Page width="wide">
+      <PageHeader
+        back="/records"
+        crumb={`Records / ${r.category}`}
+        title={<>{r.name} <Chip tone="neutral">{r.category} · {r.city}</Chip></>}
+      />
+
+      <div className="doc-layout">
+        <div className="min-w-0">
+          <div className="space-y-[var(--space-2)] pb-[var(--gap-2)] empty:hidden">
+            {shared && (
+              <ConfirmBanner show>
+                {shared === "private"
+                  ? "Private to you again."
+                  : shared === "team"
+                    ? `Shared with your team — ${scopeAudience("team", s.role)} see it now.`
+                    : s.role === "owner"
+                      ? "Shared with the whole agency — every advisor sees it now."
+                      : `Sent to ${people.owner}’s publish queue. Nobody else sees it until she releases it.`}
+              </ConfirmBanner>
+            )}
+          </div>
+
+          <Section title="The record">
+            <p className="-mt-[var(--space-2)] mb-[var(--space-2)] type-data-read text-label-secondary">
+              Added by hand by {personName[r.by]} today. Only what was typed is on file; no source stands behind these values yet.
+            </p>
+            <dl className="divide-y divide-hairline type-data">
+              <DlRow k="Category">{r.category}</DlRow>
+              <DlRow k="City">{r.city}</DlRow>
+              <DlRow k="Country">{r.country}</DlRow>
+              <DlRow k="Added">By hand · {personName[r.by]} · today</DlRow>
+            </dl>
+            <div className="mt-[var(--space-3)] flex flex-wrap items-center gap-[var(--space-2)] border-t border-hairline pt-[var(--space-3)]">
+              <Chip tone="neutral">added by hand</Chip>
+              <Chip tone={status.tone}>{status.chip}</Chip>
+            </div>
+          </Section>
+        </div>
+
+        <aside className="doc-rail" data-rail-label="Sharing">
+          <Section variant="tool" follows title="Sharing">
+            <p className="-mt-[var(--space-2)] type-data-read text-label-secondary">{status.line}</p>
+            {mine && (
+              <>
+                <RadioGroup
+                  value={scope}
+                  onValueChange={(v) => setScope(v as ShareScope)}
+                  className="mt-[var(--space-4)]"
+                >
+                  {options.map((o) => (
+                    <div key={o.v} className="flex items-start gap-[var(--space-3)]">
+                      <RadioGroupItem value={o.v} id={`share-${o.v}`} className="mt-px" />
+                      <Label htmlFor={`share-${o.v}`} className="flex flex-col items-start gap-0.5">
+                        <span className="type-data">{o.label}</span>
+                        <span className="type-meta">{o.hint}</span>
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+                {scope !== r.share && (
+                  <p className="mt-[var(--space-3)] type-meta">{onShareLine(s.role, scope)}</p>
+                )}
+                <Button className="mt-[var(--space-4)] w-full" disabled={scope === r.share} onClick={commit}>
+                  Share record
+                </Button>
+              </>
+            )}
+          </Section>
+        </aside>
+      </div>
+    </Page>
   );
 }

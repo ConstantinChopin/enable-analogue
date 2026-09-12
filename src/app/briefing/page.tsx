@@ -6,24 +6,33 @@
  * The panel said the brief was "correct but impersonal": five equal cards in a
  * grid, which cannot be ordered by anyone's day. So the brief is now addressed to
  * the person, opens with her day in sentences with the figures inline, and then
- * walks her obligations as chapters in the order she owes them: departures ·
- * commissions · notices · incentives · verification. Each chapter ends in the text
- * action that opens the saved view it summarises.
+ * walks her obligations as chapters in the order she owes them. Each chapter ends in
+ * the text action that opens the saved view it summarises.
  *
- * The one primary — "Open the ledger" — sits at the bottom of the tool that follows
- * her down the page (the Today rail), because commission reconciliation is the #1
- * pain the agency named (DEC-12, DEC-13) and it is where the demo's first journey
- * begins.
+ * Per type the chapter set comes from `widgetsFor[s.role]` (docs/rebuild/05-two-roles.md),
+ * so each type gets a different morning. The same four criteria apply to both.
+ *   user  — Commissions · Departures · Notices · Expiring incentives · Records verified
+ *   owner — Records to confirm · Publish queue · Unmatched payments · Commissions ·
+ *           Under projection · Connections · Departures · Notices
  *
- * Per role the chapter set comes from `widgetsFor[s.role]`, so each role gets a
- * different morning. The same four criteria apply to all of them.
+ * The one primary sits at the bottom of the tool that follows her down the page (the
+ * Today rail). The user's is "Open the ledger", because commission reconciliation is
+ * the #1 pain the agency named (DEC-12, DEC-13) and it is where the demo's first
+ * journey begins; without the money entitlement it is "Check departures", and
+ * commissions and incentives are absent, not masked. The owner's is "Confirm
+ * records": the queue only she can clear.
+ *
+ * Counts are live. The publish queue counts what still waits (`queueItems` less what
+ * she has published or returned); a retired notice leaves the notices chapter. The
+ * owner sees a departure only for a traveller shared with her: trips are private to
+ * their advisors.
  */
 import React from "react";
 import Link from "next/link";
-import { useDemo, canViewCommissions } from "@/lib/store";
+import { useDemo, canViewCommissions, queueItems } from "@/lib/store";
 import {
   widgetsFor, personName, commissions, departures, notices, promotions, briefing,
-  publishQueue, candidates, connections, connectionHealth, orphanedPayments,
+  candidates, connectionsFor, connectionHealth, orphanedPayments,
   travellerCards, people,
   type Widget,
 } from "@/data/seed";
@@ -68,6 +77,8 @@ export default function Briefing() {
       if (n.scope === "personal") return false;
       if (s.world === "v1" && n.v1ExpiredOngoing) return false;
       if (s.spaNoticeClosed && n.id === "spa") return false;
+      /* Retired by a named person on the record: it has stopped being true. */
+      if (s.retired[n.id]) return false;
       return true;
     })
     .sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
@@ -84,10 +95,14 @@ export default function Briefing() {
   );
   const soonest = visibleDepartures[0];
   const unconfirmed = visibleDepartures.filter((t) => t.alert);
-  const expiring = [...promotions].sort((a, b) => a.daysLeft - b.daysLeft);
+  /* Incentives are commission programmes: absent with the rest of the money. */
+  const expiring = money ? [...promotions].sort((a, b) => a.daysLeft - b.daysLeft) : [];
 
-  const paid = commissions.filter((c) => c.state === "paid");
-  const collected = paid.reduce((n, c) => n + c.amount, 0);
+  /* What still waits for the owner: shared this session, and the seeded queue, less
+     whatever she has already published or returned. */
+  const waiting = queueItems(s).filter((q) => !s.released[q.id]);
+  const agencySources = connectionsFor("owner").filter((c) => c.scope === "agency");
+
   const flagged = commissions.filter((c) => c.discrepancy);
   const orphanTotal = orphanedPayments.reduce((n, p) => n + p.amount, 0);
 
@@ -99,7 +114,7 @@ export default function Briefing() {
           <>
             {soonest
               ? <>{soonest.traveller} leaves for {soonest.title} in {soonest.startsInDays} days{soonest.alert ? `, with a ${soonest.alert}` : ""}; {visibleDepartures.length - 1} more {visibleDepartures.length - 1 === 1 ? "departure" : "departures"} follow within the month. </>
-              : <>No departures for travellers shared with you. </>}
+              : <>No departures in the coming weeks. </>}
             {money && (
               <>{overdue.length} commissions are overdue and {eur(outstanding)} is outstanding across {openCommissions.length}{longestChase ? `; ${longestChase.property} has waited ${longestChase.overdueDays} days` : ""}. </>
             )}
@@ -112,7 +127,8 @@ export default function Briefing() {
       case "owner":
         return (
           <>
-            {candidates.length} candidate records wait to be confirmed and {publishQueue.length} items wait to be published to the whole agency.{" "}
+            {candidates.length} candidate records wait to be confirmed and{" "}
+            {waiting.length === 0 ? "nothing waits" : waiting.length === 1 ? "1 item waits" : `${waiting.length} items wait`} to be published to the whole agency.{" "}
             {orphanedPayments.length} payments totalling {eur(orphanTotal)} arrived without a booking to match.{" "}
             {connectionHealth.needAttention > 0
               ? <>{connectionHealth.needAttention} of {connectionHealth.sources} agency connections need attention. </>
@@ -130,7 +146,11 @@ export default function Briefing() {
         return (
           <Section key={w.id} title="Departures" footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
             {visibleDepartures.length === 0 ? (
-              <p className="type-data-read text-label-secondary">No departures for travellers shared with you.</p>
+              <p className="type-data-read text-label-secondary">
+                {s.role === "owner"
+                  ? "Trips are private to their advisors; none are shared with you."
+                  : "No departures in the coming weeks."}
+              </p>
             ) : (
               <Rows>
                 {/* Two lines: the traveller and when on the first, the trip and its marks on
@@ -200,6 +220,9 @@ export default function Briefing() {
             chips={s.world === "v1" ? <Chip tone="crit">v1 build</Chip> : undefined}
             footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}
           >
+            {activeNotices.length === 0 && (
+              <p className="type-data-read text-label-secondary">No notice is active. A notice leaves this list only when a named person closes it.</p>
+            )}
             <Rows>
               {activeNotices.map((n) => (
                 <RowStack
@@ -276,17 +299,28 @@ export default function Briefing() {
           </Section>
         );
 
-      /* ── agency lead ── */
+      /* ── agency owner ── */
       case "publish":
         return (
-          <Section key={w.id} title="Publish queue" footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
-            <Rows>
-              {publishQueue.map((q) => (
-                <RowStack key={q.id} head={<span className="row-primary type-data-strong">{q.text}</span>}>
-                  {q.action}
-                </RowStack>
-              ))}
-            </Rows>
+          <Section
+            key={w.id}
+            title="Publish queue"
+            chips={waiting.length > 0 ? <Chip tone="neutral">{waiting.length} waiting</Chip> : undefined}
+            footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}
+          >
+            {waiting.length === 0 ? (
+              <p className="type-data-read text-label-secondary">
+                Nothing waits to be published. What an advisor shares with the whole agency arrives here.
+              </p>
+            ) : (
+              <Rows>
+                {waiting.map((q) => (
+                  <RowStack key={q.id} head={<span className="row-primary type-data-strong">{q.text}</span>}>
+                    {q.kind} · shared by {q.by}
+                  </RowStack>
+                ))}
+              </Rows>
+            )}
           </Section>
         );
 
@@ -319,8 +353,10 @@ export default function Briefing() {
             chips={connectionHealth.needAttention > 0 ? <Chip tone="neutral">{connectionHealth.label}</Chip> : undefined}
             footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}
           >
+            {/* The agency's sources, the ones the health count is taken over. An advisor's
+                own mailbox is hers, and degrades only her answers. */}
             <Rows>
-              {connections.map((c) => (
+              {agencySources.map((c) => (
                 <Row key={c.name}>
                   <span className="row-primary type-data-strong">{c.name}</span>
                   <span className="row-trailing">
@@ -336,7 +372,6 @@ export default function Briefing() {
           </Section>
         );
 
-      /* ── ops ── */
       case "unmatched":
         return (
           <Section key={w.id} title="Unmatched payments" chips={<Chip tone="neutral">{orphanedPayments.length} to match</Chip>} footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
@@ -361,28 +396,8 @@ export default function Briefing() {
           </Section>
         );
 
-      case "reconciliation":
-        return (
-          <Section key={w.id} title="Reconciliation" deep footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
-            <div className="grid max-w-md grid-cols-2 gap-[var(--space-4)]">
-              <div>
-                <div className="type-micro-caps text-label-tertiary">Collected</div>
-                <div className="mt-1 type-figure">{eur(collected)}</div>
-                <div className="type-meta tnum">{paid.length} settled</div>
-              </div>
-              <div>
-                <div className="type-micro-caps text-label-tertiary">Outstanding</div>
-                <div className="mt-1 type-figure">{eur(outstanding)}</div>
-                <div className="type-meta tnum">{openCommissions.length} open · {overdue.length} overdue</div>
-              </div>
-            </div>
-            <Progress tone="neutral" value={(collected / (collected + outstanding)) * 100} className="mt-[var(--space-3)] max-w-md" />
-            <p className="mt-[var(--space-2)] type-meta">
-              Actuals arrive read-only from the booking system. Ground truth stays in the source.
-            </p>
-          </Section>
-        );
-
+      /* Reconciliation is a view of the owner's ledger (/commissions), not a chapter of
+         her brief; no widget names it. */
       case "discrepancies":
         return (
           <Section key={w.id} title="Under projection" deep footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
@@ -417,10 +432,10 @@ export default function Briefing() {
   if (money && overdue.length) today.push({ label: "Overdue commissions", mark: <Chip tone="crit">{overdue.length}</Chip> });
   if (critical.length) today.push({ label: "Critical notice", mark: <Chip tone="crit">{critical.length}</Chip> });
   if (unconfirmed.length) today.push({ label: "Departure unconfirmed", mark: <Chip tone="warn">{unconfirmed.length}</Chip> });
-  if (expiring.length && money) today.push({ label: "Incentives expiring", mark: <Chip tone="neutral">{expiring.length}</Chip> });
+  if (expiring.length) today.push({ label: "Incentives expiring", mark: <Chip tone="neutral">{expiring.length}</Chip> });
   if (s.role === "owner") {
     today.push({ label: "To confirm", mark: <Chip tone="neutral">{candidates.length}</Chip> });
-    today.push({ label: "To publish", mark: <Chip tone="neutral">{publishQueue.length}</Chip> });
+    if (waiting.length) today.push({ label: "To publish", mark: <Chip tone="neutral">{waiting.length}</Chip> });
     today.push({ label: "Payments to match", mark: <Chip tone="neutral">{orphanedPayments.length}</Chip> });
     if (connectionHealth.needAttention > 0) today.push({ label: "Connections", mark: <Chip tone="warn">{connectionHealth.needAttention}</Chip> });
   }
@@ -432,7 +447,8 @@ export default function Briefing() {
     : money ? { href: "/commissions", label: "Open the ledger" }
     : { href: "/itineraries", label: "Check departures" };
 
-  const gatedOut = (w: Widget) => w.id === "commissions" && !money;
+  /* Absent, not masked: without the entitlement the money chapters are not drawn. */
+  const gatedOut = (w: Widget) => (w.id === "commissions" || w.id === "incentives") && !money;
 
   return (
     <Page width="wide">

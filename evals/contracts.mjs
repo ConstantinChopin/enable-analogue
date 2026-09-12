@@ -103,7 +103,7 @@ export const CONTRACTS = {
 
   "/admin/publish": {
     job: { owner: "decide what the whole agency sees" },
-    primaryAction: "publish a queued item",
+    primaryAction: "publish to the whole agency",
     taxonomies: ["publication state"],
   },
 

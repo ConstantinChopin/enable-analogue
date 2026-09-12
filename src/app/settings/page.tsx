@@ -2,31 +2,36 @@
 /**
  * Settings — configuration, not a workspace (§6, §10.8). It sits behind the
  * account cluster in the dock rather than taking a tile, and it stays small:
- * who you are, what reaches you, and the way out to connections for the role
- * that owns them.
+ * who you are, what reaches you, who can see money, and the way out to connections.
  *
- * Recomposed as a document of quiet chapters (Pass 1.5): Profile · Notifications ·
- * Connections (lead only). Each control sits in a row of the list it belongs to.
+ * Recomposed as a document of quiet chapters (Pass 1.5), per type
+ * (docs/rebuild/05-two-roles.md §3):
+ *   user  — Profile · Notifications · Connections (her own sources)
+ *   owner — Profile · Notifications · Who can see money (O10) · Connections (the agency's)
+ * Each control sits in a row of the list it belongs to.
  *
  * No ink pill on this surface. The contract's primary is "change a setting", and
  * the switch IS the change — it applies as it is flipped, so a filled "Save" would
- * promise a step that does not exist. "Open connections" is a secondary: it leaves
- * the page. The taxonomy budget is empty, so nothing here carries state colour;
- * the connection health chip is words on a hairline.
+ * promise a step that does not exist. That holds for the money switch too: the
+ * owner's one entitlement act takes effect the moment it moves. "Open connections"
+ * is a secondary: it leaves the page. The taxonomy budget is empty, so nothing here
+ * carries state colour; the connection health chip is words on a hairline.
  *
  * Local components (not promoted to bits): SettingRow.
  */
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { useDemo } from "@/lib/store";
-import { personName, personEmail, roleLabel, connectionHealth } from "@/data/seed";
+import { useDemo, canViewCommissions } from "@/lib/store";
+import {
+  personName, personEmail, roleLabel, connectionHealth, connectionsFor, people,
+} from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
 import { Chip, DataList, Section, SchematicBadge, Rows } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ArrowRight } from "lucide-react";
 
-const NOTIFICATION_PREFS: { id: string; label: string; detail: string; on: boolean }[] = [
+const NOTIFICATION_PREFS: { id: string; label: string; detail: string; on: boolean; money?: boolean }[] = [
   {
     id: "critical",
     label: "Critical notices",
@@ -38,6 +43,7 @@ const NOTIFICATION_PREFS: { id: string; label: string; detail: string; on: boole
     label: "Commission ageing",
     detail: "A commission that passes its due date raises one item, not a daily reminder.",
     on: true,
+    money: true,
   },
   {
     id: "departures",
@@ -76,13 +82,23 @@ function SettingRow({
 }
 
 export default function SettingsPage() {
-  const { s } = useDemo();
+  const { s, d } = useDemo();
+  const owner = s.role === "owner";
+  const money = canViewCommissions(s);
   const [prefs, setPrefs] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(NOTIFICATION_PREFS.map((p) => [p.id, p.on])),
   );
 
-  /* Same helper the connections page and the lead briefing read. */
-  const { sources, needAttention } = connectionHealth;
+  /* Whose sources. The owner's chapter speaks for the agency and reads the same health
+     rule the connections page and her brief read. The user's speaks only for the
+     sources she connected herself: the agency's count is not hers to act on. */
+  const ownSources = connectionsFor("user").filter((c) => c.by === "user");
+  const ownAttention = ownSources.filter((c) => c.state !== "ok").length;
+  const one = ownSources.length === 1;
+
+  const healthWord = owner
+    ? connectionHealth.needAttention > 0 ? connectionHealth.label : "all connected"
+    : ownAttention > 0 ? `${ownAttention} need attention` : "all connected";
 
   return (
     <Page width="text">
@@ -104,7 +120,9 @@ export default function SettingsPage() {
 
       <Section title="Notifications" quiet deep chips={<SchematicBadge />}>
         <Rows>
-          {NOTIFICATION_PREFS.map((p) => (
+          {/* A user without the money entitlement is not offered commission ageing:
+              the items it would raise do not exist for her. */}
+          {NOTIFICATION_PREFS.filter((p) => money || !p.money).map((p) => (
             <SettingRow
               key={p.id}
               id={`pref-${p.id}`}
@@ -126,30 +144,51 @@ export default function SettingsPage() {
         </p>
       </Section>
 
-      {/* Both types connect sources, so both reach them from here. */}
-      {(
-
-        <Section
-          title="Connections"
-          quiet
-          deep
-          chips={
-            <Chip tone="neutral">
-              {needAttention > 0 ? connectionHealth.label : "all connected"}
-            </Chip>
-          }
-        >
-          <p className="type-data-read text-label-secondary">
-            <span className="tnum">{sources}</span> sources feed this workspace. Each one carries
-            its last success, and a failed source degrades answers visibly.
+      {/* O10. The one entitlement the product has, written by the owner, one row per
+          agency user. The owner always sees money, so she has no row of her own. */}
+      {owner && (
+        <Section title="Who can see money" quiet deep>
+          <Rows>
+            <SettingRow
+              id="money-user"
+              label={people.advisor}
+              detail={`${roleLabel.user} · ${s.commissionAccess ? "sees commission figures" : "commission figures absent"}`}
+              control={
+                <Switch
+                  id="money-user"
+                  checked={s.commissionAccess}
+                  onCheckedChange={(on) => d({ type: "commissionAccess", on })}
+                />
+              }
+            />
+          </Rows>
+          <p className="mt-[var(--space-3)] type-meta">
+            When off, commission figures are absent for her across the product, not masked.
           </p>
-          <Button asChild variant="secondary" size="sm" className="mt-[var(--space-4)]">
-            <Link href="/connections">
-              Open connections <ArrowRight aria-hidden />
-            </Link>
-          </Button>
         </Section>
       )}
+
+      {/* Both types connect sources, so both reach them from here. */}
+      <Section title="Connections" quiet deep chips={<Chip tone="neutral">{healthWord}</Chip>}>
+        {owner ? (
+          <p className="type-data-read text-label-secondary">
+            <span className="tnum">{connectionHealth.sources}</span> agency sources feed this
+            workspace. Each one carries its last success, and a failed source degrades answers
+            visibly. What they index arrives closed; connecting a source shares nothing.
+          </p>
+        ) : (
+          <p className="type-data-read text-label-secondary">
+            <span className="tnum">{ownSources.length}</span> {one ? "source" : "sources"} of your
+            own {one ? "feeds" : "feed"} your answers. What {one ? "it indexes" : "they index"} is
+            private to you; connecting a source shares nothing.
+          </p>
+        )}
+        <Button asChild variant="secondary" size="sm" className="mt-[var(--space-4)]">
+          <Link href="/connections">
+            Open connections <ArrowRight aria-hidden />
+          </Link>
+        </Button>
+      </Section>
     </Page>
   );
 }

@@ -1,11 +1,14 @@
 "use client";
 /**
- * Adding a connection — the path an administrator actually walks.
+ * Adding a connection — the same four steps for both types (docs/rebuild/05-two-roles.md).
+ * An advisor connects her own mailbox or Drive; the owner also connects the agency's
+ * sources. Either way what the source indexes arrives closed to whoever connected it:
+ * an advisor's mailbox to her, an agency drive to the administrators.
  *
  * The step a generic OAuth wizard treats as an afterthought is the one that matters:
- * WHAT gets indexed. A drive connected whole pulls in the managing partner's folder
- * along with the rate notes, so an administrator picks folders and "Everything in My
- * Drive" is marked as the bad idea it is.
+ * WHAT gets indexed. A drive connected whole pulls in the managing partner's folder, or
+ * an advisor's personal files, along with the rate notes — so the person connecting
+ * picks folders, and "Everything in My Drive" is marked as the bad idea it is.
  *
  * What this flow deliberately does NOT decide is who can read any of it. Connecting a
  * source indexes it; sharing is a separate, per-document, logged act in the knowledge
@@ -14,8 +17,8 @@
  * There is no password field anywhere in this flow, and that is not an omission. The
  * whole point of an authorisation redirect is that the third-party application never
  * sees the credential. A connector that asked for the password in its own form would
- * be teaching an administrator to do the one thing every security team tells them not
- * to — and it would be an inaccurate drawing of OAuth besides. The provider's screen
+ * be teaching the person connecting to do the one thing every security team tells them
+ * not to — and it would be an inaccurate drawing of OAuth besides. The provider's screen
  * belongs to the provider; this flow shows the handoff and the grant that comes back.
  *
  * Recomposed against the rebuilt system: the sheet is its own surface, and its one
@@ -25,7 +28,8 @@
  * Options are hairline boxes that take the ink stroke when chosen.
  */
 import { useState } from "react";
-import { connectors, type Connector } from "@/data/seed";
+import { connectors, personEmail, type Connector } from "@/data/seed";
+import { useDemo } from "@/lib/store";
 import { Chip, DataList } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,14 +39,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Check, ExternalLink } from "lucide-react";
 
-/* There is no "who can read it" step, and its absence is the policy.
-   Connecting a source INDEXES it; it does not share anything. Everything arrives
-   closed — administrators only — and is opened one document at a time in the vault,
-   by a named person, on the record. An audience picker here would have been a bulk
-   share performed at the moment an administrator is thinking about folders and OAuth
-   scopes, which is exactly when nobody is thinking about who should read what. It
-   also contradicted the governance page a click away, which states that every kind of
-   record arrives closed and that opening one is an act somebody performs. */
+/* There is no "who can read it" step, and its absence is the policy — for both types.
+   Connecting a source INDEXES it; it does not share anything. Everything it indexes
+   arrives closed to whoever connected it — an advisor's own source to her, an agency
+   source to the administrators — and reaches anyone else a document at a time in the
+   vault, by a named person, on the record. An audience picker here would be a bulk
+   share performed at the moment someone is thinking about folders and OAuth scopes,
+   which is exactly when nobody is thinking about who should read what. It would also
+   contradict the one sharing rule every other surface keeps: everything starts
+   private, and opening it is an act somebody performs. */
 const STEPS = ["Source", "Authorise", "What to index", "Review"] as const;
 
 /* An option you can press: hairline at rest, ink stroke on hover and when chosen. */
@@ -52,6 +57,13 @@ const OPTION =
 export function AddConnection({
   open, onOpenChange,
 }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const { s } = useDemo();
+  const owner = s.role === "owner";
+  /* Who the index arrives closed to: whoever connected it. */
+  const closedTo = owner ? "the administrators" : "you";
+  /* An advisor connects her own mailbox or Drive; the intranet is the agency's to connect. */
+  const offered = owner ? connectors : connectors.filter((c) => c.id !== "intranet");
+
   const [step, setStep] = useState(0);
   const [pick, setPick] = useState<Connector | null>(null);
   const [account, setAccount] = useState<string | null>(null);
@@ -79,7 +91,7 @@ export function AddConnection({
         { label: "Source", value: pick.name },
         { label: "Account", value: account },
         { label: "Indexing", value: chosen.map((c) => c.label).join(", ") },
-        { label: "Arrives as", value: "Closed — administrators only" },
+        { label: "Arrives as", value: `Closed to ${closedTo}` },
         { label: "Posture", value: pick.posture },
       ]
     : [];
@@ -91,7 +103,7 @@ export function AddConnection({
           <SheetTitle>{done ? "Source connected" : "Add a connection"}</SheetTitle>
           <SheetDescription>
             {done
-              ? "The first sync is running. Documents become answerable as they are indexed."
+              ? `The first sync is running. Documents become answerable to ${closedTo} as they are indexed.`
               : `Step ${step + 1} of ${STEPS.length} · ${STEPS[step]}`}
           </SheetDescription>
         </SheetHeader>
@@ -106,10 +118,10 @@ export function AddConnection({
           ) : step === 0 ? (
             <RadioGroup
               value={pick?.id ?? ""}
-              onValueChange={(v) => setPick(connectors.find((c) => c.id === v) ?? null)}
+              onValueChange={(v) => setPick(offered.find((c) => c.id === v) ?? null)}
               className="gap-[var(--space-3)]"
             >
-              {connectors.map((c) => (
+              {offered.map((c) => (
                 <label key={c.id} htmlFor={`src-${c.id}`} className={OPTION}>
                   <RadioGroupItem value={c.id} id={`src-${c.id}`} className="mt-1" />
                   <span className="flex flex-1 flex-col items-start gap-1">
@@ -152,7 +164,7 @@ export function AddConnection({
                   variant="secondary"
                   size="sm"
                   onClick={() =>
-                    setAccount(pick.id === "mailbox" ? "parisdesk@enable.example" : "m.keller@enable.example")
+                    setAccount(owner && pick.id === "mailbox" ? "parisdesk@enable.example" : personEmail[s.role])
                   }
                 >
                   <ExternalLink aria-hidden /> Continue to {pick.name}
@@ -190,13 +202,14 @@ export function AddConnection({
                 <div className="type-micro-caps text-label-tertiary">This connection cannot</div>
                 <p className="mt-1 type-data-read">{pick.cannot}</p>
               </div>
-              {/* Stated at the moment of connecting, because this is the moment an
-                  administrator assumes the opposite. */}
+              {/* Stated at the moment of connecting, because this is the moment the
+                  person connecting assumes the opposite. */}
               <div className="rounded-lg bg-sunken p-[var(--space-4)]">
                 <div className="type-micro-caps text-label-tertiary">Connecting does not share anything</div>
                 <p className="mt-1 type-data-read">
-                  Documents arrive closed and answer nobody. Each is opened in the knowledge
-                  vault, to a named audience, by a person — and the log records who.
+                  {owner
+                    ? "Documents arrive closed to the administrators and answer nobody else. Each is opened in the knowledge vault, to a named audience, by a person — and the log records who."
+                    : "Documents arrive closed to you and answer nobody else. You open each in the knowledge vault, to a colleague, your team or the whole agency — and the log records it."}
                 </p>
               </div>
             </div>

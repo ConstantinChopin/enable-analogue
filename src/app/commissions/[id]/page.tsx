@@ -19,6 +19,12 @@
  * title row; accept-with-reason and the dispute draft open sheets, each with its own
  * filled action inside its own layer.
  *
+ * Two roles (docs/rebuild/05-two-roles.md, journey O16): the owner can chase a late
+ * commission on any agency booking, not only her own, by the same clicks. Her reminder is
+ * signed and sent in her name, and sits in the same chase log as the advisor's; the log
+ * and the sent state name whoever sent it (`reminderBy`). When the owner is about to chase
+ * a booking that is the advisor's, the Reminder says so once, quietly, before the send.
+ *
  * Demo (J1, checkpoint 2): /commissions/vo → Draft a reminder → edit a line → Send;
  * the title flips to "chased" and the chase log records it.
  *
@@ -29,7 +35,7 @@
 import { use, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useDemo, canViewCommissions } from "@/lib/store";
-import { commissions, commissionEdgeCases, people, personName, roleLabel } from "@/data/seed";
+import { commissions, commissionEdgeCases, people, personName, roleLabel, type Persona } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
 import {
   Chip, Section, SeverityBanner, NarrationNote, ConfirmBanner, MoneyValue, SourceTag,
@@ -46,14 +52,18 @@ import { ArrowRight } from "lucide-react";
 
 const eur = (n: number) => `EUR ${n.toLocaleString("en-GB")}`;
 
-const seededDraft = `Subject: Commission on booking VO-2214 — Villa Ortensia
+/* The seed's bookings are the Paris desk's, held by the advisor who signs in. */
+const bookingAdvisor = people.advisor;
+
+/** The drafted chase, signed by whoever is signed in: it goes out in her name. */
+const seededDraft = (role: Persona) => `Subject: Commission on booking VO-2214 — Villa Ortensia
 
 Dear Villa Ortensia accounts team,
 
 Our records show EUR 1,240 in commission on booking VO-2214 fell due on 18 July and remains open. Could you confirm when payment was issued, or advise if anything is missing on our side? Rate terms and the booking reference are attached.
 
 With thanks,
-R. Devane · Enable, Paris desk`;
+${personName[role]} · Enable, ${role === "owner" ? "agency owner" : "Paris desk"}`;
 
 /* ── a timeline row: stage · value · provenance on the record's shared track ── */
 function TimelineRow({
@@ -104,7 +114,8 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
   /** The worked example: the overdue Villa Ortensia commission carries the reminder gate. */
   const rich = id === "vo";
 
-  const [draftText, setDraftText] = useState(seededDraft);
+  /** The draft as edited; null until a line is changed, so it signs for whoever is in. */
+  const [editedDraft, setEditedDraft] = useState<string | null>(null);
   const [acceptOpen, setAcceptOpen] = useState(false);
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [acceptReason, setAcceptReason] = useState("");
@@ -145,6 +156,16 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
   const sibling = commissionEdgeCases.discrepancy;
   const incentiveNote = c.projected.incentive;
   const late = c.state === "overdue" || c.state === "chased";
+  /** Who the reminder is from: whoever sent it, or whoever is drafting it. */
+  const sender = personName[s.reminderBy ?? s.role];
+  /** The owner chasing a booking the advisor holds: said once, quietly, before the send. */
+  const onBehalfNote = personName[s.role] !== bookingAdvisor ? (
+    <p className="mt-[var(--space-2)] type-meta">
+      This booking is {bookingAdvisor}&rsquo;s; the reminder goes out in your name and appears in
+      her chase log.
+    </p>
+  ) : null;
+  const draftText = editedDraft ?? seededDraft(s.role);
 
   return (
     <Page width="wide">
@@ -244,7 +265,7 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
                     </>
                   }
                 >
-                  today · by {people.advisor} · logged on the timeline
+                  Sent by {sender} today · logged on the timeline
                 </RowStack>
               </Rows>
             ) : c.state === "chased" ? (
@@ -257,7 +278,7 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
                     </>
                   }
                 >
-                  14 Aug · by {people.advisor}
+                  Sent by {bookingAdvisor} · 14 Aug
                 </RowStack>
               </Rows>
             ) : (
@@ -297,7 +318,7 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
               </p>
               {acceptedWithReason ? (
                 <div className="mt-[var(--space-3)]">
-                  <ConfirmBanner show>Accepted with reason — logged, attributed to {people.advisor}.</ConfirmBanner>
+                  <ConfirmBanner show>Accepted with reason — logged, attributed to {personName[s.role]}.</ConfirmBanner>
                 </div>
               ) : (
                 <div className="mt-[var(--space-3)] flex flex-wrap items-center gap-[var(--space-2)]">
@@ -329,6 +350,7 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
                     The product drafts the chase with the booking reference and the rate terms
                     attached. It waits. Nothing sends without your review.
                   </p>
+                  {onBehalfNote}
                   <div className="mt-[var(--space-4)]">
                     <Button className="w-full" onClick={() => d({ type: "reminder", state: "draft" })}>
                       Draft a reminder
@@ -343,14 +365,15 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
                   <Textarea
                     id="reminder-draft"
                     value={draftText}
-                    onChange={(e) => setDraftText(e.target.value)}
+                    onChange={(e) => setEditedDraft(e.target.value)}
                     className="mt-[var(--space-2)]"
                   />
+                  {onBehalfNote}
                   <div className="mt-[var(--space-4)] flex flex-wrap items-center gap-[var(--space-2)]">
                     <Button onClick={() => d({ type: "reminder", state: "sent" })}>Send</Button>
                     <Button
                       variant="secondary"
-                      onClick={() => { setDraftText(seededDraft); d({ type: "reminder", state: "idle" }); }}
+                      onClick={() => { setEditedDraft(null); d({ type: "reminder", state: "idle" }); }}
                     >
                       Discard
                     </Button>
@@ -365,7 +388,7 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
                 <>
                   <ConfirmBanner show>Sent. Commission → chased; chase logged.</ConfirmBanner>
                   <p className="mt-[var(--space-3)] type-meta">
-                    Sent by {people.advisor} today. The reply, when it comes, lands on the chase log.
+                    Sent by {sender} today. The reply, when it comes, lands on the chase log.
                   </p>
                 </>
               )}

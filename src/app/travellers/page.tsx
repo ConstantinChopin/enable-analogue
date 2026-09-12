@@ -14,22 +14,37 @@
  *
  * The one primary: "Open full profile" (contract: open a traveller). It sits at
  * the top of the inspector, the tool that follows the selection; with nothing
- * selected the page has no filled button. "Request access from the owner" on the
- * colleague's empty page is a secondary — it records a request, it grants nothing.
+ * selected the page has no filled button. The one secondary: "New traveller"
+ * (U24), for both types, opening a sheet whose own filled action is "Create
+ * traveller" — after a check for a traveller with that name or email.
  *
- * The colleague's view is the scope-isolation proof: an unshared profile is absent
- * from the list, never a locked row.
+ * Who sees what (docs/rebuild/05-two-roles.md, "Everything created starts private"
+ * and "One sharing rule, for everything"). The seeded travellers are R. Devane's.
+ * The owner reaches one only when it is shared with her: the personal layer is the
+ * advisor's, inside an agency or not. A traveller someone added by hand is private
+ * to its maker until she shares it — with her team at once, with the whole agency
+ * once the owner releases it (the owner's own agency-wide shares go out directly).
+ *
+ * The owner's empty page is the scope-isolation proof: an unshared profile is absent
+ * from the list, never a locked row — and so there is nothing to ask for. Asking for
+ * access lives on a profile she reached by name from elsewhere in the product.
  */
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { useDemo } from "@/lib/store";
-import { travellerCards, traveller, people, type TravellerCard } from "@/data/seed";
+import { useDemo, type CreatedTraveller, type DemoState } from "@/lib/store";
+import { travellerCards, traveller, people, personName, type Persona } from "@/data/seed";
 import { PageHeader, SplitPage, ViewToggle } from "@/components/layouts";
-import { Chip, DataList, EmptyState, NarrationNote, ConfirmBanner } from "@/components/bits";
+import { Chip, DataList, EmptyState, NarrationNote, ConfirmBanner, SeverityBanner, SourceTag } from "@/components/bits";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
+} from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowRight, Lock, Share2, Users } from "lucide-react";
+import { ArrowRight, Clock, Lock, Share2, Users } from "lucide-react";
 
 /* ── initials: first token, last token ──────────────────────────────────────── */
 function initialsOf(name: string) {
@@ -40,19 +55,72 @@ function initialsOf(name: string) {
   return (tokens.length === 1 ? first : first + last).toUpperCase();
 }
 
-type ShareState = "private" | "full" | "basic";
+const norm = (v: string) => v.trim().replace(/\s+/g, " ").toLowerCase();
 
-function ShareChip({ state, who }: { state: ShareState; who: string | null }) {
-  if (state === "private") {
-    return <Chip tone="neutral"><Lock className="size-[var(--icon-sm)]" aria-hidden /> private to you</Chip>;
+/* ── a traveller added by hand: who can reach it, under the one sharing rule ──
+   "maker" and "shared" open the profile; "pending" is the owner reading what an
+   advisor sent to the whole agency, which she has yet to release.               */
+type CreatedReach = "maker" | "shared" | "pending" | null;
+function reachOfCreated(t: CreatedTraveller, s: Pick<DemoState, "role" | "released">): CreatedReach {
+  if (t.by === s.role) return "maker";
+  if (t.share === "team") return "shared";
+  if (t.share === "agency") {
+    if (t.by === "owner") return "shared";
+    const decided = s.released[`trv-${t.id}`];
+    if (decided?.outcome === "published") return "shared";
+    if (!decided && s.role === "owner") return "pending";
   }
+  return null;
+}
+
+/* ── the sharing state, in words, for one row ── */
+type Sharing = { tone: "neutral" | "primary"; icon: React.ElementType; text: string };
+
+function sharingOfCreated(t: CreatedTraveller, s: Pick<DemoState, "role" | "released">): Sharing {
+  const mine = t.by === s.role;
+  const decided = s.released[`trv-${t.id}`];
+  if (!mine) {
+    if (t.share === "agency" && t.by === "user" && !decided) {
+      return { tone: "neutral", icon: Clock, text: `added by hand · ${personName[t.by]} · waiting for your release` };
+    }
+    return {
+      tone: "primary", icon: Share2,
+      text: `added by hand · shared by ${personName[t.by]} · ${t.share === "team" ? "your team" : "the whole agency"}`,
+    };
+  }
+  if (t.share === "private") return { tone: "neutral", icon: Lock, text: "added by hand · private to you" };
+  if (t.share === "team") return { tone: "primary", icon: Share2, text: "added by hand · your team" };
+  if (t.by === "owner" || decided?.outcome === "published") {
+    return { tone: "primary", icon: Share2, text: "added by hand · the whole agency" };
+  }
+  if (decided?.outcome === "returned") {
+    return { tone: "neutral", icon: Lock, text: `added by hand · returned by ${people.owner}` };
+  }
+  return { tone: "neutral", icon: Clock, text: `added by hand · waiting for ${people.owner}` };
+}
+
+function SharingChip({ sharing }: { sharing: Sharing }) {
+  const Icon = sharing.icon;
   return (
-    <Chip tone="primary">
-      <Share2 className="size-[var(--icon-sm)]" aria-hidden />
-      {state === "full" ? "Collaborator Full" : "Collaborator Basic"}
-      {who ? ` · ${who}` : ""}
+    <Chip tone={sharing.tone}>
+      <Icon className="size-[var(--icon-sm)]" aria-hidden /> {sharing.text}
     </Chip>
   );
+}
+
+/* ── one row of the list, whichever way the traveller arrived ── */
+interface Item {
+  id: string;
+  name: string;
+  status: string;
+  nextTrip: string | null;
+  departsInDays: number | null;
+  preferences: number | null;
+  profiles: number | null;
+  /** Collaborator Basic: name and contact only; the rest is not rendered. */
+  basic: boolean;
+  sharing: Sharing;
+  created?: CreatedTraveller;
 }
 
 /* ── the identity plate: initials on sunken paper; inverse when selected ────── */
@@ -72,37 +140,78 @@ function Initials({ name, size = "md", selected }: { name: string; size?: "sm" |
   );
 }
 
+/* A deterministic id from the name: the same name always makes the same address, and
+   a second traveller of that name takes the next free suffix. */
+function idFor(name: string, taken: Set<string>) {
+  const slug = name
+    .normalize("NFD").replace(/\p{M}/gu, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "traveller";
+  let id = `hand-${slug}`;
+  for (let n = 2; taken.has(id); n++) id = `hand-${slug}-${n}`;
+  return id;
+}
+
 /* ── page ───────────────────────────────────────────────────────────────────── */
 export default function TravellersPage() {
-  const { s } = useDemo();
-  /* The travellers in the data are R. Devane's. The owner reaches one only through a
+  const { s, d } = useDemo();
+  /* The seeded travellers are R. Devane's. The owner reaches one only through a
      share — the personal layer is the advisor's, inside an agency or not. */
   const viaShare = s.role === "owner";
 
   const [view, setView] = useState<"grid" | "table">("grid");
   const [selected, setSelected] = useState<string | null>(null);
-  const [requested, setRequested] = useState(false);
+  const [newOpen, setNewOpen] = useState(false);
+  const [justCreated, setJustCreated] = useState<string | null>(null);
 
-  /* The live tier governs S. Marchetti (set from the profile's share sheet); every
-     other card carries the share recorded in the data. */
-  const shareStateFor = (c: TravellerCard): ShareState =>
-    c.id === traveller.id ? s.shareTier : c.shared ? "full" : "private";
-  const sharedWithFor = (c: TravellerCard) =>
-    c.id === traveller.id ? (s.shareTier === "private" ? null : people.owner) : c.shared;
+  const rows = useMemo<Item[]>(() => {
+    /* The seeded cards: all of them for their advisor; for the owner, only what has
+       been shared with her. S. Marchetti follows the live tier from her profile. */
+    const cards = travellerCards
+      .filter((c) => {
+        if (!viaShare) return true;
+        if (c.id === traveller.id) return s.shareTier !== "private";
+        return c.shared === people.owner;
+      })
+      .map((c): Item => {
+        const tier = c.id === traveller.id ? s.shareTier : c.shared ? "full" : "private";
+        const who = c.id === traveller.id ? people.owner : c.shared;
+        const basic = viaShare && c.id === traveller.id && s.shareTier === "basic";
+        const sharing: Sharing =
+          tier === "private"
+            ? { tone: "neutral", icon: Lock, text: "private to you" }
+            : viaShare
+              ? { tone: "primary", icon: Share2, text: `${tier === "full" ? "Collaborator Full" : "Collaborator Basic"} · shared by ${people.advisor}` }
+              : { tone: "primary", icon: Share2, text: `${tier === "full" ? "Collaborator Full" : "Collaborator Basic"}${who ? ` · ${who}` : ""}` };
+        return {
+          id: c.id, name: c.name, status: c.relationshipStatus, nextTrip: c.nextTrip,
+          departsInDays: c.departsInDays, preferences: c.preferences, profiles: c.profiles,
+          basic, sharing,
+        };
+      });
 
-  /* What a colleague can reach at all: the profiles explicitly shared to them. The
-     tier the advisor last chose applies to that set — at "private" the set is empty,
-     and an empty set is an empty page, not a page of locked rows. */
-  const rows = useMemo(() => {
-    if (!viaShare) return travellerCards;
-    if (s.shareTier === "private") return [];
-    return travellerCards.filter((c) => c.id === traveller.id || c.shared === people.owner);
-  }, [viaShare, s.shareTier]);
+    /* Added by hand this session: the maker's own, and what reaches this person. */
+    const created = s.createdTravellers
+      .filter((t) => reachOfCreated(t, s) !== null)
+      .map((t): Item => ({
+        id: t.id, name: t.name, status: t.by === s.role ? "Added by hand" : `Added by hand by ${personName[t.by]}`,
+        nextTrip: null, departsInDays: null, preferences: null, profiles: null,
+        basic: false, sharing: sharingOfCreated(t, s), created: t,
+      }));
 
-  /* Basic tier: name and contact only. The absent fields are not rendered at all. */
-  const basic = viaShare && s.shareTier === "basic";
+    return [...created, ...cards];
+  }, [viaShare, s]);
 
   const active = selected ? rows.find((c) => c.id === selected) : undefined;
+  const handMade = rows.filter((r) => r.created).length;
+  const ownCount = s.createdTravellers.filter((t) => t.by === s.role).length;
+
+  function create(t: CreatedTraveller) {
+    d({ type: "createTraveller", traveller: t });
+    setNewOpen(false);
+    setJustCreated(t.id);
+    setSelected(t.id);
+  }
+  const created = justCreated ? s.createdTravellers.find((t) => t.id === justCreated) : undefined;
 
   const header = (
     <>
@@ -110,14 +219,23 @@ export default function TravellersPage() {
         title={
           <>
             Travellers
-            <Chip tone="neutral">{viaShare ? "shared with you" : "your clients"}</Chip>
+            <Chip tone="neutral">
+              {!viaShare ? "your clients" : ownCount > 0 ? "yours, and shared with you" : "shared with you"}
+            </Chip>
           </>
         }
-        actions={rows.length > 0 ? <ViewToggle value={view} onChange={setView} /> : undefined}
+        actions={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setNewOpen(true)}>
+              New traveller
+            </Button>
+            {rows.length > 0 && <ViewToggle value={view} onChange={setView} />}
+          </>
+        }
       >
         <p className="mt-[var(--space-2)] max-w-[62ch] type-data-read text-label-secondary">
-          A profile is private to its owning advisor until it is shared. Sharing is explicit,
-          attributed, and revocable.
+          A profile belongs to the advisor who holds it and is private to her until she shares
+          it. Sharing is explicit, attributed, and revocable.
         </p>
       </PageHeader>
 
@@ -134,61 +252,38 @@ export default function TravellersPage() {
       panelOpen={!!active}
       onClosePanel={() => setSelected(null)}
       panelTitle={active?.name ?? "Traveller"}
-      panel={
-        active ? (
-          <TravellerPanel
-            c={active}
-            basic={basic}
-            share={shareStateFor(active)}
-            sharedWith={sharedWithFor(active)}
-          />
-        ) : null
-      }
+      panel={active ? <TravellerPanel item={active} /> : null}
     >
-      {rows.length === 0 ? (
-        <div className="mt-[var(--space-4)] space-y-[var(--space-4)]">
-          {/* The confirmation says only what is true — the request is recorded and
-              waiting on a person. Access arrives when the owner grants it, not on
-              a timer. */}
-          {requested && (
-            <ConfirmBanner show>
-              Request recorded for {people.advisor} · today. Access arrives only if they share;
-              nothing here grants it.
-            </ConfirmBanner>
-          )}
-          <EmptyState
-            icon={Users}
-            title="No travellers shared with you"
-            body="Traveller profiles are private to their owning advisor by default. What is not shared is absent, not locked — there is nothing here to unlock."
-            action={
-              !requested && (
-                <Button variant="secondary" size="sm" onClick={() => setRequested(true)}>
-                  Request access from the owner
-                </Button>
-              )
-            }
-          />
+      {created && (
+        <div className="mt-[var(--space-3)]">
+          <ConfirmBanner show>
+            {created.name} added by hand · private to you. Nobody else sees this profile until you
+            share it from the profile.
+          </ConfirmBanner>
         </div>
+      )}
+
+      {rows.length === 0 ? (
+        <EmptyState
+          className="mt-[var(--space-4)]"
+          icon={Users}
+          title="No travellers shared with you"
+          body={`Traveller profiles belong to the advisors who hold them, and appear here only when one is shared with you. A profile nobody has shared is absent, not locked. A traveller you add yourself is yours from the start.`}
+        />
       ) : (
         <div className="min-w-0">
           <p className="mt-[var(--space-3)] type-meta">
             <span className="tnum">{rows.length}</span>{" "}
             {rows.length === 1 ? "traveller" : "travellers"}
-            {basic && " · name and contact only at Collaborator Basic"}
+            {handMade > 0 && <> · <span className="tnum">{handMade}</span> added by hand</>}
+            {rows.some((r) => r.basic) && " · name and contact only at Collaborator Basic"}
           </p>
 
           {view === "grid" ? (
             <ul className="mt-[var(--gap-2)] grid grid-cols-1 gap-x-[var(--gap-2)] gap-y-[var(--gap-4)] sm:grid-cols-2 xl:grid-cols-3">
               {rows.map((c) => (
                 <li key={c.id}>
-                  <TravellerCardTile
-                    c={c}
-                    basic={basic}
-                    share={shareStateFor(c)}
-                    sharedWith={sharedWithFor(c)}
-                    selected={selected === c.id}
-                    onSelect={() => setSelected(c.id)}
-                  />
+                  <TravellerCardTile item={c} selected={selected === c.id} onSelect={() => setSelected(c.id)} />
                 </li>
               ))}
             </ul>
@@ -219,18 +314,18 @@ export default function TravellersPage() {
                             <Initials name={c.name} size="sm" selected={on} />
                             <span className="min-w-0">
                               <span className={cn("block type-data-strong", on && "underline decoration-ink underline-offset-4")}>{c.name}</span>
-                              <span className="block type-meta">{c.relationshipStatus}</span>
+                              <span className="block type-meta">{c.status}</span>
                             </span>
                           </div>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell text-label-secondary">
-                          {basic ? "contact on file" : (c.nextTrip ?? "no trip on file")}
+                          {c.basic ? "contact on file" : c.created ? c.created.email : (c.nextTrip ?? "no trip on file")}
                         </TableCell>
                         <TableCell className="hidden md:table-cell tnum text-label-secondary">
-                          {!basic && c.departsInDays !== null ? `in ${c.departsInDays}d` : "—"}
+                          {!c.basic && c.departsInDays !== null ? `in ${c.departsInDays}d` : "—"}
                         </TableCell>
                         <TableCell>
-                          {basic ? <Chip tone="primary">Collaborator Basic</Chip> : <ShareChip state={shareStateFor(c)} who={sharedWithFor(c)} />}
+                          {c.basic ? <Chip tone="primary">Collaborator Basic</Chip> : <SharingChip sharing={c.sharing} />}
                         </TableCell>
                       </TableRow>
                     );
@@ -241,6 +336,15 @@ export default function TravellersPage() {
           )}
         </div>
       )}
+
+      <NewTravellerSheet
+        open={newOpen}
+        onOpenChange={setNewOpen}
+        role={s.role}
+        visible={rows}
+        taken={new Set([...travellerCards.map((c) => c.id), ...s.createdTravellers.map((t) => t.id)])}
+        onCreate={create}
+      />
     </SplitPage>
   );
 }
@@ -248,16 +352,7 @@ export default function TravellersPage() {
 /* ── the listing card for a person: a plate plus a caption, no container ────────
    The initials disc is the image; it inverts when selected, and the name keeps an
    underline — selected differs by more than colour (VIS-021).                   */
-function TravellerCardTile({
-  c, basic, share, sharedWith, selected, onSelect,
-}: {
-  c: TravellerCard;
-  basic: boolean;
-  share: ShareState;
-  sharedWith: string | null;
-  selected: boolean;
-  onSelect: () => void;
-}) {
+function TravellerCardTile({ item: c, selected, onSelect }: { item: Item; selected: boolean; onSelect: () => void }) {
   return (
     <button
       type="button"
@@ -265,7 +360,7 @@ function TravellerCardTile({
       aria-pressed={selected}
       data-state={selected ? "selected" : undefined}
       /* Named. A screen reader reached six of these and announced "button" six times. */
-      aria-label={`${c.name} — ${c.relationshipStatus}`}
+      aria-label={`${c.name} — ${c.status}`}
       className="group flex w-full cursor-pointer items-start gap-[var(--space-4)] rounded-lg text-left"
     >
       <Initials name={c.name} size="lg" selected={selected} />
@@ -279,10 +374,12 @@ function TravellerCardTile({
         >
           {c.name}
         </span>
-        <span className="type-data text-label-secondary">{c.relationshipStatus}</span>
+        <span className="type-data text-label-secondary">{c.status}</span>
 
-        {basic ? (
+        {c.basic ? (
           <span className="type-data text-label-secondary">Contact on file</span>
+        ) : c.created ? (
+          <span className="truncate type-data text-label-secondary">{c.created.email}</span>
         ) : (
           <span className="type-data text-label-secondary">
             {c.nextTrip ?? "No trip on file"}
@@ -292,8 +389,8 @@ function TravellerCardTile({
 
         {/* Sharing leads the marks: it is the subject of this whole surface. */}
         <span className="mt-[var(--space-2)] flex flex-wrap items-center gap-x-[var(--space-3)] gap-y-1">
-          {basic ? <Chip tone="primary">Collaborator Basic</Chip> : <ShareChip state={share} who={sharedWith} />}
-          {!basic && (
+          {c.basic ? <Chip tone="primary">Collaborator Basic</Chip> : <SharingChip sharing={c.sharing} />}
+          {!c.basic && c.preferences !== null && c.profiles !== null && (
             <span className="type-meta">
               <span className="tnum">{c.preferences}</span> {c.preferences === 1 ? "preference" : "preferences"}
               {" · "}
@@ -307,16 +404,14 @@ function TravellerCardTile({
 }
 
 /* ── the inspector: the tool that follows the selection ───────────────────────── */
-function TravellerPanel({
-  c, basic, share, sharedWith,
-}: { c: TravellerCard; basic: boolean; share: ShareState; sharedWith: string | null }) {
+function TravellerPanel({ item: c }: { item: Item }) {
   return (
     <div className="space-y-[var(--space-6)]">
       <div className="flex items-center gap-[var(--space-3)]">
         <Initials name={c.name} size="md" />
         <div className="min-w-0">
           <h2 className="truncate type-section">{c.name}</h2>
-          <p className="type-meta">{c.relationshipStatus}</p>
+          <p className="type-meta">{c.status}</p>
         </div>
       </div>
 
@@ -329,12 +424,39 @@ function TravellerPanel({
         </Button>
       </div>
 
-      {basic ? (
+      {c.basic ? (
         <p className="type-data-read text-label-secondary">
           Name and contact only at Collaborator Basic. Preferences, journeys, intelligence and spend
           fields are absent — not masked. The share is explicit, attributed, and revocable by{" "}
           {people.advisor}.
         </p>
+      ) : c.created ? (
+        <>
+          <DataList
+            rows={[
+              { label: "Email", value: c.created.email },
+              { label: "Added by hand by", value: `${personName[c.created.by]} · today` },
+            ]}
+          />
+          {c.created.note && (
+            <div>
+              <div className="type-micro-caps text-label-tertiary">What {personName[c.created.by]} already knows</div>
+              <p className="mt-[var(--space-2)] type-data-read">{c.created.note}</p>
+              <p className="mt-[var(--space-1)]">
+                <SourceTag kind="manual" label={`note, ${personName[c.created.by]} · today`} />
+              </p>
+            </div>
+          )}
+          <div>
+            <div className="type-micro-caps text-label-tertiary">Sharing</div>
+            <div className="mt-[var(--space-2)]">
+              <SharingChip sharing={c.sharing} />
+            </div>
+            <p className="mt-[var(--space-2)] type-meta">
+              Sharing lives on the profile itself.
+            </p>
+          </div>
+        </>
       ) : (
         <>
           <DataList
@@ -353,15 +475,120 @@ function TravellerPanel({
           <div>
             <div className="type-micro-caps text-label-tertiary">Sharing</div>
             <div className="mt-[var(--space-2)]">
-              <ShareChip state={share} who={sharedWith} />
+              <SharingChip sharing={c.sharing} />
             </div>
             <p className="mt-[var(--space-2)] type-meta">
-              {c.preferences} preferences, each attributed to a source and a date. Sharing and
-              the full journey history live on the profile itself.
+              <span className="tnum">{c.preferences}</span> preferences, each attributed to a source
+              and a date. Sharing and the full journey history live on the profile itself.
             </p>
           </div>
         </>
       )}
     </div>
+  );
+}
+
+/* ── New traveller (U24) ────────────────────────────────────────────────────────
+   Like raising a ticket: name, email, and whatever she already knows. The check runs
+   against the travellers this person can already reach, by name or email — a match
+   is shown instead of a second profile. It does not reach a profile she cannot see:
+   reporting that one exists would disclose it. What she types is her note, attributed
+   to her and dated today; it is never presented as the traveller's own statement.  */
+function NewTravellerSheet({
+  open, onOpenChange, role, visible, taken, onCreate,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  role: Persona;
+  visible: Item[];
+  taken: Set<string>;
+  onCreate: (t: CreatedTraveller) => void;
+}) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [note, setNote] = useState("");
+
+  const match = useMemo(() => {
+    const n = norm(name);
+    const e = norm(email);
+    if (!n && !e) return undefined;
+    return visible.find((v) => (n && norm(v.name) === n) || (e && v.created && norm(v.created.email) === e));
+  }, [name, email, visible]);
+
+  const valid = norm(name).length > 1 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+
+  function reset(v: boolean) {
+    if (!v) { setName(""); setEmail(""); setNote(""); }
+    onOpenChange(v);
+  }
+
+  function submit() {
+    if (!valid || match) return;
+    const clean = name.trim().replace(/\s+/g, " ");
+    onCreate({
+      id: idFor(clean, taken),
+      name: clean,
+      email: email.trim(),
+      note: note.trim() || undefined,
+      by: role,
+      share: "private",
+    });
+    setName(""); setEmail(""); setNote("");
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={reset}>
+      <SheetContent side="right">
+        <SheetHeader>
+          <SheetTitle>New traveller</SheetTitle>
+          <SheetDescription>Private to you when created. You choose who else sees it.</SheetDescription>
+        </SheetHeader>
+        <form
+          id="new-traveller"
+          className="space-y-[var(--space-4)] overflow-y-auto px-[var(--space-6)] py-[var(--space-6)]"
+          onSubmit={(e) => { e.preventDefault(); submit(); }}
+        >
+          <div className="space-y-[var(--space-2)]">
+            <Label htmlFor="nt-name">Name</Label>
+            <Input id="nt-name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" placeholder="J. Okafor" />
+          </div>
+          <div className="space-y-[var(--space-2)]">
+            <Label htmlFor="nt-email">Email</Label>
+            <Input id="nt-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" placeholder="name@example.com" />
+          </div>
+          <div className="space-y-[var(--space-2)]">
+            <Label htmlFor="nt-note">What you already know <span className="type-meta">· optional</span></Label>
+            <Textarea
+              id="nt-note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Met at the Lyon fair. Asked about a walking holiday in the Dolomites."
+            />
+            <p className="type-meta">
+              Kept as your note, with your name and today&rsquo;s date — not as something the
+              traveller said.
+            </p>
+          </div>
+
+          {match && (
+            <SeverityBanner severity="Info">
+              <p>
+                <b>{match.name}</b> is already on your list
+                {match.created ? ` · ${match.created.email}` : ` · ${match.status}`}. Open that
+                profile rather than adding a second one.
+              </p>
+              <Button asChild variant="link" size="sm" className="mt-[var(--space-2)]">
+                <Link href={`/travellers/${match.id}`}>Open {match.name}</Link>
+              </Button>
+            </SeverityBanner>
+          )}
+        </form>
+        <SheetFooter>
+          <Button type="submit" form="new-traveller" disabled={!valid || !!match}>
+            Create traveller
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }

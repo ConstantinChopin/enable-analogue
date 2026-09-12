@@ -111,6 +111,8 @@ export interface DemoState {
   retired: Record<string, { by: Persona; reason: string }>;
   /** Requests to see a traveller, received by that traveller's advisor. */
   accessRequests: { travellerId: string; by: Persona }[];
+  /** Document name → where its owner shared it this session. */
+  docShares: Record<string, { scope: ShareScope; by: Persona }>;
 }
 
 const initial: DemoState = {
@@ -140,6 +142,7 @@ const initial: DemoState = {
   released: {},
   retired: {},
   accessRequests: [],
+  docShares: {},
 };
 
 export type Action =
@@ -170,6 +173,7 @@ export type Action =
   | { type: "release"; id: string; outcome: "published" | "returned"; note?: string }
   | { type: "retireNotice"; id: string; reason: string }
   | { type: "requestAccess"; travellerId: string }
+  | { type: "shareDocument"; name: string; scope: ShareScope }
   | { type: "reset" };
 
 function reducer(s: DemoState, a: Action): DemoState {
@@ -221,6 +225,8 @@ function reducer(s: DemoState, a: Action): DemoState {
       retired: { ...s.retired, [a.id]: { by: s.role, reason: a.reason } },
       spaNoticeClosed: a.id === "spa" ? true : s.spaNoticeClosed,
     };
+    case "shareDocument":
+      return { ...s, docShares: { ...s.docShares, [a.name]: { scope: a.scope, by: s.role } } };
     case "requestAccess":
       if (s.accessRequests.some((r) => r.travellerId === a.travellerId && r.by === s.role)) return s;
       return { ...s, accessRequests: [...s.accessRequests, { travellerId: a.travellerId, by: s.role }] };
@@ -318,6 +324,15 @@ export function queueItems(s: DemoState): QueueItem[] {
         preview: `Added by hand by ${personName[t.by]} today, shared with the whole agency.`,
         action: "Publish to the whole agency",
       })),
+    ...Object.entries(s.docShares)
+      .filter(([, v]) => v.scope === "agency" && v.by === "user")
+      .map(([name, v]): QueueItem => ({
+        /* "shared-" marks what was shared this session; the seed's own items ("doc-pub",
+           "spa-pub") must not read as live, or the owner is told about her morning twice. */
+        id: `shared-doc-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, kind: "document", by: personName[v.by], text: name,
+        preview: `${personName[v.by]}'s own document, shared with the whole agency today.`,
+        action: "Publish to the whole agency",
+      })),
   ];
   return [...shared, ...publishQueue];
 }
@@ -354,15 +369,18 @@ function liveNotifications(s: DemoState): Notification[] {
 
   for (const item of queueItems(s)) {
     const decided = s.released[item.id];
-    if (!item.id.startsWith("rec-") && !item.id.startsWith("trv-")) continue;
-    if (!decided) {
+    /* Everything in the queue was shared by R. Devane, the seeded items included, so a
+       return always has her to go back to. Only what was shared this session raises
+       the owner's "waiting" notification; the seeded items are her morning already. */
+    const live = item.id.startsWith("rec-") || item.id.startsWith("trv-") || item.id.startsWith("shared-doc-");
+    if (!decided && live) {
       out.push({
         id: `live-queue-${item.id}`, roles: ["owner"], tag: "Knowledge", severity: "Info",
-        headline: `${item.by} shared ${item.kind === "record" ? "a new record" : "a traveller profile"} with the whole agency`,
+        headline: `${item.by} shared ${item.kind === "record" ? "a new record" : item.kind === "document" ? "a document" : "a traveller profile"} with the whole agency`,
         detail: item.text, subject: null, generatedBy: "Shared with the whole agency", when: "Just now",
         action: { label: "Open the publish queue", href: "/admin/publish" }, defaultState: "new",
       });
-    } else if (decided.outcome === "returned") {
+    } else if (decided?.outcome === "returned") {
       out.push({
         id: `live-queue-returned-${item.id}`, roles: ["user"], tag: "Knowledge", severity: "Info",
         headline: `${people.owner} returned “${item.text}”`,

@@ -385,7 +385,7 @@ export const notifications: Notification[] = [
   { id: "n-duplicate", roles: ["owner"], tag: "Ingestion", severity: "Important", headline: "A possible duplicate needs a human decision", detail: "“Maison Leandre” from a portal sync matches an existing canonical record at 0.92. Nothing merges automatically.", subject: { label: "Maison Leandre", href: "/admin/review/leandre-dup" }, evidence: "name_sim 0.92 · city exact · google_place_id absent", generatedBy: "Semantic dedup", when: "Today 05:22", action: { label: "Review the match", href: "/admin/review/leandre-dup" }, defaultState: "new" },
   { id: "n-payment", roles: ["owner"], tag: "Commissions", severity: "Important", headline: "Two payments cannot be matched to a booking", detail: "EUR 410 arrived under a traveller name; EUR 862 against a property name that does not resolve. Unmatched money is visible, never parked.", subject: { label: "Unmatched payments", href: "/ops/resolution" }, generatedBy: "Payment reconciliation", when: "Today 04:10", action: { label: "Open matching", href: "/ops/resolution" }, defaultState: "new" },
   { id: "n-connector", roles: ["owner"], tag: "Connections", severity: "Critical", headline: "Partner portal credentials have expired", detail: "The connector last succeeded on 24 August. Answers exclude it and say so.", subject: { label: "Connections", href: "/connections" }, generatedBy: "Integration health", when: "Today 03:02", action: { label: "Open connections", href: "/connections" }, defaultState: "new" },
-  { id: "n-publish", roles: ["owner"], tag: "Knowledge", severity: "Info", headline: "Two notices are awaiting publication", detail: "Submitted at team scope by an advisor. Publishing preserves the original owner.", subject: { label: "Publish queue", href: "/admin/publish" }, generatedBy: "Publication queue", when: "Yesterday 15:30", action: { label: "Review and publish", href: "/admin/publish" }, defaultState: "new" },
+  { id: "n-publish", roles: ["owner"], tag: "Knowledge", severity: "Info", headline: "Four items are waiting to be published", detail: "Shared with the whole agency by R. Devane. Publishing keeps her as the author.", subject: { label: "Publish queue", href: "/admin/publish" }, generatedBy: "Publication queue", when: "Yesterday 15:30", action: { label: "Review and publish", href: "/admin/publish" }, defaultState: "new" },
   { id: "n-sync", roles: ["owner"], tag: "Connections", severity: "Info", headline: "Booking-system figures are up to 48 hours behind", detail: "Totals derived from it carry their last-synced time rather than pretending to be current.", subject: null, generatedBy: "Sync monitor", when: "Yesterday 12:04", defaultState: "seen" },
 ];
 
@@ -515,22 +515,26 @@ export const candidates = [
 
 export interface VaultDoc {
   name: string; source: string; updated: string; access: string; state: string;
+  /** Whose document it is: the advisor who uploaded or received it. Absent means the
+      agency's — it arrived through an agency source. Only its owner changes who reads
+      a personal document; the agency owner cannot, and cannot open it unshared. */
+  by?: string;
   detail?: { synced: string; usedIn: string; history: string[] };
 }
 
 export const vaultDocs: VaultDoc[] = [
-  { name: "Peru — just-back notes", source: "Upload", updated: "02 Jul", access: "team · Paris", state: "ok" },
+  { name: "Peru — just-back notes", source: "Upload", updated: "02 Jul", access: "team · Paris", state: "ok", by: "R. Devane" },
   { name: "Commission schedule.xlsx", source: "Drive sync", updated: "30 Jun", access: "admin only", state: "ok" },
-  { name: "Rate note — Corvin & Wells", source: "Email-in", updated: "21 Jun", access: "private", state: "ok" },
+  { name: "Rate note — Corvin & Wells", source: "Email-in", updated: "21 Jun", access: "private", state: "ok", by: "R. Devane" },
   { name: "Kyoto ryokan briefing", source: "Intranet", updated: "04 Jun", access: "agency", state: "ok" },
-  { name: "Supplier webinar notes", source: "Upload", updated: "28 May", access: "processing", state: "processing" },
+  { name: "Supplier webinar notes", source: "Upload", updated: "28 May", access: "processing", state: "processing", by: "R. Devane" },
   { name: "Marrakech riad rate sheet.pdf", source: "Drive sync", updated: "18 May", access: "agency", state: "ok" },
-  { name: "Team call notes — 12 May", source: "Upload", updated: "12 May", access: "team · Paris", state: "ok" },
+  { name: "Team call notes — 12 May", source: "Upload", updated: "12 May", access: "team · Paris", state: "ok", by: "J. Dubois" },
   { name: "Venice water-taxi contacts", source: "Intranet", updated: "02 May", access: "agency", state: "ok" },
   { name: "Atelier Collection terms.pdf", source: "Drive sync", updated: "12 Mar", access: "agency", state: "ok", detail: { synced: "12:04 · every 15 min", usedIn: "14 answers this month", history: ["MK widened access: team → agency · 14 Jun · logged", "Uploaded by MK, private on arrival · 12 Mar"] } },
   { name: "Meridian programme summary", source: "Intranet", updated: "28 Feb", access: "agency", state: "ok" },
-  { name: "Serengeti camp relocation note", source: "Email-in", updated: "18 Aug", access: "agency", state: "ok" },
-  { name: "Patagonia operator comparison", source: "Upload", updated: "09 Aug", access: "team · Paris", state: "ok" },
+  { name: "Serengeti camp relocation note", source: "Email-in", updated: "18 Aug", access: "agency", state: "ok", by: "R. Devane" },
+  { name: "Patagonia operator comparison", source: "Upload", updated: "09 Aug", access: "team · Paris", state: "ok", by: "J. Dubois" },
   { name: "Villa contracts — owner default clause", source: "Drive sync", updated: "24 Jul", access: "admin only", state: "ok" },
   { name: "Winter rate sheet 2025 (superseded)", source: "Drive sync", updated: "12 May", access: "agency", state: "archived" },
 ];
@@ -570,7 +574,8 @@ export const connectionsFor = (role: Persona) =>
 export const connectionsNeedingAttention = connections.filter((c) => c.scope === "agency" && c.state !== "ok");
 
 /* ── connecting a source ────────────────────────────────────────────────────────
-   What an agency is actually deciding when it connects a drive or a mailbox.
+   What a person is actually deciding when they connect a drive or a mailbox — an
+   advisor her own, the owner the agency's. The same four steps for both.
 
    Note what the flow does NOT contain: a password field. Authorisation is a redirect
    to the provider, and the whole point of that redirect is that the third-party
@@ -581,9 +586,9 @@ export const connectionsNeedingAttention = connections.filter((c) => c.scope ===
    The two steps after authorisation are the ones that matter here and are usually an
    afterthought elsewhere: WHAT gets ingested, and WHO can read it afterwards. A drive
    connected whole pulls in the managing partner's mailbox folder along with the rate
-   notes; a source connected agency-wide makes every document in it answerable to every
-   advisor. Both are decided once, at connection, by someone who understands the
-   consequence — which is why this surface is not an advisor's.                       */
+   notes. What gets indexed is decided once, at connection. Who can read it is never
+   decided here: what a source indexes arrives closed to whoever connected it, and
+   opens to anyone else one document at a time, in the vault, by a named person.      */
 export interface Connector {
   id: string;
   name: string;
@@ -592,7 +597,7 @@ export interface Connector {
   posture: "MCP upstream" | "Self-hosted connector";
   /** The provider's consent screen, summarised. Read-only in every case. */
   grants: string[];
-  /** The unit an administrator picks from — folders, labels, spaces. */
+  /** The unit the person picks from — folders, labels, spaces. */
   scopeLabel: string;
   scopeOptions: { id: string; label: string; detail: string; recommended?: boolean }[];
   /** Shown on the review step as the thing the connection cannot do. */
@@ -652,10 +657,11 @@ export const connectors: Connector[] = [
 ];
 
 /* There is deliberately no audience list here. Documents that arrive through a
-   connection are closed — administrators only — and are opened one at a time in the
-   knowledge vault, where the access sheet records who opened what, to whom, and when.
-   A connection-level audience would have been a bulk share, and would have contradicted
-   the rule the publish queue states outright: every kind of record arrives closed. */
+   connection are closed — to whoever connected it — and are opened one at a time in
+   the knowledge vault, where the access sheet records who opened what, to whom, and
+   when. A connection-level audience would have been a bulk share, and would have
+   contradicted the rule everything else follows: what is created or brought in starts
+   private. */
 
 export const connectionHealth = {
   sources: connections.filter((c) => c.scope === "agency").length,
