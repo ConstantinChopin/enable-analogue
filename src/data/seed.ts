@@ -2,44 +2,46 @@
  * Seed data — the single source for every screen.
  * Schema-conformant per docs/design/data-model.md; deterministic (no Date.now, no Math.random).
  *
- * Personas: advisor = R. Devane (RD) · colleague = J. Dubois (JD)
- *           agency lead = M. Keller (MK) · ops = A. Blanc (AB).
+ * Two sign-ins (docs/rebuild/05-two-roles.md): the agency user R. Devane (RD), an
+ * advisor on the Paris desk, and the agency owner M. Keller (MK), who also holds the
+ * money desk. J. Dubois (JD) is a colleague named in the data — a note's author, a
+ * notice's owner — and does not sign in.
  * The traveller in the worked example is S. Marchetti (a client, not staff).
  * World: `v1` mirrors the March build (advisories carried auto-expiry); `v2` is current.
  */
 
 export type Layer = "canonical" | "agency" | "personal";
-export type Persona = "advisor" | "colleague" | "lead" | "ops";
+export type Persona = "user" | "owner";
 export type World = "v1" | "v2";
 
 export const people = {
+  /** The agency user who signs in. */
   advisor: "R. Devane", advisorShort: "RD", advisorEmail: "r.devane@enable.example",
-  colleague: "J. Dubois", colleagueShort: "JD", colleagueEmail: "j.dubois@enable.example",
-  lead: "M. Keller", leadShort: "MK", leadEmail: "m.keller@enable.example",
-  ops: "A. Blanc", opsShort: "AB", opsEmail: "a.blanc@enable.example",
+  /** The agency owner who signs in. */
+  owner: "M. Keller", ownerShort: "MK", ownerEmail: "m.keller@enable.example",
+  /** A colleague named in the data. Does not sign in. */
+  colleague: "J. Dubois", colleagueShort: "JD",
 };
 
 export const roleLabel: Record<Persona, string> = {
-  advisor: "Advisor · Paris desk",
-  colleague: "Advisor · Paris desk",
-  lead: "Agency lead",
-  ops: "Operations",
+  user: "Advisor · Paris desk",
+  owner: "Agency owner",
 };
 
 export const personName: Record<Persona, string> = {
-  advisor: people.advisor, colleague: people.colleague, lead: people.lead, ops: people.ops,
+  user: people.advisor, owner: people.owner,
 };
 
 export const personEmail: Record<Persona, string> = {
-  advisor: people.advisorEmail, colleague: people.colleagueEmail, lead: people.leadEmail, ops: people.opsEmail,
+  user: people.advisorEmail, owner: people.ownerEmail,
 };
 
 export const personInitials: Record<Persona, string> = {
-  advisor: people.advisorShort, colleague: people.colleagueShort, lead: people.leadShort, ops: people.opsShort,
+  user: people.advisorShort, owner: people.ownerShort,
 };
 
-/** Every persona, in the order the sign-in screen lists them. */
-export const personas: Persona[] = ["advisor", "colleague", "lead", "ops"];
+/** Both sign-ins, in the order the sign-in screen lists them. */
+export const personas: Persona[] = ["user", "owner"];
 
 /* ── provenance ───────────────────────────────────────────── */
 
@@ -325,7 +327,7 @@ export interface Widget {
 }
 
 export const widgetsFor: Record<Persona, Widget[]> = {
-  advisor: [
+  user: [
     { id: "commissions", title: "Commissions", expandsTo: "/commissions?state=open", expandLabel: "Open the ledger" },
     { id: "departures", title: "Departures", expandsTo: "/itineraries?window=30", expandLabel: "All departures" },
     { id: "notices", title: "Notices", expandsTo: "/notifications?tag=Records", expandLabel: "Open triage" },
@@ -334,27 +336,18 @@ export const widgetsFor: Record<Persona, Widget[]> = {
     { id: "incentives", title: "Expiring incentives", expandsTo: "/records?promotion=active", expandLabel: "See affected records" },
     { id: "verification", title: "Records verified this quarter", expandsTo: "/records?evidence=stale", expandLabel: "Records needing verification" },
   ],
-  colleague: [
-    /* No Commissions widget. A titled card occupying a grid cell to explain that it is
-       empty is a mask with a caption — the thing the policy claims not to do. Expiring
-       incentives is simply not here either, and the record does the same: the field is
-       gone, with no gap and no note. One rule, one implementation. */
+  /* The owner's morning: what only she can clear, then the agency's money, then the
+     sources, then her own day. There is no sharing-defaults chapter — everything
+     created starts private, so there is no default to set. */
+  owner: [
+    { id: "confirm", title: "Records awaiting confirmation", expandsTo: "/admin/review", expandLabel: "Open the confirmation queue" },
+    { id: "publish", title: "Waiting to be published", expandsTo: "/admin/publish", expandLabel: "Open the publish queue" },
+    { id: "unmatched", title: "Unmatched payments", expandsTo: "/ops/resolution", expandLabel: "Match payments" },
+    { id: "commissions", title: "Commissions", expandsTo: "/commissions?state=open", expandLabel: "Open the ledger" },
+    { id: "discrepancies", title: "Projected vs actual", expandsTo: "/commissions?state=discrepancy", expandLabel: "Flagged commissions" },
+    { id: "connections", title: "Connection health", expandsTo: "/connections", expandLabel: "All connections" },
     { id: "departures", title: "Departures", expandsTo: "/itineraries?window=30", expandLabel: "All departures" },
     { id: "notices", title: "Notices", expandsTo: "/notifications?tag=Records", expandLabel: "Open triage" },
-    { id: "verification", title: "Records verified this quarter", expandsTo: "/records?evidence=stale", expandLabel: "Records needing verification" },
-  ],
-  lead: [
-    { id: "publish", title: "Awaiting publication", expandsTo: "/notifications?tag=Knowledge", expandLabel: "Open triage" },
-    /* The queue index is the surface this widget summarises, and it is the only way in:
-       nothing else in the product links to /admin/review. */
-    { id: "confirm", title: "Records awaiting confirmation", expandsTo: "/admin/review", expandLabel: "Open the confirmation queue" },
-    { id: "connections", title: "Connection health", expandsTo: "/admin/connections", expandLabel: "All connections" },
-    { id: "policy", title: "Policy and access", expandsTo: "/admin/publish", expandLabel: "Sharing defaults" },
-  ],
-  ops: [
-    { id: "unmatched", title: "Unmatched payments", expandsTo: "/notifications?tag=Commissions", expandLabel: "Open triage" },
-    { id: "reconciliation", title: "Reconciliation this month", expandsTo: "/commissions?state=all", expandLabel: "Open the ledger" },
-    { id: "discrepancies", title: "Projected vs actual", expandsTo: "/commissions?state=discrepancy", expandLabel: "Flagged commissions" },
   ],
 };
 
@@ -378,22 +371,22 @@ export interface Notification {
 }
 
 export const notifications: Notification[] = [
-  { id: "n-conflict", roles: ["advisor", "colleague"], tag: "Records", severity: "Important", headline: "Three sources disagree on a commission rate", detail: "Maison Léandre carries 12%, 10% and 14% from three sources. Nothing has been assumed.", subject: { label: "Maison Léandre", href: "/records/maison-leandre" }, evidence: "Partner portal 12 Mar · Booking platform 28 Feb · Manual entry 03 Apr", generatedBy: "Conflict detection on the agency overlay", when: "Today 08:12", action: { label: "Resolve on the record", href: "/records/maison-leandre" }, defaultState: "new" },
-  { id: "n-verlaine", roles: ["advisor", "colleague"], tag: "Records", severity: "Critical", headline: "Critical notice blocks a property you have shortlisted", detail: "Hôtel Verlaine has water damage on floors 2–3. Output is blocked until the notice is acknowledged.", subject: { label: "Hôtel Verlaine", href: "/records/hotel-verlaine" }, evidence: "Opened 26 Aug by M. Keller, agency scope", generatedBy: "Advisory severity gate", when: "Today 07:40", action: { label: "Open the record", href: "/records/hotel-verlaine" }, defaultState: "new" },
-  { id: "n-overdue", roles: ["advisor"], tag: "Commissions", severity: "Important", headline: "Villa Ortensia commission is 12 days overdue", detail: "EUR 1,240 fell due 18 July. A reminder can be drafted; nothing sends without your review.", subject: { label: "VO-2214", href: "/commissions/vo" }, evidence: "Projected at 12% plus an active +3% bonus", generatedBy: "Commission ageing", when: "Today 06:00", action: { label: "Open the commission", href: "/commissions/vo" }, defaultState: "new" },
-  { id: "n-stale", roles: ["advisor", "colleague"], tag: "Records", severity: "Info", headline: "Four records have not been verified in 90 days", detail: "They still answer — with their date and a freshness warning attached.", subject: { label: "Records needing verification", href: "/records?evidence=stale" }, generatedBy: "Freshness sweep", when: "Yesterday 18:20", action: { label: "Review them", href: "/records?evidence=stale" }, defaultState: "seen" },
-  { id: "n-incentive", roles: ["advisor"], tag: "Commissions", severity: "Important", headline: "A +3% incentive closes for booking in 9 days", detail: "Villa Ortensia. Book by 05 Sep, travel by 20 Dec. Three clients in your book match the window.", subject: { label: "Villa Ortensia", href: "/records/villa-ortensia" }, evidence: "Bonus — adds to base commission", generatedBy: "Incentive window watch", when: "Yesterday 09:05", action: { label: "See affected clients", href: "/records/villa-ortensia" }, defaultState: "new" },
-  { id: "n-cancel", roles: ["advisor", "ops"], tag: "Commissions", severity: "Important", headline: "A cancellation has not been acknowledged", detail: "The Ischia cancellation was sent 24 hours ago and the property has no record of it.", subject: { label: "IS-0912", href: "/commissions/isc" }, generatedBy: "Cancellation verification loop", when: "Today 09:30", action: { label: "Contact the property" }, defaultState: "new" },
-  { id: "n-credit", roles: ["advisor", "ops"], tag: "Commissions", severity: "Important", headline: "A cancellation resolved as credit, not refund", detail: "Commission protection does not apply when a property issues a credit. The loss is a decision, not a silent write-off.", subject: { label: "IS-0912", href: "/commissions/isc" }, generatedBy: "Commission protection rule", when: "Yesterday 16:44", action: { label: "Open the commission", href: "/commissions/isc" }, defaultState: "seen" },
-  { id: "n-pref", roles: ["advisor"], tag: "Traveller", severity: "Important", headline: "A shortlisted property contradicts a stated preference", detail: "Hôtel Verlaine is tagged contemporary design. The profile holds a preference for classic interiors on three sources.", subject: { label: "S. Marchetti", href: "/travellers/s-marchetti" }, evidence: "Stated by client, 27 Aug call", generatedBy: "Preference conflict check", when: "Today 08:55", action: { label: "Open the profile", href: "/travellers/s-marchetti" }, defaultState: "new" },
-  { id: "n-departure", roles: ["advisor"], tag: "Traveller", severity: "Info", headline: "A departure is 12 days out with an open checklist", detail: "S. Marchetti departs for Kyoto on 12 October. Six of nine items are complete.", subject: { label: "Kyoto & Kansai", href: "/travellers/s-marchetti" }, generatedBy: "Departure watch", when: "Today 06:00", action: { label: "Open the trip", href: "/itineraries" }, defaultState: "seen" },
-  { id: "n-notice-stale", roles: ["advisor"], tag: "Records", severity: "Info", headline: "Two notices are past their review interval", detail: "A notice stays active until someone closes it. These two are asking whether they are still true.", subject: { label: "Notices due", href: "/notifications?tag=Records" }, generatedBy: "Stale advisory review", when: "Yesterday 07:10", action: { label: "Review them" }, defaultState: "new" },
-  { id: "n-candidate", roles: ["lead", "ops"], tag: "Ingestion", severity: "Important", headline: "A new record is waiting for confirmation", detail: "Hotel Sereno Kyoto arrived from a DMC spreadsheet. Two fields are held: a converted rate with no source currency, and portal boilerplate.", subject: { label: "Hotel Sereno Kyoto", href: "/admin/review/sereno" }, evidence: "gdrive://dmc-kyoto-2026.xlsx · row 41", generatedBy: "Extraction pipeline", when: "Today 05:20", action: { label: "Confirm the record", href: "/admin/review/sereno" }, defaultState: "new" },
-  { id: "n-duplicate", roles: ["lead", "ops"], tag: "Ingestion", severity: "Important", headline: "A possible duplicate needs a human decision", detail: "“Maison Leandre” from a portal sync matches an existing canonical record at 0.92. Nothing merges automatically.", subject: { label: "Maison Leandre", href: "/admin/review/leandre-dup" }, evidence: "name_sim 0.92 · city exact · google_place_id absent", generatedBy: "Semantic dedup", when: "Today 05:22", action: { label: "Review the match", href: "/admin/review/leandre-dup" }, defaultState: "new" },
-  { id: "n-payment", roles: ["ops"], tag: "Commissions", severity: "Important", headline: "Two payments cannot be matched to a booking", detail: "EUR 410 arrived under a traveller name; EUR 862 against a property name that does not resolve. Unmatched money is visible, never parked.", subject: { label: "Unmatched payments", href: "/ops/resolution" }, generatedBy: "Payment reconciliation", when: "Today 04:10", action: { label: "Open matching", href: "/ops/resolution" }, defaultState: "new" },
-  { id: "n-connector", roles: ["lead"], tag: "Connections", severity: "Critical", headline: "Partner portal credentials have expired", detail: "The connector last succeeded on 24 August. Answers exclude it and say so.", subject: { label: "Connections", href: "/admin/connections" }, generatedBy: "Integration health", when: "Today 03:02", action: { label: "Open connections", href: "/admin/connections" }, defaultState: "new" },
-  { id: "n-publish", roles: ["lead"], tag: "Knowledge", severity: "Info", headline: "Two notices are awaiting publication", detail: "Submitted at team scope by an advisor. Publishing preserves the original owner.", subject: { label: "Publish queue", href: "/admin/publish" }, generatedBy: "Publication queue", when: "Yesterday 15:30", action: { label: "Review and publish", href: "/admin/publish" }, defaultState: "new" },
-  { id: "n-sync", roles: ["lead", "ops"], tag: "Connections", severity: "Info", headline: "Booking-system figures are up to 48 hours behind", detail: "Totals derived from it carry their last-synced time rather than pretending to be current.", subject: null, generatedBy: "Sync monitor", when: "Yesterday 12:04", defaultState: "seen" },
+  { id: "n-conflict", roles: ["user", "owner"], tag: "Records", severity: "Important", headline: "Three sources disagree on a commission rate", detail: "Maison Léandre carries 12%, 10% and 14% from three sources. Nothing has been assumed.", subject: { label: "Maison Léandre", href: "/records/maison-leandre" }, evidence: "Partner portal 12 Mar · Booking platform 28 Feb · Manual entry 03 Apr", generatedBy: "Conflict detection on the agency overlay", when: "Today 08:12", action: { label: "Resolve on the record", href: "/records/maison-leandre" }, defaultState: "new" },
+  { id: "n-verlaine", roles: ["user"], tag: "Records", severity: "Critical", headline: "Critical notice blocks a property you have shortlisted", detail: "Hôtel Verlaine has water damage on floors 2–3. Output is blocked until the notice is acknowledged.", subject: { label: "Hôtel Verlaine", href: "/records/hotel-verlaine" }, evidence: "Opened 26 Aug by M. Keller, agency scope", generatedBy: "Advisory severity gate", when: "Today 07:40", action: { label: "Open the record", href: "/records/hotel-verlaine" }, defaultState: "new" },
+  { id: "n-overdue", roles: ["user", "owner"], tag: "Commissions", severity: "Important", headline: "Villa Ortensia commission is 12 days overdue", detail: "EUR 1,240 fell due 18 July. A reminder can be drafted; nothing sends without your review.", subject: { label: "VO-2214", href: "/commissions/vo" }, evidence: "Projected at 12% plus an active +3% bonus", generatedBy: "Commission ageing", when: "Today 06:00", action: { label: "Open the commission", href: "/commissions/vo" }, defaultState: "new" },
+  { id: "n-stale", roles: ["user", "owner"], tag: "Records", severity: "Info", headline: "Four records have not been verified in 90 days", detail: "They still answer — with their date and a freshness warning attached.", subject: { label: "Records needing verification", href: "/records?evidence=stale" }, generatedBy: "Freshness sweep", when: "Yesterday 18:20", action: { label: "Review them", href: "/records?evidence=stale" }, defaultState: "seen" },
+  { id: "n-incentive", roles: ["user"], tag: "Commissions", severity: "Important", headline: "A +3% incentive closes for booking in 9 days", detail: "Villa Ortensia. Book by 05 Sep, travel by 20 Dec. Three clients in your book match the window.", subject: { label: "Villa Ortensia", href: "/records/villa-ortensia" }, evidence: "Bonus — adds to base commission", generatedBy: "Incentive window watch", when: "Yesterday 09:05", action: { label: "See affected clients", href: "/records/villa-ortensia" }, defaultState: "new" },
+  { id: "n-cancel", roles: ["user", "owner"], tag: "Commissions", severity: "Important", headline: "A cancellation has not been acknowledged", detail: "The Ischia cancellation was sent 24 hours ago and the property has no record of it.", subject: { label: "IS-0912", href: "/commissions/isc" }, generatedBy: "Cancellation verification loop", when: "Today 09:30", action: { label: "Contact the property" }, defaultState: "new" },
+  { id: "n-credit", roles: ["user", "owner"], tag: "Commissions", severity: "Important", headline: "A cancellation resolved as credit, not refund", detail: "Commission protection does not apply when a property issues a credit. The loss is a decision, not a silent write-off.", subject: { label: "IS-0912", href: "/commissions/isc" }, generatedBy: "Commission protection rule", when: "Yesterday 16:44", action: { label: "Open the commission", href: "/commissions/isc" }, defaultState: "seen" },
+  { id: "n-pref", roles: ["user"], tag: "Traveller", severity: "Important", headline: "A shortlisted property contradicts a stated preference", detail: "Hôtel Verlaine is tagged contemporary design. The profile holds a preference for classic interiors on three sources.", subject: { label: "S. Marchetti", href: "/travellers/s-marchetti" }, evidence: "Stated by client, 27 Aug call", generatedBy: "Preference conflict check", when: "Today 08:55", action: { label: "Open the profile", href: "/travellers/s-marchetti" }, defaultState: "new" },
+  { id: "n-departure", roles: ["user"], tag: "Traveller", severity: "Info", headline: "A departure is 12 days out with an open checklist", detail: "S. Marchetti departs for Kyoto on 12 October. Six of nine items are complete.", subject: { label: "Kyoto & Kansai", href: "/travellers/s-marchetti" }, generatedBy: "Departure watch", when: "Today 06:00", action: { label: "Open the trip", href: "/itineraries" }, defaultState: "seen" },
+  { id: "n-notice-stale", roles: ["owner"], tag: "Records", severity: "Info", headline: "Two notices are past their review interval", detail: "A notice stays active until someone closes it. These two are asking whether they are still true.", subject: { label: "Notices due", href: "/notifications?tag=Records" }, generatedBy: "Stale advisory review", when: "Yesterday 07:10", action: { label: "Review them" }, defaultState: "new" },
+  { id: "n-candidate", roles: ["owner"], tag: "Ingestion", severity: "Important", headline: "A new record is waiting for confirmation", detail: "Hotel Sereno Kyoto arrived from a DMC spreadsheet. Two fields are held: a converted rate with no source currency, and portal boilerplate.", subject: { label: "Hotel Sereno Kyoto", href: "/admin/review/sereno" }, evidence: "gdrive://dmc-kyoto-2026.xlsx · row 41", generatedBy: "Extraction pipeline", when: "Today 05:20", action: { label: "Confirm the record", href: "/admin/review/sereno" }, defaultState: "new" },
+  { id: "n-duplicate", roles: ["owner"], tag: "Ingestion", severity: "Important", headline: "A possible duplicate needs a human decision", detail: "“Maison Leandre” from a portal sync matches an existing canonical record at 0.92. Nothing merges automatically.", subject: { label: "Maison Leandre", href: "/admin/review/leandre-dup" }, evidence: "name_sim 0.92 · city exact · google_place_id absent", generatedBy: "Semantic dedup", when: "Today 05:22", action: { label: "Review the match", href: "/admin/review/leandre-dup" }, defaultState: "new" },
+  { id: "n-payment", roles: ["owner"], tag: "Commissions", severity: "Important", headline: "Two payments cannot be matched to a booking", detail: "EUR 410 arrived under a traveller name; EUR 862 against a property name that does not resolve. Unmatched money is visible, never parked.", subject: { label: "Unmatched payments", href: "/ops/resolution" }, generatedBy: "Payment reconciliation", when: "Today 04:10", action: { label: "Open matching", href: "/ops/resolution" }, defaultState: "new" },
+  { id: "n-connector", roles: ["owner"], tag: "Connections", severity: "Critical", headline: "Partner portal credentials have expired", detail: "The connector last succeeded on 24 August. Answers exclude it and say so.", subject: { label: "Connections", href: "/connections" }, generatedBy: "Integration health", when: "Today 03:02", action: { label: "Open connections", href: "/connections" }, defaultState: "new" },
+  { id: "n-publish", roles: ["owner"], tag: "Knowledge", severity: "Info", headline: "Two notices are awaiting publication", detail: "Submitted at team scope by an advisor. Publishing preserves the original owner.", subject: { label: "Publish queue", href: "/admin/publish" }, generatedBy: "Publication queue", when: "Yesterday 15:30", action: { label: "Review and publish", href: "/admin/publish" }, defaultState: "new" },
+  { id: "n-sync", roles: ["owner"], tag: "Connections", severity: "Info", headline: "Booking-system figures are up to 48 hours behind", detail: "Totals derived from it carry their last-synced time rather than pretending to be current.", subject: null, generatedBy: "Sync monitor", when: "Yesterday 12:04", defaultState: "seen" },
 ];
 
 export const notificationsFor = (role: Persona) => notifications.filter((n) => n.roles.includes(role));
@@ -546,13 +539,22 @@ export const vaultStats = { total: 1284, verifiedSourcePct: 71, verified: 912, n
 
 /* ── connections ──────────────────────────────────────────── */
 
+/* `scope` is whose source it is. An agency source is connected by the owner and what it
+   indexes arrives closed to the administrators; a personal source is connected by an
+   advisor and what it indexes arrives closed to her. Either way connecting shares
+   nothing. Nobody sees another advisor's personal sources, the owner included. */
 export const connections = [
-  { name: "Intranet documents", state: "ok" as const, lastSuccess: "09:12", posture: "MCP upstream" },
-  { name: "Google Drive", state: "ok" as const, lastSuccess: "08:40", posture: "MCP upstream" },
-  { name: "Booking system", state: "syncing" as const, lastSuccess: "yesterday 18:00", posture: "read-only · ground truth stays in source · sync up to 48h" },
-  { name: "Partner portal", state: "credentials" as const, lastSuccess: "24 Aug", posture: "self-hosted fallback" },
-  { name: "Inbound mail — parisdesk@inbound.enable…", state: "ok" as const, lastSuccess: "11:52", posture: "private by default, sender-verified" },
+  { name: "Intranet documents", state: "ok" as const, lastSuccess: "09:12", posture: "MCP upstream", scope: "agency" as const, by: "owner" as Persona },
+  { name: "Google Drive", state: "ok" as const, lastSuccess: "08:40", posture: "MCP upstream", scope: "agency" as const, by: "owner" as Persona },
+  { name: "Booking system", state: "syncing" as const, lastSuccess: "yesterday 18:00", posture: "read-only · ground truth stays in source · sync up to 48h", scope: "agency" as const, by: "owner" as Persona },
+  { name: "Partner portal", state: "credentials" as const, lastSuccess: "24 Aug", posture: "self-hosted fallback", scope: "agency" as const, by: "owner" as Persona },
+  { name: "Inbound mail — parisdesk@inbound.enable…", state: "ok" as const, lastSuccess: "11:52", posture: "private by default, sender-verified", scope: "agency" as const, by: "owner" as Persona },
+  { name: "Gmail — r.devane@enable.example", state: "ok" as const, lastSuccess: "11:40", posture: "read-only · private to R. Devane", scope: "personal" as const, by: "user" as Persona },
 ];
+
+/** The sources a person sees on /connections: her own, and the agency's if she is the owner. */
+export const connectionsFor = (role: Persona) =>
+  connections.filter((c) => c.by === role || (role === "owner" && c.scope === "agency"));
 
 /**
  * Connection health — one rule, three surfaces.
@@ -560,11 +562,12 @@ export const connections = [
  * A source needs attention when its state is not `ok`. Expired credentials and a
  * sync running behind both degrade an answer, so both are counted: a source that
  * cannot be reached and a source that is stale are the same fact to the person
- * reading the answer. `/admin/connections`, `/settings` and the lead briefing all
+ * reading the answer. `/connections`, `/settings` and the lead briefing all
  * read this, because a product whose argument is data integrity cannot have two
  * screens disagreeing about the same number.
  */
-export const connectionsNeedingAttention = connections.filter((c) => c.state !== "ok");
+/** Agency health: the agency's own sources. A personal source degrades only its owner's answers. */
+export const connectionsNeedingAttention = connections.filter((c) => c.scope === "agency" && c.state !== "ok");
 
 /* ── connecting a source ────────────────────────────────────────────────────────
    What an agency is actually deciding when it connects a drive or a mailbox.
@@ -655,7 +658,7 @@ export const connectors: Connector[] = [
    the rule the publish queue states outright: every kind of record arrives closed. */
 
 export const connectionHealth = {
-  sources: connections.length,
+  sources: connections.filter((c) => c.scope === "agency").length,
   needAttention: connectionsNeedingAttention.length,
   /** The one phrase for the count, so the three surfaces also agree in words. */
   label: `${connectionsNeedingAttention.length} need attention`,
@@ -917,10 +920,29 @@ export interface PublishSource {
   subject: string; body: string; forwardedBy: string; access: string;
 }
 
-export const publishQueue: { id: string; text: string; action: string; source?: PublishSource }[] = [
-  { id: "spa-pub", text: "Spa closure — submitted by R. Devane, team scope", action: "Publish agency-wide (owner preserved)" },
+/* What an advisor has shared with the whole agency, waiting for the owner. Sharing with
+   a named colleague or a team is immediate; sharing with the whole agency is not. Every
+   kind of thing arrives here the same way, and goes out with its author kept. */
+export type QueueKind = "notice" | "note" | "record" | "document" | "trip" | "traveller" | "mail";
+
+export interface QueueItem {
+  id: string;
+  kind: QueueKind;
+  text: string;
+  /** The advisor who shared it. Travels with it when it is published. */
+  by: string;
+  /** What the owner reads before releasing it, where the kind has no source document. */
+  preview?: string;
+  action: string;
+  source?: PublishSource;
+}
+
+export const publishQueue: QueueItem[] = [
+  { id: "spa-pub", kind: "notice", by: "R. Devane", text: "Spa closure — Maison Léandre", preview: "Important · the spa is closed to 15 Sep. Written at team scope on 12 Jun, shared with the whole agency.", action: "Publish to the whole agency" },
+  { id: "note-pub", kind: "note", by: "R. Devane", text: "Ask for the courtyard rooms — Maison Léandre", preview: "“Ask for the courtyard rooms; the street side takes the morning deliveries.”", action: "Publish to the whole agency" },
+  { id: "doc-pub", kind: "document", by: "R. Devane", text: "Kyoto ryokan briefing", preview: "Uploaded by R. Devane · 6 pages · Intranet format, 04 Jun.", action: "Publish to the whole agency" },
   {
-    id: "camp-pub", text: "Serengeti camp relocation — from forwarded mail", action: "Review source",
+    id: "camp-pub", kind: "mail", by: "R. Devane", text: "Serengeti camp relocation — from forwarded mail", action: "Review source",
     /* An item that arrived by mail carries the mail. "Review source" opens this. */
     source: {
       doc: "Serengeti camp relocation note",
@@ -935,17 +957,9 @@ export const publishQueue: { id: string; text: string; action: string; source?: 
   },
 ];
 
+/* No sharing defaults: everything created starts private, so there is nothing to set.
+   No policy access: the owner cannot open an advisor's private work, logged or not. */
 export const adminPolicy = {
-  defaults: [
-    { kind: "Knowledge from email", detail: "a forwarded email, after sender checks", value: "Private to the receiving advisor" },
-    { kind: "Traveller profiles", detail: "preferences, notes, history", value: "Private to the owning advisor" },
-    { kind: "Itineraries", detail: "drafts and confirmed trips", value: "Whole agency" },
-    { kind: "Knowledge uploads", detail: "documents an advisor adds by hand", value: "The uploader's team" },
-  ],
-  breakGlass: [
-    { actor: "MK (admin)", action: "opened a personal note", reason: "advisor on leave", expiry: "expires 18:00", when: "Today 09:41" },
-    { actor: "JB (admin)", action: "opened a traveller profile", reason: "complaint review", note: "owner notified", when: "Yesterday 15:12" },
-  ],
   governed: { advisors: 34, admins: 3, desks: 4, records: 1284 },
 };
 

@@ -75,7 +75,7 @@ export default function AskPage() {
 
 function Ask() {
   const { s } = useDemo();
-  const money = canViewCommissions(s.role);
+  const money = canViewCommissions(s);
   const stateParam = useSearchParams()?.get("state") ?? null;
 
   /* ?state= drives the demo branches. Nothing else auto-opens a thread. */
@@ -224,7 +224,6 @@ function ConversationList({
   active, onPick,
 }: { active: ThreadId | null; onPick: (id: ThreadId | null) => void }) {
   const { s } = useDemo();
-  const role = s.role;
   /* Refusal is a v2 capability. In the March build the system answered rather than
      declining, so a thread marked `refused` could not exist — showing one dates the
      index to the wrong build and softens the failure the rewind is there to show. */
@@ -237,7 +236,7 @@ function ConversationList({
         /* The question names the restricted figure. The outcome and the transcript
            length describe material this reader may not be able to open. Absent for
            them, not greyed. */
-        const readable = !c.needsCommission || canViewCommissions(role);
+        const readable = !c.needsCommission || canViewCommissions(s);
         return (
           <li key={c.id} role="none">
             <button
@@ -538,7 +537,7 @@ function CommissionThread({
 
 function SpaThread() {
   const { s } = useDemo();
-  const money = canViewCommissions(s.role);
+  const money = canViewCommissions(s);
   const spa = notices.find((n) => n.id === "spa");
   const noticeActive = s.world === "v2" && !!spa && !s.spaNoticeClosed;
   const sources = sourcesFor("spa-status", s.world, money);
@@ -585,7 +584,7 @@ function SpaThread() {
 
 function RepThread() {
   const { s } = useDemo();
-  const sources = sourcesFor("rep-paris", s.world, canViewCommissions(s.role));
+  const sources = sourcesFor("rep-paris", s.world, canViewCommissions(s));
   return (
     <Exchange
       q={askThreads.rep.q}
@@ -672,7 +671,7 @@ function RefusalThread() {
 function StaleThread() {
   const { s } = useDemo();
   const st = askThreads.stale;
-  const sources = sourcesFor("stale", s.world, canViewCommissions(s.role));
+  const sources = sourcesFor("stale", s.world, canViewCommissions(s));
   return (
     <Exchange
       q={st.q}
@@ -743,7 +742,7 @@ function TraceList({ threadId, pendingStage }: { threadId?: string | null; pendi
      material is absent, exactly as the field itself is absent on the record —
      never a caption saying a stage was hidden. */
   const stages = traceFor(threadId ?? null, noticeActive).filter(
-    (t) => !t.needsCommission || canViewCommissions(s.role),
+    (t) => !t.needsCommission || canViewCommissions(s),
   );
   /* Clamped, so "the stage that timed out" is always the last visible one rather
      than an index into a list this reader does not have. */

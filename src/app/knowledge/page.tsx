@@ -113,10 +113,9 @@ const subscribeDesktop = (cb: () => void) => {
 
 export default function KnowledgeVault() {
   const { s } = useDemo();
-  /* Connecting a source is an administrative act — it decides what every answer in the
-     agency gets built from. The flow itself lives under /admin, which only these two
-     roles may enter. */
-  const canConnect = s.role === "lead" || s.role === "ops";
+  /* Both types connect sources: an advisor her own mailbox or Drive, the owner the
+     agency's. Connecting indexes and never shares, so it needs no gate. */
+  const canConnect = true;
   const indexingCount = vaultDocs.filter((doc) => doc.access === "processing").length;
   const [tab, setTab] = useState<string>("All");
   const [selected, setSelected] = useState<string | null>("Atelier Collection terms.pdf");
@@ -139,13 +138,13 @@ export default function KnowledgeVault() {
 
   /* The vault is permission-filtered like every other surface: a document a role
      cannot open does not appear in the list at all — absent, not masked, and not
-     merely badged. `admin only` belongs to the agency lead and operations; a
-     `private` document belongs to the advisor who received it, so a colleague
-     never sees it. Counting rows after the filter is deliberate: the totals a
+     merely badged. `admin only` belongs to the owner; a `private` document belongs
+     to the advisor who received it, and the owner never sees it either — the personal
+     layer is the advisor's, inside an agency or not. Counting rows after the filter is deliberate: the totals a
      reader is given must be totals of what they can actually reach. */
   const visible = useMemo(() => {
-    const canSeeAdminOnly = s.role === "lead" || s.role === "ops";
-    const canSeeOwnPrivate = s.role === "advisor";
+    const canSeeAdminOnly = s.role === "owner";
+    const canSeeOwnPrivate = s.role === "user";
     return vaultDocs.filter((doc) => {
       if (doc.access === "admin only") return canSeeAdminOnly;
       if (doc.access === "private") return canSeeOwnPrivate;
@@ -182,7 +181,7 @@ export default function KnowledgeVault() {
           <>
             {canConnect && (
               <Button asChild variant="link" size="sm">
-                <Link href="/admin/connections?add=1">New connection</Link>
+                <Link href="/connections?add=1">New connection</Link>
               </Button>
             )}
             <span className="inline-flex items-center gap-[var(--space-2)]">
@@ -250,7 +249,7 @@ export default function KnowledgeVault() {
                 </span>
                 <span className="row-trailing">
                   <Button asChild variant="secondary" size="sm">
-                    <Link href="/admin/connections">Open connections</Link>
+                    <Link href="/connections">Open connections</Link>
                   </Button>
                 </span>
               </Row>
@@ -406,7 +405,7 @@ export default function KnowledgeVault() {
    roles get it.                                                                  */
 function ProvenancePanel({ sel, onManageAccess }: { sel: VaultDoc | undefined; onManageAccess: (name: string) => void }) {
   const { s } = useDemo();
-  const reviewer = s.role === "lead" || s.role === "ops";
+  const reviewer = s.role === "owner";
 
   if (!sel) {
     return (

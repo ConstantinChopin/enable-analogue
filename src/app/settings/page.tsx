@@ -126,10 +126,9 @@ export default function SettingsPage() {
         </p>
       </Section>
 
-      {/* For a role that cannot manage connections there is no Connections chapter.
-          It held prose and no control — a settings section whose only content was
-          the news that the setting is somewhere else. Absent, not masked, again. */}
-      {s.role === "lead" && (
+      {/* Both types connect sources, so both reach them from here. */}
+      {(
+
         <Section
           title="Connections"
           quiet
@@ -145,7 +144,7 @@ export default function SettingsPage() {
             its last success, and a failed source degrades answers visibly.
           </p>
           <Button asChild variant="secondary" size="sm" className="mt-[var(--space-4)]">
-            <Link href="/admin/connections">
+            <Link href="/connections">
               Open connections <ArrowRight aria-hidden />
             </Link>
           </Button>

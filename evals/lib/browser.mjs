@@ -12,7 +12,7 @@ export const BASE = process.env.EVAL_BASE ?? "http://localhost:3000";
 
 const SEED = {
   signedIn: true,
-  role: "advisor",
+  role: "user",
   world: "v2",
   narration: false,
   conflictResolved: false,

@@ -12,11 +12,11 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useDemo } from "@/lib/store";
+import { useDemo, inboxFor } from "@/lib/store";
 import type { Persona } from "@/data/seed";
 /* Identity — name, role label and initials — comes from the seed, never from a
    second map here. Two label maps produced two spellings of the same role. */
-import { notifications, personInitials, personName, roleLabel } from "@/data/seed";
+import { personInitials, personName, roleLabel } from "@/data/seed";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
@@ -61,10 +61,9 @@ const T = {
 
 /** Per-role tile sets — the permission story you can see at a glance (§10.7, §10b). */
 export const dockTiles: Record<Persona, DockTile[]> = {
-  advisor: [T.briefing, T.notifications, T.ask, T.records, T.travellers, T.itineraries, T.knowledge],
-  colleague: [T.briefing, T.notifications, T.ask, T.records, T.travellers, T.itineraries, T.knowledge],
-  lead: [T.briefing, T.notifications, T.confirm, T.publish, T.records, T.knowledge],
-  ops: [T.briefing, T.notifications, T.resolution, T.records, T.knowledge],
+  user: [T.briefing, T.notifications, T.ask, T.records, T.travellers, T.itineraries, T.knowledge],
+  /* The user's seven, with the owner's three acts after her inbox. */
+  owner: [T.briefing, T.notifications, T.confirm, T.publish, T.resolution, T.ask, T.records, T.travellers, T.itineraries, T.knowledge],
 };
 
 /** ⌘K canned destinations — no live search index in this build. */
@@ -159,15 +158,12 @@ export function Dock() {
   const router = useRouter();
   const [paletteOpen, setPaletteOpen] = useState(false);
 
-  const tiles = dockTiles[s.role] ?? dockTiles.advisor;
+  const tiles = dockTiles[s.role] ?? dockTiles.user;
 
-  /* Badge: items addressed to this role whose effective state is still "new". */
+  /* Badge: this person's inbox — the seeded day and what happened since — still "new". */
   const newForRole = useMemo(
-    () =>
-      notifications.filter(
-        (n) => n.roles.includes(s.role) && (s.notices[n.id] ?? n.defaultState) === "new",
-      ).length,
-    [s.role, s.notices],
+    () => inboxFor(s).filter((n) => (s.notices[n.id] ?? n.defaultState) === "new").length,
+    [s],
   );
 
   const go = useCallback((href: string) => { setPaletteOpen(false); router.push(href); }, [router]);
@@ -268,11 +264,9 @@ export function Dock() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => router.push("/settings")}>Settings</DropdownMenuItem>
-                {s.role === "lead" && (
-                  <DropdownMenuItem onSelect={() => router.push("/admin/connections")}>
-                    Connections
-                  </DropdownMenuItem>
-                )}
+                <DropdownMenuItem onSelect={() => router.push("/connections")}>
+                  Connections
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onSelect={() => { d({ type: "signOut" }); router.replace("/signin"); }}

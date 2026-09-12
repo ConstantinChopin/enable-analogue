@@ -99,7 +99,7 @@ function SheetBody({ children }: { children: ReactNode }) {
 export default function CommissionDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { s, d } = useDemo();
-  const money = canViewCommissions(s.role);
+  const money = canViewCommissions(s);
   const c = commissions.find((x) => x.id === id);
   /** The worked example: the overdue Villa Ortensia commission carries the reminder gate. */
   const rich = id === "vo";

@@ -150,7 +150,7 @@ export default function RecordsPage() {
 
 function RecordsCatalogue() {
   const { s } = useDemo();
-  const money = canViewCommissions(s.role);
+  const money = canViewCommissions(s);
   const search = useSearchParams();
 
   /* Briefing widgets are saved views (§8): the query string is the view, applied on entry. */
@@ -168,10 +168,9 @@ function RecordsCatalogue() {
   );
   const [selected, setSelected] = useState<string | null>(null);
 
-  /* An unconfirmed candidate never surfaces to a working advisor before it is
-     confirmed. Lead and ops see it, marked unconfirmed, because reviewing it is
-     their work. */
-  const reviewer = s.role === "lead" || s.role === "ops";
+  /* An unconfirmed candidate never surfaces to the agency user before it is
+     confirmed. The owner sees it, marked unconfirmed, because confirming it is hers. */
+  const reviewer = s.role === "owner";
   const visible = useMemo(
     () => products.filter((p) => p.id !== "sereno-kyoto" || s.candidateConfirmed || reviewer),
     [s.candidateConfirmed, reviewer],
@@ -460,7 +459,7 @@ function RecordCard({
 /* ── the inspector: the tool that follows the selection ───────────────────────── */
 function RecordPanel({ p }: { p: Product }) {
   const { s, d } = useDemo();
-  const money = canViewCommissions(s.role);
+  const money = canViewCommissions(s);
   const notice = notices.find((n) => n.productId === p.id);
   const confirmedToday = p.id === "sereno-kyoto" && s.candidateConfirmed;
 
@@ -593,7 +592,7 @@ function PlainSummary({ p, money }: { p: Product; money: boolean }) {
       {p.id === "sereno-kyoto" && (
         <p className="mt-[var(--space-2)] type-meta">
           A candidate record. It does not answer questions, and it is not offered to a client, until a
-          reviewer confirms it field by field — {people.lead} or {people.ops} hold that queue.
+          reviewer confirms it field by field — {people.owner} holds that queue.
         </p>
       )}
     </Section>

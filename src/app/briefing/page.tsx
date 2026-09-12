@@ -23,7 +23,7 @@ import Link from "next/link";
 import { useDemo, canViewCommissions } from "@/lib/store";
 import {
   widgetsFor, personName, commissions, departures, notices, promotions, briefing,
-  publishQueue, candidates, connections, connectionHealth, adminPolicy, orphanedPayments,
+  publishQueue, candidates, connections, connectionHealth, orphanedPayments,
   travellerCards, people,
   type Widget,
 } from "@/data/seed";
@@ -54,7 +54,7 @@ function Opens({ href, children }: { href: string; children: React.ReactNode }) 
 
 export default function Briefing() {
   const { s } = useDemo();
-  const money = canViewCommissions(s.role);
+  const money = canViewCommissions(s);
   const widgets = widgetsFor[s.role];
 
   const openCommissions = commissions.filter((c) => c.state !== "paid");
@@ -73,12 +73,14 @@ export default function Briefing() {
     .sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
   const critical = activeNotices.filter((n) => n.severity === "Critical");
 
-  const sharedWithColleague = (name: string) => {
-    if (travellerCards.some((t) => t.name === name && t.shared === people.colleague)) return true;
+  /* The trips in the data are R. Devane's. The owner sees a departure only for a
+     traveller shared with her: the personal layer is the advisor's. */
+  const sharedWithOwner = (name: string) => {
+    if (travellerCards.some((t) => t.name === name && t.shared === people.owner)) return true;
     return name === "S. Marchetti" && s.shareTier !== "private";
   };
   const visibleDepartures = departures.filter(
-    (t) => s.role !== "colleague" || sharedWithColleague(t.traveller),
+    (t) => s.role === "user" || sharedWithOwner(t.traveller),
   );
   const soonest = visibleDepartures[0];
   const unconfirmed = visibleDepartures.filter((t) => t.alert);
@@ -92,8 +94,7 @@ export default function Briefing() {
   /* ── the day, in sentences (criteria 1 and 3) ───────────────────────────── */
   const lead: React.ReactNode = (() => {
     switch (s.role) {
-      case "advisor":
-      case "colleague":
+      case "user":
         return (
           <>
             {soonest
@@ -108,22 +109,15 @@ export default function Briefing() {
             {expiring.length > 0 && <>{expiring.length} incentives expire within {expiring[expiring.length - 1].daysLeft} days.</>}
           </>
         );
-      case "lead":
+      case "owner":
         return (
           <>
-            {publishQueue.length} items wait in the publish queue and {candidates.length} candidate records wait to be confirmed.{" "}
-            {connectionHealth.needAttention > 0
-              ? <>{connectionHealth.needAttention} of {connections.length} connections need attention. </>
-              : <>All {connections.length} connections are healthy. </>}
-            {critical.length > 0 && <>{critical.map((n) => n.productName).join(", ")} carries a Critical notice the desk must acknowledge before booking.</>}
-          </>
-        );
-      case "ops":
-        return (
-          <>
+            {candidates.length} candidate records wait to be confirmed and {publishQueue.length} items wait to be published to the whole agency.{" "}
             {orphanedPayments.length} payments totalling {eur(orphanTotal)} arrived without a booking to match.{" "}
-            {eur(collected)} has been collected this quarter against {eur(outstanding)} still open, {overdue.length} of it overdue.{" "}
-            {flagged.length > 0 && <>{flagged.length} {flagged.length === 1 ? "commission" : "commissions"} came in under projection.</>}
+            {connectionHealth.needAttention > 0
+              ? <>{connectionHealth.needAttention} of {connectionHealth.sources} agency connections need attention. </>
+              : <>All {connectionHealth.sources} agency connections are healthy. </>}
+            {critical.length > 0 && <>{critical.map((n) => n.productName).join(", ")} carries a Critical notice the desk must acknowledge before booking.</>}
           </>
         );
     }
@@ -342,30 +336,6 @@ export default function Briefing() {
           </Section>
         );
 
-      case "policy":
-        return (
-          <Section key={w.id} title="Sharing defaults" quiet deep footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
-            <Rows>
-              {adminPolicy.defaults.map((p) => (
-                <Row key={p.kind}>
-                  <span className="row-primary type-data-strong">{p.kind}</span>
-                  <span className="row-trailing text-label-secondary">{p.value}</span>
-                </Row>
-              ))}
-            </Rows>
-            <p className="mt-[var(--space-3)] type-meta tnum">
-              {adminPolicy.governed.advisors} advisors · {adminPolicy.governed.admins} admins ·{" "}
-              {adminPolicy.governed.desks} desks ·{" "}
-              {adminPolicy.governed.records.toLocaleString("en-GB")} records
-            </p>
-            {adminPolicy.breakGlass.length > 0 && (
-              <p className="mt-1 type-meta">
-                {adminPolicy.breakGlass.length} break-glass openings logged, owners notified.
-              </p>
-            )}
-          </Section>
-        );
-
       /* ── ops ── */
       case "unmatched":
         return (
@@ -448,16 +418,17 @@ export default function Briefing() {
   if (critical.length) today.push({ label: "Critical notice", mark: <Chip tone="crit">{critical.length}</Chip> });
   if (unconfirmed.length) today.push({ label: "Departure unconfirmed", mark: <Chip tone="warn">{unconfirmed.length}</Chip> });
   if (expiring.length && money) today.push({ label: "Incentives expiring", mark: <Chip tone="neutral">{expiring.length}</Chip> });
-  if (s.role === "lead") {
-    today.push({ label: "To publish", mark: <Chip tone="neutral">{publishQueue.length}</Chip> });
+  if (s.role === "owner") {
     today.push({ label: "To confirm", mark: <Chip tone="neutral">{candidates.length}</Chip> });
+    today.push({ label: "To publish", mark: <Chip tone="neutral">{publishQueue.length}</Chip> });
+    today.push({ label: "Payments to match", mark: <Chip tone="neutral">{orphanedPayments.length}</Chip> });
     if (connectionHealth.needAttention > 0) today.push({ label: "Connections", mark: <Chip tone="warn">{connectionHealth.needAttention}</Chip> });
   }
-  if (s.role === "ops") today.push({ label: "Payments to match", mark: <Chip tone="neutral">{orphanedPayments.length}</Chip> });
 
+  /* The owner's one action is the queue that blocks everyone else: a new record is not
+     true in the product until she confirms it. */
   const primary =
-    s.role === "lead" ? { href: "/admin/review", label: "Confirm records" }
-    : s.role === "ops" ? { href: "/ops/resolution", label: "Match payments" }
+    s.role === "owner" ? { href: "/admin/review", label: "Confirm records" }
     : money ? { href: "/commissions", label: "Open the ledger" }
     : { href: "/itineraries", label: "Check departures" };
 

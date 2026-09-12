@@ -81,7 +81,7 @@ function AccountRow({ account: a, selected, onSelect }: { account: Account; sele
 export default function SignInPage() {
   const { s, d } = useDemo();
   const router = useRouter();
-  const [selected, setSelected] = useState<Persona>("advisor");
+  const [selected, setSelected] = useState<Persona>("user");
   const [email, setEmail] = useState(accounts[0].email);
   const [password, setPassword] = useState("••••••••••••");
 

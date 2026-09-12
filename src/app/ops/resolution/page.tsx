@@ -36,7 +36,7 @@ interface MatchDecision {
 
 export default function ResolutionQueue() {
   const { s, d } = useDemo();
-  const money = canViewCommissions(s.role);
+  const money = canViewCommissions(s);
 
   const [sheetFor, setSheetFor] = useState<string | null>(null);
   const [candidate, setCandidate] = useState<string>("");
@@ -111,13 +111,13 @@ export default function ResolutionQueue() {
                     </div>
                     <div className="row-stack-body type-meta">
                       {matched
-                        ? <>→ {matched.ref} · reason: &ldquo;{matched.reason}&rdquo; · attributed {people.ops}</>
+                        ? <>→ {matched.ref} · reason: &ldquo;{matched.reason}&rdquo; · attributed {people.owner}</>
                         : <>{p.note} · <span className="tnum">{p.candidates.length}</span> {p.candidates.length === 1 ? "candidate" : "candidates"}</>}
                     </div>
                     {justMatched === p.id && (
                       <div className="mt-[var(--space-2)]">
                         <ConfirmBanner show>
-                          Matched with a reason — attributed to {people.ops}, logged on the payment.
+                          Matched with a reason — attributed to {people.owner}, logged on the payment.
                         </ConfirmBanner>
                       </div>
                     )}
@@ -154,14 +154,6 @@ export default function ResolutionQueue() {
             </Rows>
           </Section>
 
-          {!money && (
-            <Section title="Amounts are absent here" quiet deep>
-              <p className="max-w-[62ch] type-data-read text-label-secondary">
-                Viewing as {people.colleague}: payment amounts are absent by policy, not masked. The
-                identity work is still visible, because reviewing it does not require the figure.
-              </p>
-            </Section>
-          )}
         </div>
 
         {/* ── the tool that follows: what is still open, and the one action ── */}
@@ -190,7 +182,7 @@ export default function ResolutionQueue() {
               <div className="mt-[var(--space-4)]">
                 <Button className="w-full" onClick={() => startMatch(next.id)}>Match this payment</Button>
                 <p className="mt-[var(--space-2)] text-center type-meta">
-                  A booking and a reason, attributed to {people.ops}. Nothing on the booking is edited.
+                  A booking and a reason, attributed to {people.owner}. Nothing on the booking is edited.
                 </p>
               </div>
             )}

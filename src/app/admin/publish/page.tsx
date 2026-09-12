@@ -102,62 +102,13 @@ export default function AdminPublish() {
                     }
                   >
                     {done
-                      ? `Published by ${people.lead} today · agency-wide · the original owner stays on the record`
+                      ? `Published by ${people.owner} today · agency-wide · the original owner stays on the record`
                       : q.source
                         ? `arrived by mail · ${q.source.received} · forwarded by ${q.source.forwardedBy} · in the vault at ${q.source.access} scope`
                         : "team scope today · publishing lifts it to the agency layer with its owner"}
                   </RowStack>
                 );
               })}
-            </Rows>
-          </Section>
-
-          <Section
-            title="Sharing defaults"
-            deep
-            chips={<Chip tone="neutral"><span className="tnum">{adminPolicy.defaults.length}</span> record kinds</Chip>}
-          >
-            <p className="-mt-[var(--space-2)] mb-[var(--space-2)] type-data-read text-label-secondary">
-              What each kind of record is the moment it arrives. Widening any of it is a separate
-              act, by a named person, on the record.
-            </p>
-            <Rows>
-              {adminPolicy.defaults.map((row) => (
-                <RowStack
-                  key={row.kind}
-                  head={
-                    <>
-                      <span className="row-primary type-data-strong">{row.kind}</span>
-                      <span className="text-label-secondary">{row.value}</span>
-                    </>
-                  }
-                >
-                  {row.detail}
-                </RowStack>
-              ))}
-            </Rows>
-          </Section>
-
-          <Section title="Admin access to personal records" deep chips={<Chip tone="neutral">per agency policy</Chip>}>
-            <p className="-mt-[var(--space-2)] mb-[var(--space-2)] type-data-read text-label-secondary">
-              Every admin access is logged with a reason and a time limit, and the owner can be
-              notified.
-            </p>
-            <Rows>
-              {adminPolicy.breakGlass.map((row) => (
-                <RowStack
-                  key={row.when}
-                  head={
-                    <>
-                      <span className="row-primary type-data-strong">{row.actor} {row.action}</span>
-                      <span className="type-meta tnum">{row.when}</span>
-                    </>
-                  }
-                >
-                  reason: {row.reason}
-                  {"expiry" in row && row.expiry ? ` · ${row.expiry}` : "note" in row && row.note ? ` · ${row.note}` : ""}
-                </RowStack>
-              ))}
             </Rows>
           </Section>
 
@@ -172,7 +123,7 @@ export default function AdminPublish() {
               ]}
             />
             <p className="mt-[var(--space-3)] type-meta">
-              <StatusDot tone="ok">Policy saved · {people.leadShort} · 09:12 today</StatusDot>
+              <StatusDot tone="ok">Policy saved · {people.ownerShort} · 09:12 today</StatusDot>
             </p>
           </Section>
         </div>
@@ -199,7 +150,7 @@ export default function AdminPublish() {
                 <>
                   <p className="mb-[var(--space-2)] type-meta">Next: {next.text}</p>
                   <Button className="w-full" onClick={() => publish(next.id)}>{next.action}</Button>
-                  <p className="mt-[var(--space-2)] text-center type-meta">Attributed to {people.lead}, today. The owner stays on the record.</p>
+                  <p className="mt-[var(--space-2)] text-center type-meta">Attributed to {people.owner}, today. The owner stays on the record.</p>
                 </>
               ) : (
                 <p className="type-data-read text-label-secondary">

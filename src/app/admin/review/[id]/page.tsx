@@ -195,7 +195,7 @@ export default function CandidateDetail() {
             {banner && <ConfirmBanner show>{banner}</ConfirmBanner>}
             {confirmedAlready && !banner && (
               <ConfirmBanner show>
-                Confirmed by {people.lead} — live at the agency layer with{" "}
+                Confirmed by {people.owner} — live at the agency layer with{" "}
                 <span className="tnum">{heldCount}</span> fields still held in review.
               </ConfirmBanner>
             )}
@@ -224,7 +224,7 @@ export default function CandidateDetail() {
                   size="sm"
                   className="mt-[var(--space-3)]"
                   onClick={() =>
-                    setBanner(`Created as a separate record — both stand, attributed to ${people.lead}. The match signal is logged against them.`)
+                    setBanner(`Created as a separate record — both stand, attributed to ${people.owner}. The match signal is logged against them.`)
                   }
                 >
                   Create new record
@@ -256,7 +256,7 @@ export default function CandidateDetail() {
                     value: corrected.Name ? (
                       <span className="inline-flex flex-wrap items-center justify-end gap-[var(--space-2)]">
                         <span className="type-data-strong">{corrected.Name}</span>
-                        <Chip tone="ok">keyed · {people.lead}</Chip>
+                        <Chip tone="ok">keyed · {people.owner}</Chip>
                       </span>
                     ) : undefined,
                     absent: "pending",
@@ -320,7 +320,7 @@ export default function CandidateDetail() {
                         )}
                         {/* A supplied value is marked as keyed, not as extracted: the two are
                             not the same evidence and the record must tell them apart. */}
-                        {fixed && <Chip tone={held ? "primary" : "ok"}>{held ? "keyed" : "corrected"} · {people.lead}</Chip>}
+                        {fixed && <Chip tone={held ? "primary" : "ok"}>{held ? "keyed" : "corrected"} · {people.owner}</Chip>}
                         {template && !fixed && <Chip tone="warn">template copy</Chip>}
                         {confirmed && <Chip tone="ok">confirmed</Chip>}
                       </div>
@@ -334,7 +334,7 @@ export default function CandidateDetail() {
                       )}
                       {held && fixed && (
                         <p className="mt-1 type-meta">
-                          Hold cleared. Keyed by {people.lead} today, and carried as a manual entry
+                          Hold cleared. Keyed by {people.owner} today, and carried as a manual entry
                           rather than as an extraction.
                         </p>
                       )}
@@ -511,7 +511,7 @@ export default function CandidateDetail() {
                 </Button>
               ) : (
                 <Button className="w-full" disabled={confirmedAlready} onClick={confirmRecord}>
-                  Confirm record — stamped {people.lead}, today
+                  Confirm record — stamped {people.owner}, today
                 </Button>
               )}
               <p className="mt-[var(--space-2)] text-center type-meta">
@@ -576,7 +576,7 @@ export default function CandidateDetail() {
               disabled={!reason.trim()}
               onClick={() => {
                 setRejectOpen(false);
-                setBanner(`Rejected — reason logged, attributed to ${people.lead}.`);
+                setBanner(`Rejected — reason logged, attributed to ${people.owner}.`);
               }}
             >
               Reject candidate
@@ -621,7 +621,7 @@ export default function CandidateDetail() {
                 className="mt-[var(--space-2)]"
               />
               <p className="mt-[var(--space-2)] type-meta">
-                The choice is stored with its reason, attributed to {people.lead}.
+                The choice is stored with its reason, attributed to {people.owner}.
               </p>
             </div>
           </SheetBody>
@@ -630,7 +630,7 @@ export default function CandidateDetail() {
               disabled={!reason.trim()}
               onClick={() => {
                 setMergeOpen(false);
-                setBanner(`Merged as an overlay on ${candidate.match?.target} — reason stored, attributed to ${people.lead}.`);
+                setBanner(`Merged as an overlay on ${candidate.match?.target} — reason stored, attributed to ${people.owner}.`);
               }}
             >
               Merge as overlay on canonical

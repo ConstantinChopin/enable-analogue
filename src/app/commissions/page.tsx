@@ -82,7 +82,7 @@ export default function CommissionsPage() {
 
 function Ledger() {
   const { s } = useDemo();
-  const money = canViewCommissions(s.role);
+  const money = canViewCommissions(s);
   const param = useSearchParams()?.get("state") ?? null;
 
   const initial: FilterKey =

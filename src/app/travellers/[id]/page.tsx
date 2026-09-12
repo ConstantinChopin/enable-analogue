@@ -72,8 +72,8 @@ export default function TravellerProfilePage() {
 /* ═══════════════ S. Marchetti — the full anatomy ═══════════════ */
 function MarchettiProfile() {
   const { s, d } = useDemo();
-  const money = canViewCommissions(s.role);
-  const isColleague = s.role === "colleague";
+  const money = canViewCommissions(s);
+  const viaShare = s.role === "owner";
 
   const [shareOpen, setShareOpen] = useState(false);
   const [pickedTier, setPickedTier] = useState<typeof s.shareTier>(s.shareTier);
@@ -83,7 +83,7 @@ function MarchettiProfile() {
   const [requested, setRequested] = useState(false);
 
   /* ── Colleague + private: absent, not masked ── */
-  if (isColleague && s.shareTier === "private") {
+  if (viaShare && s.shareTier === "private") {
     return (
       <Page width="wide">
         <PageHeader title="Travellers" />
@@ -112,7 +112,7 @@ function MarchettiProfile() {
   }
 
   /* ── Colleague + basic: name + contact only ── */
-  if (isColleague && s.shareTier === "basic") {
+  if (viaShare && s.shareTier === "basic") {
     return (
       <Page width="wide">
         <PageHeader title={<>{traveller.name} <Chip tone="primary">Collaborator Basic</Chip></>} />
@@ -138,8 +138,8 @@ function MarchettiProfile() {
     s.shareTier === "private"
       ? "Private to you. Nobody else at the agency can read this profile."
       : s.shareTier === "full"
-        ? `Shared with ${people.colleague} — Collaborator Full. All fields, including the sensitive ones; can edit; cannot re-share or delete.`
-        : `Shared with ${people.colleague} — Collaborator Basic. Name and contact only.`;
+        ? `Shared with ${people.owner} — Collaborator Full. All fields, including the sensitive ones; can edit; cannot re-share or delete.`
+        : `Shared with ${people.owner} — Collaborator Basic. Name and contact only.`;
 
   function applyShare() {
     d({ type: "share", tier: pickedTier });
@@ -179,7 +179,7 @@ function MarchettiProfile() {
               <ConfirmBanner show>
                 {s.shareTier === "private"
                   ? "Sharing withdrawn — the profile is private to you again. The audit records the shared interval."
-                  : `Shared with ${people.colleague} at the ${tierLabel[s.shareTier]} tier — explicit, attributed, revocable. Non-admin shares route through the suggestion and approval workflow.`}
+                  : `Shared with ${people.owner} at the ${tierLabel[s.shareTier]} tier — explicit, attributed, revocable. Non-admin shares route through the suggestion and approval workflow.`}
               </ConfirmBanner>
             )}
 
@@ -413,7 +413,7 @@ function MarchettiProfile() {
         <aside className="doc-rail" data-rail-label="Sharing">
           <Section variant="tool" follows title="Sharing">
             <div className="flex flex-wrap items-center gap-[var(--space-2)]">
-              <TierChip tier={s.shareTier} who={s.shareTier === "private" ? null : people.colleague} />
+              <TierChip tier={s.shareTier} who={s.shareTier === "private" ? null : people.owner} />
             </div>
             <p className="mt-[var(--space-3)] type-data-read text-label-secondary">{visibilityLine}</p>
             <Rows className="mt-[var(--space-3)]">
@@ -430,7 +430,7 @@ function MarchettiProfile() {
                 <span className="row-trailing text-label-secondary">every share, every revoke</span>
               </Row>
             </Rows>
-            {isColleague ? (
+            {viaShare ? (
               <p className="mt-[var(--space-4)] type-meta">
                 Shared with you by {people.advisor}. A collaborator cannot re-share or delete.
               </p>
@@ -443,7 +443,7 @@ function MarchettiProfile() {
                     setShareOpen(true);
                   }}
                 >
-                  {s.shareTier === "private" ? `Share with ${people.colleague}` : "Change sharing"}
+                  {s.shareTier === "private" ? `Share with ${people.owner}` : "Change sharing"}
                 </Button>
                 <p className="mt-[var(--space-2)] text-center type-meta">Explicit, attributed, revocable.</p>
               </div>
@@ -457,7 +457,7 @@ function MarchettiProfile() {
         <SheetContent side="right">
           <SheetHeader>
             <SheetTitle>Who can see this profile</SheetTitle>
-            <SheetDescription>Sharing with {people.colleague}</SheetDescription>
+            <SheetDescription>Sharing with {people.owner}</SheetDescription>
           </SheetHeader>
           <div className="overflow-y-auto px-[var(--space-6)] py-[var(--space-6)]">
             <RadioGroup
@@ -517,8 +517,8 @@ function GenericProfile({ id }: { id: string }) {
   }
 
   /* A colleague reaches a profile only through a share, and only at the live tier. */
-  const isColleague = s.role === "colleague";
-  const reachable = !isColleague || (s.shareTier !== "private" && card.shared === people.colleague);
+  const viaShare = s.role === "owner";
+  const reachable = !viaShare || (s.shareTier !== "private" && card.shared === people.owner);
   if (!reachable) {
     return (
       <Page width="wide">
@@ -532,7 +532,7 @@ function GenericProfile({ id }: { id: string }) {
       </Page>
     );
   }
-  const basic = isColleague && s.shareTier === "basic";
+  const basic = viaShare && s.shareTier === "basic";
 
   const trip = trips.find((t) => t.travellerId === card.id || t.traveller === card.name);
   const past = trips.filter((t) => t.traveller === card.name);

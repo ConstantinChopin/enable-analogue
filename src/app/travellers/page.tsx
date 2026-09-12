@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { useDemo } from "@/lib/store";
 import { travellerCards, traveller, people, type TravellerCard } from "@/data/seed";
 import { PageHeader, SplitPage, ViewToggle } from "@/components/layouts";
-import { Absent, Chip, DataList, EmptyState, NarrationNote, ConfirmBanner } from "@/components/bits";
+import { Chip, DataList, EmptyState, NarrationNote, ConfirmBanner } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowRight, Lock, Share2, Users } from "lucide-react";
@@ -75,7 +75,9 @@ function Initials({ name, size = "md", selected }: { name: string; size?: "sm" |
 /* ── page ───────────────────────────────────────────────────────────────────── */
 export default function TravellersPage() {
   const { s } = useDemo();
-  const isColleague = s.role === "colleague";
+  /* The travellers in the data are R. Devane's. The owner reaches one only through a
+     share — the personal layer is the advisor's, inside an agency or not. */
+  const viaShare = s.role === "owner";
 
   const [view, setView] = useState<"grid" | "table">("grid");
   const [selected, setSelected] = useState<string | null>(null);
@@ -86,19 +88,19 @@ export default function TravellersPage() {
   const shareStateFor = (c: TravellerCard): ShareState =>
     c.id === traveller.id ? s.shareTier : c.shared ? "full" : "private";
   const sharedWithFor = (c: TravellerCard) =>
-    c.id === traveller.id ? (s.shareTier === "private" ? null : people.colleague) : c.shared;
+    c.id === traveller.id ? (s.shareTier === "private" ? null : people.owner) : c.shared;
 
   /* What a colleague can reach at all: the profiles explicitly shared to them. The
      tier the advisor last chose applies to that set — at "private" the set is empty,
      and an empty set is an empty page, not a page of locked rows. */
   const rows = useMemo(() => {
-    if (!isColleague) return travellerCards;
+    if (!viaShare) return travellerCards;
     if (s.shareTier === "private") return [];
-    return travellerCards.filter((c) => c.id === traveller.id || c.shared === people.colleague);
-  }, [isColleague, s.shareTier]);
+    return travellerCards.filter((c) => c.id === traveller.id || c.shared === people.owner);
+  }, [viaShare, s.shareTier]);
 
   /* Basic tier: name and contact only. The absent fields are not rendered at all. */
-  const basic = isColleague && s.shareTier === "basic";
+  const basic = viaShare && s.shareTier === "basic";
 
   const active = selected ? rows.find((c) => c.id === selected) : undefined;
 
@@ -108,7 +110,7 @@ export default function TravellersPage() {
         title={
           <>
             Travellers
-            <Chip tone="neutral">{isColleague ? "shared with you" : "your clients"}</Chip>
+            <Chip tone="neutral">{viaShare ? "shared with you" : "your clients"}</Chip>
           </>
         }
         actions={rows.length > 0 ? <ViewToggle value={view} onChange={setView} /> : undefined}

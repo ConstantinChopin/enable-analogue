@@ -107,21 +107,16 @@ type Router = ReturnType<typeof useRouter>;
    signed-in role. Kept beside the dock's tile list deliberately: if the two
    ever disagree, a tile leads somewhere that bounces, which is worse than
    either alone. */
+/* Every surface is shared except the owner's three acts: confirming a record,
+   publishing to the whole agency, and matching money nobody claimed. */
 const routeRoles: { prefix: string; roles: Persona[] }[] = [
-  { prefix: "/admin", roles: ["lead", "ops"] },
-  { prefix: "/ops", roles: ["ops", "lead"] },
-  { prefix: "/ask", roles: ["advisor", "colleague"] },
-  { prefix: "/travellers", roles: ["advisor", "colleague"] },
-  { prefix: "/itineraries", roles: ["advisor"] },
-  { prefix: "/commissions", roles: ["advisor", "ops", "lead"] },
-  { prefix: "/notices", roles: ["advisor"] },
+  { prefix: "/admin", roles: ["owner"] },
+  { prefix: "/ops", roles: ["owner"] },
 ];
 
 const roleHome: Record<Persona, string> = {
-  advisor: "/briefing",
-  colleague: "/briefing",
-  lead: "/briefing",
-  ops: "/briefing",
+  user: "/briefing",
+  owner: "/briefing",
 };
 
 function allowedRoles(pathname: string): Persona[] | null {
@@ -131,14 +126,14 @@ function allowedRoles(pathname: string): Persona[] | null {
 
 /** Demo checkpoints. A persona change is now a sign-in, not a toggle. */
 const checkpoints: { key: string; label: string; go: (r: Router, d: Dispatch) => void }[] = [
-  { key: "1", label: "morning", go: (r, d) => { d({ type: "signIn", role: "advisor" }); d({ type: "world", world: "v2" }); r.push("/briefing"); } },
-  { key: "2", label: "commission", go: (r, d) => { d({ type: "signIn", role: "advisor" }); r.push("/commissions/vo"); } },
-  { key: "3", label: "record", go: (r, d) => { d({ type: "signIn", role: "advisor" }); d({ type: "world", world: "v2" }); r.push("/records/maison-leandre"); } },
+  { key: "1", label: "morning", go: (r, d) => { d({ type: "signIn", role: "user" }); d({ type: "world", world: "v2" }); r.push("/briefing"); } },
+  { key: "2", label: "commission", go: (r, d) => { d({ type: "signIn", role: "user" }); r.push("/commissions/vo"); } },
+  { key: "3", label: "record", go: (r, d) => { d({ type: "signIn", role: "user" }); d({ type: "world", world: "v2" }); r.push("/records/maison-leandre"); } },
   { key: "4", label: "ask", go: (r, d) => { d({ type: "askScope", scope: "Maison Léandre" }); r.push("/ask"); } },
   { key: "5", label: "refusal", go: (r, d) => { d({ type: "askScope", scope: null }); r.push("/ask?state=refusal"); } },
   { key: "6", label: "v1 rewind", go: (r, d) => { d({ type: "world", world: "v1" }); r.push("/records/maison-leandre"); } },
   { key: "7", label: "traveller", go: (r, d) => { d({ type: "world", world: "v2" }); r.push("/travellers/s-marchetti"); } },
-  { key: "8", label: "admin confirm", go: (r, d) => { d({ type: "signIn", role: "lead" }); r.push("/admin/review/sereno"); } },
+  { key: "8", label: "admin confirm", go: (r, d) => { d({ type: "signIn", role: "owner" }); r.push("/admin/review/sereno"); } },
   { key: "0", label: "reset", go: (r, d) => { d({ type: "reset" }); r.push("/briefing"); } },
 ];
 

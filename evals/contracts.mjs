@@ -20,17 +20,14 @@
  * came to mean three unrelated things.
  */
 
-/** Roles, and the route prefixes each may enter (mirrors shell.tsx routeRoles). */
-export const ROLES = ["advisor", "colleague", "lead", "ops"];
+/** Roles, and the route prefixes each may enter (mirrors shell.tsx routeRoles).
+    Two types (docs/rebuild/05-two-roles.md). Every surface is shared except the owner's
+    three acts: confirming a record, publishing to the agency, matching unclaimed money. */
+export const ROLES = ["user", "owner"];
 
 export const ROUTE_ROLES = [
-  { prefix: "/admin", roles: ["lead", "ops"] },
-  { prefix: "/ops", roles: ["ops", "lead"] },
-  { prefix: "/ask", roles: ["advisor", "colleague"] },
-  { prefix: "/travellers", roles: ["advisor", "colleague"] },
-  { prefix: "/itineraries", roles: ["advisor"] },
-  { prefix: "/commissions", roles: ["advisor", "ops", "lead"] },
-  { prefix: "/notices", roles: ["advisor"] },
+  { prefix: "/admin", roles: ["owner"] },
+  { prefix: "/ops", roles: ["owner"] },
 ];
 
 export function rolesFor(path) {
@@ -38,92 +35,119 @@ export function rolesFor(path) {
   return hit ? hit.roles : ROLES;
 }
 
+/* A shared surface declares a job for BOTH types, so the harness renders it as each of
+   them. Where the two jobs are the same sentence, that sameness is the claim. */
 export const CONTRACTS = {
   "/briefing": {
     job: {
-      advisor: "see what today needs from me and go to it",
-      lead: "see what the desk needs from me and go to it",
+      user: "see what today needs from me and go to it",
+      owner: "see what only I can clear today, and go to it",
     },
-    primaryAction: "open the queue a widget names",
+    primaryAction: { user: "open the ledger", owner: "confirm records" },
     taxonomies: ["severity", "freshness"],
   },
 
   "/records": {
-    job: { advisor: "find a property and check what is true about it" },
+    job: {
+      user: "find a property and check what is true about it",
+      owner: "find a property and check what is true about it",
+    },
     primaryAction: "open a record",
     taxonomies: ["evidence state", "trust"],
   },
 
   "/records/maison-leandre": {
-    job: { advisor: "check a value, see where it came from, and settle it if it disagrees" },
+    job: {
+      user: "check a value, see where it came from, and settle it if it disagrees",
+      owner: "check a value, see where it came from, and settle it if it disagrees",
+    },
     primaryAction: "resolve the disputed commission",
     taxonomies: ["evidence state", "layer ownership"],
   },
 
   "/ask": {
-    job: { advisor: "ask a question and be able to check the answer" },
+    job: {
+      user: "ask a question and be able to check the answer",
+      owner: "ask a question and be able to check the answer",
+    },
     primaryAction: "ask a question",
     taxonomies: ["answer state"],
   },
 
   "/knowledge": {
     job: {
-      lead: "decide what the assistant is allowed to answer from",
-      ops: "decide what the assistant is allowed to answer from",
-      advisor: "find and read a document",
+      user: "find and read a document",
+      owner: "decide what the assistant is allowed to answer from, across the agency's sources",
     },
-    primaryAction: { lead: "assign access to a document", advisor: "open a document" },
+    primaryAction: { user: "open a document", owner: "assign access to a document" },
     taxonomies: ["access scope", "document state"],
   },
 
   "/commissions": {
-    job: { advisor: "see what is owed and chase what is late" },
+    job: {
+      user: "see what is owed on my bookings and chase what is late",
+      owner: "see what is owed across the agency and chase what is late",
+    },
     primaryAction: "open a commission",
     taxonomies: ["payment state"],
   },
 
-  "/admin/connections": {
-    job: { lead: "keep the sources the answers are built from healthy" },
-    primaryAction: "reconnect a failing source",
+  "/connections": {
+    job: {
+      user: "connect my own mailbox or Drive and keep it working",
+      owner: "keep the sources the answers are built from healthy",
+    },
+    primaryAction: { user: "connect a source", owner: "reconnect a failing source" },
     taxonomies: ["connection state"],
   },
 
   "/admin/publish": {
-    job: { lead: "release what arrived, and set what the agency shares by default" },
+    job: { owner: "decide what the whole agency sees" },
     primaryAction: "publish a queued item",
     taxonomies: ["publication state"],
   },
 
   "/admin/review": {
-    job: { lead: "decide which extracted candidates become records" },
+    job: { owner: "decide which extracted candidates become records" },
     primaryAction: "open a candidate for review",
     taxonomies: ["extraction confidence"],
   },
 
   "/travellers": {
-    job: { advisor: "find a traveller" },
+    job: {
+      user: "find a traveller",
+      owner: "find a traveller I own or one shared with me",
+    },
     primaryAction: "open a traveller",
     taxonomies: ["sharing state"],
   },
 
   "/itineraries": {
-    job: { advisor: "check a trip is ready to travel" },
+    job: {
+      user: "check a trip is ready to travel",
+      owner: "check a trip is ready to travel",
+    },
     primaryAction: "open a trip",
     taxonomies: ["readiness"],
   },
 
   /* No contract for /notices. The surface was retired and folded into /notifications;
-     the address survives only as a redirect. A contract there described a screen that
-     does not exist, which is the harness catching a stale spec rather than a defect. */
+     the address survives only as a redirect. */
 
   "/notifications": {
-    job: { advisor: "clear what is waiting on me" },
+    job: {
+      user: "clear what is waiting on me",
+      owner: "clear what is waiting on me, including what the desk needs from me",
+    },
     primaryAction: "action a notification",
     taxonomies: ["severity"],
   },
 
   "/settings": {
-    job: { advisor: "change how the product behaves for me" },
+    job: {
+      user: "change how the product behaves for me",
+      owner: "change how the product behaves for me, and who can see money",
+    },
     primaryAction: "change a setting",
     taxonomies: [],
   },

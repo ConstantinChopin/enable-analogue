@@ -183,7 +183,7 @@ function EditFieldSheet({
             <div className="type-micro-caps text-label-tertiary">On save</div>
             <p className="mt-1 type-data-read text-label-secondary">
               {mode === "review" ? (
-                <>Queued for {people.lead} to approve. Until then the record answers with the value it has now.</>
+                <>Queued for {people.owner} to approve. Until then the record answers with the value it has now.</>
               ) : (
                 <>Live immediately · {scopeAudience(scope, s.role)} · as {personName[s.role]}, today.</>
               )}
@@ -326,7 +326,7 @@ const layerLede: Record<Layer, string> = {
 /* ═══════════════ Maison Léandre — the full anatomy ═══════════════ */
 function LeandreRecord() {
   const { s, d } = useDemo();
-  const money = canViewCommissions(s.role);
+  const money = canViewCommissions(s);
   const p = productById("maison-leandre")!;
   const search = useSearchParams();
   const [resolveOpen, setResolveOpen] = useState(false);
@@ -351,7 +351,7 @@ function LeandreRecord() {
       (f) =>
         f.layer === layer &&
         (money || f.key !== "commission") &&
-        (s.role === "advisor" || f.key !== "note-rd")
+        (s.role === "user" || f.key !== "note-rd")
     );
 
   const scopeLabel = { private: "private to " + people.advisor, team: "team · Paris desk", agency: "agency-wide" }[savedScope];
@@ -407,7 +407,7 @@ function LeandreRecord() {
                   stays readable underneath. Every change picks who it is for: just you, your team, or the
                   whole agency.{" "}
                   {scopeWrite(s.role, "agency") === "review"
-                    ? `Agency-wide changes go to ${people.lead} for review before anyone else sees them.`
+                    ? `Agency-wide changes go to ${people.owner} for review before anyone else sees them.`
                     : "You can publish agency-wide changes directly."}
                 </p>
               </div>
@@ -428,7 +428,7 @@ function LeandreRecord() {
                     onEdit={() => setEditField(f)}
                   />
                 ))}
-                {g.layer === "personal" && s.noteSaved && s.role === "advisor" && (
+                {g.layer === "personal" && s.noteSaved && s.role === "user" && (
                   <FieldGrid
                     label="My note"
                     provenance={<SourceTag kind="manual" label={`${people.advisor} · today`} />}
@@ -506,7 +506,8 @@ function LeandreRecord() {
             </Section>
           )}
 
-          {s.role === "lead" && (
+          {/* Both types: each traveller in it is visible only through that traveller's own sharing. */}
+          {(
             <Section title="Client intelligence" quiet deep>
               <p className="flex items-center gap-2 type-meta">
                 <EyeOff className="size-[var(--icon-sm)] shrink-0" aria-hidden />
@@ -766,7 +767,7 @@ function FieldGrid({
 /* ═══════════════ Hôtel Verlaine — Critical acknowledgment gate ═══════════════ */
 function VerlaineRecord() {
   const { s, d } = useDemo();
-  const money = canViewCommissions(s.role);
+  const money = canViewCommissions(s);
   const p = products.find((x) => x.id === "hotel-verlaine")!;
   const crit = notices.find((n) => n.id === "verlaine-crit")!;
   const [dlgOpen, setDlgOpen] = useState(false);
@@ -878,9 +879,9 @@ function VerlaineRecord() {
 /* ═══════════════ Every other record — real, from its own fields ═══════════════ */
 function GenericRecord({ id }: { id: string }) {
   const { s } = useDemo();
-  const money = canViewCommissions(s.role);
+  const money = canViewCommissions(s);
   const p = productById(id);
-  const reviewer = s.role === "lead" || s.role === "ops";
+  const reviewer = s.role === "owner";
 
   if (!p) {
     return (

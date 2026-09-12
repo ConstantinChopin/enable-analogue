@@ -80,7 +80,7 @@ export default function ItinerariesPage() {
 
 function Itineraries() {
   const { s } = useDemo();
-  const money = canViewCommissions(s.role);
+  const money = canViewCommissions(s);
   const search = useSearchParams();
 
   /* The Departures widget arrives with its view already applied. */
