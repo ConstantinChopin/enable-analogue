@@ -13,14 +13,15 @@
  * type-prose, a quoted source in type-prose-quote. The answer's state (answered ·
  * sources disagree · refused · stale) and the way onward sit in the chapter's footer,
  * carried by Chip / SeverityBanner / StatusDot, never a raw colour. The landing is a
- * chapter too ("What do you need to know?") holding the entry composer.
+ * chapter too ("Ask from anywhere"), which opens the assistant.
  *
- * The one primary: "Ask" — the composer's send (contract: ask a question). It is the
- * pill at the bottom of the composer, the tool that owns it, pinned at the foot of the
- * thread pane and elevated because it follows you. Everything a thread offers —
- * Resolve…, Forward a document to the vault, Retry, Open — is a grey secondary or a
- * text action, because the person this page exists for is someone with a question,
- * and the next question is always the next thing.
+ * Asking moved to the assistant, in the corner of every screen (2026-09-25). This page
+ * is where saved conversations are read in full, with their sources — Notion's "open as
+ * a page" to the assistant's card. It has no composer: a second place to type a question
+ * would be a second assistant. The landing's one primary opens the card ("Ask Enable");
+ * inside a thread, everything it offers — Resolve…, Forward a document to the vault,
+ * Retry, Open — is a grey secondary or a text action. `?c=<id>` opens a conversation,
+ * which is how the assistant's list of conversations lands here.
  *
  * The tool that follows: "Sources" — the numbered sources with their excerpts, each
  * opening the document it was quoted from, and beneath them the trace of how the
@@ -44,8 +45,8 @@ import {
 } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
 import {
-  Chip, Section, SeverityBanner, NarrationNote, ConfidenceMeter, LayerBadge, ConfirmBanner,
-  SchematicBadge, StatusDot, Rows, RowStack, ProvenancePopover, SourceTag, DataList, FilterChip,
+  Chip, Section, SeverityBanner, ConfidenceMeter, LayerBadge, ConfirmBanner,
+  SchematicBadge, StatusDot, Rows, RowStack, ProvenancePopover, SourceTag, DataList,
 } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -56,12 +57,10 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowRight, ArrowUpRight, Copy, Loader2, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Copy, Loader2 } from "lucide-react";
 
 /** Threads reachable in this build: the four saved conversations plus two demo branches. */
 type ThreadId = Conversation["id"] | "stale" | "loading";
-
-const COMPOSER_PLACEHOLDER = "Ask about a rate, a property, a traveller…";
 
 /* ── page ─────────────────────────────────────────────────────────────────── */
 
@@ -74,15 +73,19 @@ export default function AskPage() {
 }
 
 function Ask() {
-  const { s } = useDemo();
+  const { s, d } = useDemo();
   const money = canViewCommissions(s);
-  const stateParam = useSearchParams()?.get("state") ?? null;
+  const openAssistant = () => { d({ type: "thread", id: null }); d({ type: "assistant", open: true }); };
+  const params = useSearchParams();
+  const convParam = params?.get("c") ?? null;
+  const stateParam = params?.get("state") ?? convParam;
 
-  /* ?state= drives the demo branches. Nothing else auto-opens a thread. */
+  /* ?state= drives the demo branches; ?c= opens a saved conversation. */
   const fromParams: ThreadId | null =
     stateParam === "refusal" ? "third-night"
     : stateParam === "stale" ? "stale"
     : stateParam === "loading" ? "loading"
+    : conversations.some((c) => c.id === convParam) ? (convParam as ThreadId)
     : null;
 
   /* A reader's pick is remembered against the URL it was made under, so a presenter
@@ -113,15 +116,15 @@ function Ask() {
       <div className="flex h-full min-h-0 flex-col">
         <PageHeader
           className="shrink-0"
-          title="Ask"
+          title="Conversations"
           actions={
             <>
-              {/* Both are routine navigation, so both are text actions. The one action
-                  this surface exists for is asking, and that pill lives in the composer. */}
-              <Button variant="link" size="sm" className="lg:hidden" onClick={() => setListOpen(true)}>
-                Conversations
+              {/* Both are routine, so both are text actions. A new conversation opens in
+                  the assistant, where every question is asked. */}
+              <Button variant="tertiary" size="sm" className="lg:hidden" onClick={() => setListOpen(true)}>
+                All conversations
               </Button>
-              <Button variant="link" size="sm" onClick={() => choose(null)}>
+              <Button variant="tertiary" size="sm" onClick={openAssistant}>
                 New conversation
               </Button>
             </>
@@ -142,7 +145,7 @@ function Ask() {
             <div className="min-h-0 flex-1 overflow-y-auto">
               <div className="mx-auto w-full min-w-0 max-w-[680px]">
                 {active === null ? (
-                  <Landing onPick={choose} />
+                  <Landing onPick={choose} onAsk={openAssistant} />
                 ) : (
                   <Thread
                     active={active}
@@ -161,17 +164,6 @@ function Ask() {
                 </div>
               )}
             </div>
-
-            {/* The composer is the tool that owns the one primary. It sits at the foot
-                of the thread pane, above the dock. On the landing the large entry
-                composer is the only one — two would compete. */}
-            {active !== null && (
-              <div className="shrink-0 pt-[var(--space-4)]">
-                <div className="mx-auto w-full max-w-[680px]">
-                  <Composer follows />
-                </div>
-              </div>
-            )}
           </section>
 
           {/* ── the sources: the tool that follows ──
@@ -272,70 +264,25 @@ function ConversationList({
   );
 }
 
-/* ── composer: the tool that owns the one primary ─────────────────────────── */
+/* ── landing: the entry state ─────────────────────────────────────────────────
+   No composer: questions are asked in the assistant, which is on every screen. The
+   landing says where, and opens it. */
 
-function Composer({ large = false, follows = false }: { large?: boolean; follows?: boolean }) {
-  const [focused, setFocused] = useState(false);
-  const [value, setValue] = useState("");
-  const { s, d } = useDemo();
-  const grown = large || focused || value.length > 0;
-
-  return (
-    <Section variant="tool" follows={follows}>
-      <form onSubmit={(e) => e.preventDefault()}>
-        <Textarea
-          rows={1}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          aria-label="Ask a question"
-          placeholder={COMPOSER_PLACEHOLDER}
-          /* Compact by default, growing on focus; the landing's composer starts large. */
-          className={cn(
-            "max-h-[38vh] resize-none overflow-y-auto",
-            large ? "min-h-32" : grown ? "min-h-20" : "min-h-[var(--control-h-md)]",
-          )}
-        />
-        {/* Scope was dispatched from "Ask about this" on every record. It belongs on
-            the composer: it narrows the question about to be asked, and it has to be
-            removable, because a scope you cannot drop is a trap. A selected filter chip
-            says both — pressing it clears it. No manifesto beside it: the scope is the
-            only thing this row needs to say, because it is true, and it changes. */}
-        <div className="mt-[var(--space-3)] flex flex-wrap items-center gap-[var(--space-2)]">
-          <span className="min-w-0 flex-1">
-            {s.askScope && (
-              <FilterChip selected onClick={() => d({ type: "askScope", scope: null })}>
-                Scoped to {s.askScope}
-                <X className="size-[var(--icon-sm)]" aria-hidden />
-                <span className="sr-only">— ask across everything instead</span>
-              </FilterChip>
-            )}
-          </span>
-          <Button type="submit" disabled={!value.trim()}>Ask</Button>
-        </div>
-      </form>
-    </Section>
-  );
-}
-
-/* ── landing: the entry state ─────────────────────────────────────────────── */
-
-function Landing({ onPick }: { onPick: (id: ThreadId | null) => void }) {
+function Landing({ onPick, onAsk }: { onPick: (id: ThreadId | null) => void; onAsk: () => void }) {
   return (
     <>
-      <Section title="What do you need to know?">
+      <Section title="Ask from anywhere">
         <p className="-mt-[var(--space-2)] mb-[var(--space-4)] max-w-[62ch] type-data-read text-label-secondary">
-          Ask about a rate, a property, a traveller. Answers are built from this desk&apos;s own
-          knowledge and carry their sources.
+          Ask Enable sits in the corner of every screen, or press ⌘J. It answers from this
+          desk&apos;s own knowledge, and every conversation is kept here with its sources.
         </p>
-        <Composer large />
-        <p className="mt-[var(--space-3)] hidden type-meta lg:block">
-          Or pick up one of the recent conversations on the left.
+        <Button onClick={onAsk}>Ask Enable</Button>
+        <p className="mt-[var(--space-4)] hidden type-meta lg:block">
+          Or open one of the conversations on the left.
         </p>
       </Section>
 
-      <Section title="Recent conversations" quiet className="lg:hidden">
+      <Section title="Conversations" quiet className="lg:hidden">
         <ConversationList active={null} onPick={onPick} />
       </Section>
     </>
@@ -412,6 +359,8 @@ function Thread({
       return <SpaThread />;
     case "rep-paris":
       return <RepThread />;
+    case "kyoto-new":
+      return <KyotoThread />;
     case "stale":
       return <StaleThread />;
     case "loading":
@@ -470,7 +419,7 @@ function CommissionThread({
                 not knowable today, and the product lets you leave it that way. */}
             <Button variant="secondary" size="sm" onClick={onResolve}>Resolve…</Button>
             <OpenRecord />
-            <Button variant="link" size="sm" onClick={onDismiss}>Dismiss (stays in conflict)</Button>
+            <Button variant="tertiary" size="sm" onClick={onDismiss}>Dismiss (stays in conflict)</Button>
           </Foot>
         }
       >
@@ -496,10 +445,6 @@ function CommissionThread({
           ))}
         </Rows>
         <div className="mt-[var(--space-4)]">
-          <NarrationNote>
-            A ranking rule would be wrong often enough to cost money — the advisor decides once,
-            and the decision is stored where every surface reads it.
-          </NarrationNote>
         </div>
       </Exchange>
     );
@@ -573,7 +518,6 @@ function SpaThread() {
       <p className="type-prose-lead">{askThreads.spa.v1}<Cite n={1} sources={sources} /></p>
       {s.world === "v1" && (
         <div className="mt-[var(--space-4)]">
-          <NarrationNote>{askThreads.spa.v1Note}</NarrationNote>
         </div>
       )}
     </Exchange>
@@ -598,6 +542,31 @@ function RepThread() {
       <p className="type-prose-lead">
         {askThreads.rep.a}
         {askThreads.rep.cites.map((n) => <Cite key={n} n={n} sources={sources} />)}
+      </p>
+    </Exchange>
+  );
+}
+
+/* ── answered out of an announcement ──────────────────────────────────────────
+   What the owner announces is an agency source (05-two-roles.md, 2026-09-24): the
+   answer uses it and cites it, with its date, beside the record it links. The
+   unconfirmed record is named and not quoted — the announcement says so itself. */
+function KyotoThread() {
+  const { s } = useDemo();
+  const sources = sourcesFor("kyoto-new", s.world, canViewCommissions(s));
+  return (
+    <Exchange
+      q={askThreads.kyoto.q}
+      footer={
+        <Foot>
+          <Chip tone="ok">answer contract met</Chip>
+          <OpenRecord href="/records/ryokan-suikawa">Open Ryokan Suikawa</OpenRecord>
+        </Foot>
+      }
+    >
+      <p className="type-prose-lead">
+        {askThreads.kyoto.a1}<Cite n={1} sources={sources} /><Cite n={2} sources={sources} />{" "}
+        {askThreads.kyoto.a2}<Cite n={1} sources={sources} />
       </p>
     </Exchange>
   );
@@ -642,8 +611,8 @@ function RefusalThread() {
       <div className="mt-[var(--space-6)] type-micro-caps text-label-tertiary">The way forward</div>
       <div className="mt-[var(--space-2)] flex flex-wrap items-center gap-[var(--space-3)]">
         <Button variant="secondary" size="sm" onClick={() => setRecovery("forward")}>{r.ctas[0]}</Button>
-        <Button variant="link" size="sm" onClick={() => setRecovery("rep")}>{r.ctas[1]}</Button>
-        <Button variant="link" size="sm" onClick={() => setRecovery("flag")}>{r.ctas[2]}</Button>
+        <Button variant="tertiary" size="sm" onClick={() => setRecovery("rep")}>{r.ctas[1]}</Button>
+        <Button variant="tertiary" size="sm" onClick={() => setRecovery("flag")}>{r.ctas[2]}</Button>
       </div>
       {recovery && (
         <div className="mt-[var(--space-3)]">
@@ -657,10 +626,6 @@ function RefusalThread() {
         </div>
       )}
       <div className="mt-[var(--space-4)]">
-        <NarrationNote>
-          A refusal is a first-class outcome, not an error — what was found, which clause failed,
-          and how to recover, all stated.
-        </NarrationNote>
       </div>
     </Exchange>
   );
@@ -776,7 +741,7 @@ function TraceList({ threadId, pendingStage }: { threadId?: string | null; pendi
 
 /* ── sources ──────────────────────────────────────────────────────────────── */
 
-type SourceKind = "portal" | "intranet" | "email" | "gdrive" | "manual";
+type SourceKind = "portal" | "intranet" | "email" | "gdrive" | "manual" | "announcement";
 interface RailSource { n: number; label: string; detail: string; kind: SourceKind; quote?: string; doc?: string }
 
 /** The kind of each cited commission source, by its number: a portal PDF, an intranet page, an email. */
@@ -805,13 +770,18 @@ function sourcesFor(active: ThreadId, world: string, money: boolean): RailSource
         : [{ n: 1, label: "Property website capture", detail: "Pool and spa hours · Maison Léandre", kind: "gdrive" }];
     case "stale":
       return [{ n: 1, label: "Property website capture", detail: "Pool hours · 96 days unverified", kind: "gdrive" }];
+    case "kyoto-new":
+      return [
+        { n: 1, label: "Agency announcement", detail: "New in Kyoto for autumn · M. Keller · 26 Aug 2026 · agency scope", kind: "announcement" },
+        { n: 2, label: "Directory record", detail: "Ryokan Suikawa · verified May 2026", kind: "intranet" },
+      ];
     default:
       return [];
   }
 }
 
 /** The threads whose retrieval is reconstructed in this build. */
-const BUILT: ThreadId[] = ["leandre-rate", "spa-status", "rep-paris", "stale"];
+const BUILT: ThreadId[] = ["leandre-rate", "spa-status", "rep-paris", "kyoto-new", "stale"];
 
 /* ── the document behind a citation ─────────────────────────────────────────────
    The cited passage is marked in place rather than extracted, so the reader sees what
@@ -829,7 +799,7 @@ function DocumentSheet({
   const d = doc ? sourceDocuments[doc] : null;
   if (!d) return null;
 
-  const kindLabel = { pdf: "PDF document", email: "Email", page: "Intranet page" }[d.kind];
+  const kindLabel = { pdf: "PDF document", email: "Email", page: "Claromentis page" }[d.kind];
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -954,7 +924,7 @@ function Rail({
                   <div className="type-data-strong">
                     {openable ? (
                       <Button
-                        variant="link"
+                        variant="tertiary"
                         size="sm"
                         onClick={() => onOpenDoc(src.doc!)}
                         aria-label={`Open ${src.label} — ${src.detail}`}

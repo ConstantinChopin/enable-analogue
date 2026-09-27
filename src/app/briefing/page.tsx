@@ -15,12 +15,15 @@
  *   owner — Records to confirm · Publish queue · Unmatched payments · Commissions ·
  *           Under projection · Connections · Departures · Notices
  *
- * The one primary sits at the bottom of the tool that follows her down the page (the
- * Today rail). The user's is "Open the ledger", because commission reconciliation is
- * the #1 pain the agency named (DEC-12, DEC-13) and it is where the demo's first
- * journey begins; without the money entitlement it is "Check departures", and
- * commissions and incentives are absent, not masked. The owner's is "Confirm
- * records": the queue only she can clear.
+ * The tool that follows her down the page is the insight rail (Constantin, 2026-09-24;
+ * components/insight-rail.tsx, logic in lib/insights.ts). An insight is what a chapter's
+ * rows cannot say, computed by a deterministic join so every claim can be checked, and
+ * ending in the reader's own act; the rail shows one at a time, ranked, so its action is
+ * the page's one primary. The first is the day's first move. It moves with the page:
+ * the chapter being read brings up its insight, and the arrows carry the page to the
+ * next one. Closed, it gives its column back until the header brings it back.
+ * It replaced the Today checklist, tried and cancelled the same day: a list of counts
+ * restated the chapters, and ticking them measured nothing.
  *
  * Counts are live. The publish queue counts what still waits (`queueItems` less what
  * she has published or returned); a retired notice leaves the notices chapter. The
@@ -29,15 +32,19 @@
  */
 import React from "react";
 import Link from "next/link";
-import { useDemo, canViewCommissions, queueItems } from "@/lib/store";
+import { useDemo, canViewCommissions, queueItems, announcementsFor } from "@/lib/store";
+import { insightsFor } from "@/lib/insights";
+import { InsightRail } from "@/components/insight-rail";
+import { askAssistant } from "@/components/assistant";
 import {
   widgetsFor, personName, commissions, departures, notices, promotions, briefing,
   candidates, connectionsFor, connectionHealth, orphanedPayments,
-  travellerCards, people,
+  travellerCards, people, productById,
   type Widget,
 } from "@/data/seed";
+import { AnnouncementSheet } from "@/components/publish-sheets";
 import { Page, PageHeader } from "@/components/layouts";
-import { Chip, Section, NarrationNote, Rows, Row, RowStack, StatusDot } from "@/components/bits";
+import { Chip, Section, Rows, Row, RowStack, StatusDot } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ArrowRight } from "lucide-react";
@@ -59,12 +66,25 @@ function Opens({ href, children }: { href: string; children: React.ReactNode }) 
   );
 }
 
+/* ── an entity named in the day: every one opens the object it names ────────
+   The lead is written as sentences, but each noun in it is a row in the model, so
+   it is a way in, not a summary to read and then go looking for. A quiet hairline
+   underline in the serif; the ink one under the pointer. */
+function Ent({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} className="underline decoration-hairline underline-offset-[5px] hover:decoration-ink">
+      {children}
+    </Link>
+  );
+}
+
 /* ── page ─────────────────────────────────────────────────────────────────── */
 
 export default function Briefing() {
-  const { s } = useDemo();
+  const { s, d } = useDemo();
   const money = canViewCommissions(s);
   const widgets = widgetsFor[s.role];
+  const [writing, setWriting] = React.useState(false);
 
   const openCommissions = commissions.filter((c) => c.state !== "paid");
   const outstanding = openCommissions.reduce((n, c) => n + c.amount, 0);
@@ -94,7 +114,10 @@ export default function Briefing() {
     (t) => s.role === "user" || sharedWithOwner(t.traveller),
   );
   const soonest = visibleDepartures[0];
-  const unconfirmed = visibleDepartures.filter((t) => t.alert);
+  /* A traveller named in the day opens her profile; the trip itself opens in the
+     departures ledger until trips have a page of their own (the builder, U21). */
+  const travellerHref = (name: string, id?: string) =>
+    `/travellers/${id ?? travellerCards.find((t) => t.name === name)?.id ?? ""}`;
   /* Incentives are commission programmes: absent with the rest of the money. */
   const expiring = money ? [...promotions].sort((a, b) => a.daysLeft - b.daysLeft) : [];
 
@@ -113,27 +136,27 @@ export default function Briefing() {
         return (
           <>
             {soonest
-              ? <>{soonest.traveller} leaves for {soonest.title} in {soonest.startsInDays} days{soonest.alert ? `, with a ${soonest.alert}` : ""}; {visibleDepartures.length - 1} more {visibleDepartures.length - 1 === 1 ? "departure" : "departures"} follow within the month. </>
+              ? <><Ent href={travellerHref(soonest.traveller, soonest.travellerId)}>{soonest.traveller}</Ent> leaves for <Ent href="/itineraries?window=30">{soonest.title}</Ent> in {soonest.startsInDays} days{soonest.alert ? `, with a ${soonest.alert}` : ""}; <Ent href="/itineraries?window=30">{visibleDepartures.length - 1} more {visibleDepartures.length - 1 === 1 ? "departure" : "departures"}</Ent> follow within the month. </>
               : <>No departures in the coming weeks. </>}
             {money && (
-              <>{overdue.length} commissions are overdue and {eur(outstanding)} is outstanding across {openCommissions.length}{longestChase ? `; ${longestChase.property} has waited ${longestChase.overdueDays} days` : ""}. </>
+              <><Ent href="/commissions?state=overdue">{overdue.length} commissions are overdue</Ent> and <Ent href="/commissions?state=open">{eur(outstanding)} is outstanding across {openCommissions.length}</Ent>{longestChase ? <>; <Ent href={`/commissions/${longestChase.id}`}>{longestChase.property}</Ent> has waited {longestChase.overdueDays} days</> : null}. </>
             )}
             {critical.length > 0
-              ? <>{critical.length === 1 ? "One property" : `${critical.length} properties`} must not be booked until further notice: {critical.map((n) => n.productName).join(", ")}. </>
+              ? <>{critical.length === 1 ? "One property" : `${critical.length} properties`} must not be booked until further notice: {critical.map((n, i) => <React.Fragment key={n.id}>{i > 0 && ", "}<Ent href={`/records/${n.productId}`}>{n.productName}</Ent></React.Fragment>)}. </>
               : null}
-            {expiring.length > 0 && <>{expiring.length} incentives expire within {expiring[expiring.length - 1].daysLeft} days.</>}
+            {expiring.length > 0 && <><Ent href="/records?promotion=active">{expiring.length} incentives</Ent> expire within {expiring[expiring.length - 1].daysLeft} days.</>}
           </>
         );
       case "owner":
         return (
           <>
-            {candidates.length} candidate records wait to be confirmed and{" "}
-            {waiting.length === 0 ? "nothing waits" : waiting.length === 1 ? "1 item waits" : `${waiting.length} items wait`} to be published to the whole agency.{" "}
-            {orphanedPayments.length} payments totalling {eur(orphanTotal)} arrived without a booking to match.{" "}
+            <Ent href="/admin/review">{candidates.length} candidate records</Ent> wait to be confirmed and{" "}
+            {waiting.length === 0 ? "nothing waits" : <Ent href="/admin/publish">{waiting.length === 1 ? "1 item waits" : `${waiting.length} items wait`}</Ent>} to be published to the whole agency.{" "}
+            <Ent href="/ops/resolution">{orphanedPayments.length} payments totalling {eur(orphanTotal)}</Ent> arrived without a booking to match.{" "}
             {connectionHealth.needAttention > 0
-              ? <>{connectionHealth.needAttention} of {connectionHealth.sources} agency connections need attention. </>
+              ? <><Ent href="/connections">{connectionHealth.needAttention} of {connectionHealth.sources} agency connections</Ent> need attention. </>
               : <>All {connectionHealth.sources} agency connections are healthy. </>}
-            {critical.length > 0 && <>{critical.map((n) => n.productName).join(", ")} carries a Critical notice the desk must acknowledge before booking.</>}
+            {critical.length > 0 && <>{critical.map((n, i) => <React.Fragment key={n.id}>{i > 0 && ", "}<Ent href={`/records/${n.productId}`}>{n.productName}</Ent></React.Fragment>)} is closed to bookings under your Critical notice.</>}
           </>
         );
     }
@@ -144,7 +167,7 @@ export default function Briefing() {
     switch (w.id) {
       case "departures":
         return (
-          <Section key={w.id} title="Departures" footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
+          <Section key={w.id} anchor={w.id} title="Departures" footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
             {visibleDepartures.length === 0 ? (
               <p className="type-data-read text-label-secondary">
                 {s.role === "owner"
@@ -181,7 +204,7 @@ export default function Briefing() {
       case "commissions":
         return (
           <Section
-            key={w.id}
+            key={w.id} anchor={w.id}
             title="Commissions"
             chips={overdue.length > 0 ? <Chip tone="neutral">{overdue.length} overdue</Chip> : undefined}
             footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}
@@ -215,7 +238,7 @@ export default function Briefing() {
       case "notices":
         return (
           <Section
-            key={w.id}
+            key={w.id} anchor={w.id}
             title="Notices"
             chips={s.world === "v1" ? <Chip tone="crit">v1 build</Chip> : undefined}
             footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}
@@ -247,11 +270,6 @@ export default function Briefing() {
             </Rows>
             {s.world === "v1" && (
               <div className="mt-[var(--space-3)]">
-                <NarrationNote>
-                  The spa notice is missing from this list. The v1 build let it expire on
-                  1 August; the spa is still closed. Nothing on the screen marks the silence
-                  — that absence is the failure v2 was built to remove.
-                </NarrationNote>
               </div>
             )}
           </Section>
@@ -259,7 +277,7 @@ export default function Briefing() {
 
       case "incentives":
         return (
-          <Section key={w.id} title="Expiring incentives" deep footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
+          <Section key={w.id} anchor={w.id} title="Expiring incentives" deep footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
             <Rows>
               {expiring.map((p) => (
                 <RowStack
@@ -284,7 +302,7 @@ export default function Briefing() {
 
       case "verification":
         return (
-          <Section key={w.id} title="Records verified this quarter" quiet deep footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
+          <Section key={w.id} anchor={w.id} title="Records verified this quarter" quiet deep footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
             <div className="flex items-baseline gap-[var(--space-3)]">
               <span className="type-figure">{briefing.recordsVerified.done}</span>
               <span className="type-meta tnum">of {briefing.recordsVerified.of} in Paris</span>
@@ -299,11 +317,67 @@ export default function Briefing() {
           </Section>
         );
 
+      /* ── both types: what the agency wrote to its desk (05-two-roles.md, 2026-09-24) ──
+         The newest three. Each opens in the Knowledge archive, where it is a source of
+         its own; each linked record opens the record. Anyone can write one: the owner's
+         goes out at once, a user's to the whole agency waits for her. */
+      case "announcements": {
+        const items = announcementsFor(s).slice(0, 3);
+        return (
+          <Section
+            key={w.id} anchor={w.id}
+            title="From the agency"
+            footer={
+              <span className="flex flex-wrap items-center gap-x-[var(--space-4)]">
+                <Button variant="tertiary" size="sm" onClick={() => setWriting(true)}>Write to the agency</Button>
+                <Opens href={w.expandsTo}>{w.expandLabel}</Opens>
+              </span>
+            }
+          >
+            {items.length === 0 ? (
+              <p className="type-data-read text-label-secondary">Nothing announced yet. What the agency writes to its desk arrives here.</p>
+            ) : (
+              <Rows>
+                {items.map((a) => (
+                  <RowStack
+                    key={a.id}
+                    head={
+                      <>
+                        <Link href={`/knowledge?source=Announcements&doc=${a.id}`} className="row-primary type-data-strong underline decoration-hairline underline-offset-4 hover:decoration-ink">
+                          {a.title}
+                        </Link>
+                        <span className="type-meta tnum">{a.when}</span>
+                      </>
+                    }
+                  >
+                    {personName[a.by]} · {a.audience === "agency" ? "whole agency" : "Paris desk"}
+                    {a.waiting && ` · waiting for ${people.owner} to release it`}
+                    {a.links.length > 0 && (
+                      <>
+                        {" · "}
+                        {a.links.map((id, i) => (
+                          <React.Fragment key={id}>
+                            {i > 0 && ", "}
+                            <Link href={`/records/${id}`} className="underline decoration-hairline underline-offset-4 hover:decoration-ink">
+                              {productById(id)?.name ?? id}
+                            </Link>
+                          </React.Fragment>
+                        ))}
+                      </>
+                    )}
+                  </RowStack>
+                ))}
+              </Rows>
+            )}
+          </Section>
+        );
+      }
+
       /* ── agency owner ── */
       case "publish":
         return (
           <Section
-            key={w.id}
+            key={w.id} anchor={w.id}
             title="Publish queue"
             chips={waiting.length > 0 ? <Chip tone="neutral">{waiting.length} waiting</Chip> : undefined}
             footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}
@@ -326,7 +400,7 @@ export default function Briefing() {
 
       case "confirm":
         return (
-          <Section key={w.id} title="Records to confirm" chips={<Chip tone="neutral">{candidates.length} waiting</Chip>} footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
+          <Section key={w.id} anchor={w.id} title="Records to confirm" chips={<Chip tone="neutral">{candidates.length} waiting</Chip>} footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
             <Rows>
               {candidates.map((c) => (
                 <Row key={c.id}>
@@ -348,7 +422,7 @@ export default function Briefing() {
       case "connections":
         return (
           <Section
-            key={w.id}
+            key={w.id} anchor={w.id}
             title="Connections"
             chips={connectionHealth.needAttention > 0 ? <Chip tone="neutral">{connectionHealth.label}</Chip> : undefined}
             footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}
@@ -374,7 +448,7 @@ export default function Briefing() {
 
       case "unmatched":
         return (
-          <Section key={w.id} title="Unmatched payments" chips={<Chip tone="neutral">{orphanedPayments.length} to match</Chip>} footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
+          <Section key={w.id} anchor={w.id} title="Unmatched payments" chips={<Chip tone="neutral">{orphanedPayments.length} to match</Chip>} footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
             <p className="-mt-[var(--space-2)] mb-[var(--space-2)] type-data-read text-label-secondary">
               <span className="type-figure text-label">{eur(orphanTotal)}</span> across {orphanedPayments.length} payments.
             </p>
@@ -400,7 +474,7 @@ export default function Briefing() {
          her brief; no widget names it. */
       case "discrepancies":
         return (
-          <Section key={w.id} title="Under projection" deep footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
+          <Section key={w.id} anchor={w.id} title="Under projection" deep footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
             <Rows>
               {flagged.map((c) => (
                 <RowStack
@@ -427,71 +501,61 @@ export default function Briefing() {
     }
   };
 
-  /* ── the rail: what needs her today, and the one action ───────────────── */
-  const today: { label: string; mark: React.ReactNode }[] = [];
-  if (money && overdue.length) today.push({ label: "Overdue commissions", mark: <Chip tone="crit">{overdue.length}</Chip> });
-  if (critical.length) today.push({ label: "Critical notice", mark: <Chip tone="crit">{critical.length}</Chip> });
-  if (unconfirmed.length) today.push({ label: "Departure unconfirmed", mark: <Chip tone="warn">{unconfirmed.length}</Chip> });
-  if (expiring.length) today.push({ label: "Incentives expiring", mark: <Chip tone="neutral">{expiring.length}</Chip> });
-  if (s.role === "owner") {
-    today.push({ label: "To confirm", mark: <Chip tone="neutral">{candidates.length}</Chip> });
-    if (waiting.length) today.push({ label: "To publish", mark: <Chip tone="neutral">{waiting.length}</Chip> });
-    today.push({ label: "Payments to match", mark: <Chip tone="neutral">{orphanedPayments.length}</Chip> });
-    if (connectionHealth.needAttention > 0) today.push({ label: "Connections", mark: <Chip tone="warn">{connectionHealth.needAttention}</Chip> });
-  }
-
-  /* The owner's one action is the queue that blocks everyone else: a new record is not
-     true in the product until she confirms it. */
-  const primary =
-    s.role === "owner" ? { href: "/admin/review", label: "Confirm records" }
-    : money ? { href: "/commissions", label: "Open the ledger" }
-    : { href: "/itineraries", label: "Check departures" };
+  /* ── the rail: this reader's insights, ranked (src/lib/insights.ts) ───────── */
+  const insights = React.useMemo(() => insightsFor(s), [s]);
+  const railKey = `briefing-insights-${s.role}`;
+  const railOpen = !s.dismissed[railKey];
+  /* One card on the right at a time (Constantin, 2026-09-25): a conversation takes the
+     slot, and closing it gives the rail back where it was, on the insight asked about.
+     The rail stays mounted while hidden, so it keeps its place. */
+  const railShown = railOpen && !s.assistantOpen;
 
   /* Absent, not masked: without the entitlement the money chapters are not drawn. */
   const gatedOut = (w: Widget) => (w.id === "commissions" || w.id === "incentives") && !money;
 
   return (
     <Page width="wide">
-      <PageHeader title={<>Good morning, {personName[s.role]}</>}>
+      <PageHeader
+        title={<>Good morning, {personName[s.role]}</>}
+        actions={!railOpen && insights.length > 0 ? (
+          <Button variant="tertiary" size="sm" onClick={() => d({ type: "restore", id: railKey })}>
+            Show insights <span className="type-micro tnum">{insights.length}</span>
+          </Button>
+        ) : undefined}
+      >
         <p className="mt-[var(--space-2)] type-meta">{TODAY} · synced {briefing.syncedAt}</p>
       </PageHeader>
 
-      <div className="doc-layout">
+      {/* Closed, the rail gives its column back to the chapters. */}
+      <div className="doc-layout" style={railShown ? undefined : { gridTemplateColumns: "minmax(0, 1fr)" }}>
         <div className="min-w-0">
-          <NarrationNote>
-            The screen the agency asked for by name — “the first thing that you will viewing in
-            the morning.” The chapter set is built from the signed-in role, so the permission
-            story is the layout, not a claim about it.
-          </NarrationNote>
 
           {/* The day, written. Serif because it is addressed to a person; figures inline. */}
-          <section className="chapter" data-slot="chapter">
+          <section className="chapter" data-slot="chapter" data-chapter="today" id="chapter-today">
             <p className="max-w-[62ch] type-prose-lead">{lead}</p>
             <p className="mt-[var(--space-3)] type-meta">
-              <StatusDot tone="warn">Booking-system figures up to 48 hours behind</StatusDot>
+              <StatusDot tone="warn">TripSuite figures up to 48 hours behind</StatusDot>
             </p>
           </section>
 
           {widgets.filter((w) => !gatedOut(w)).map(chapter)}
         </div>
 
-        <aside className="doc-rail" data-rail-label="Today">
-          <Section variant="tool" follows title="Today">
-            <Rows>
-              {today.map((t) => (
-                <Row key={t.label}>
-                  <span className="row-primary">{t.label}</span>
-                  <span className="row-trailing">{t.mark}</span>
-                </Row>
-              ))}
-              {today.length === 0 && <li className="py-[11px] type-data-read text-label-secondary">Nothing is waiting on you.</li>}
-            </Rows>
-            <div className="mt-[var(--space-4)]">
-              <Button asChild className="w-full"><Link href={primary.href}>{primary.label}</Link></Button>
-            </div>
-          </Section>
-        </aside>
+        {railOpen && (
+          <aside className={railShown ? "doc-rail" : "doc-rail hidden"} data-rail-label="Insights">
+            <InsightRail
+              insights={insights}
+              onClose={() => d({ type: "dismiss", id: railKey })}
+              onSheet={() => setWriting(true)}
+              /* The rail hands an insight to the assistant, which takes the right-hand slot. */
+              onWhy={(id) => askAssistant(d, s, `why:${id}`, "/briefing", true)}
+              paused={!railShown}
+            />
+          </aside>
+        )}
       </div>
+
+      <AnnouncementSheet open={writing} onOpenChange={setWriting} />
     </Page>
   );
 }

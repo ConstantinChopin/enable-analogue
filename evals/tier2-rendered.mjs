@@ -165,16 +165,68 @@ async function probe(page, semantic) {
       if (!differs) selectedWeak.push((el.textContent || el.getAttribute("aria-label") || "").trim().slice(0, 40));
     }
 
-    /* The one primary is a pill (VIS-041); one page title per screen (VIS-012).
+    /* Shape says what a control is (VIS-042): a rectangle does, a pill chooses, a chip
+       states, an underline goes. One page title per screen (VIS-012).
        Filled buttons are counted in the topmost layer: an open sheet is its own surface. */
     const topmost = document.querySelector('[role="dialog"][data-state="open"]') ?? document;
+    const isPill = (el) => {
+      const r = el.getBoundingClientRect();
+      return parseFloat(getComputedStyle(el).borderTopLeftRadius) >= r.height / 2 - 1;
+    };
+    const label = (el) => (el.textContent || el.getAttribute("aria-label") || "").trim().slice(0, 40);
     const filled = [...topmost.querySelectorAll("button, a[data-slot=button]")].filter((b) => b.dataset.variant === "default" && vis(b));
-    const notPill = filled.filter((b) => { const cs = getComputedStyle(b); const r = parseFloat(cs.borderTopLeftRadius); const h = b.getBoundingClientRect().height; return r < h / 2 - 1; }).map((b) => b.textContent.trim().slice(0, 40));
+    /* the primary is a rectangle: the ink fill, radius-2 */
+    const notPill = filled.filter(isPill).map(label);
+    /* a pill never acts: a labelled pill that is pressable must be a choice — pressed,
+       selected or a tab. A circle (an icon in chrome) is not a pill. */
+    const pillActs = [...document.querySelectorAll("button, a[data-slot=button], [role=button]")]
+      .filter((el) => vis(el) && el.textContent.trim() && isPill(el))
+      .filter((el) => { const r = el.getBoundingClientRect(); return r.width > r.height + 4; })
+      .filter((el) => !(el.hasAttribute("aria-pressed") || el.hasAttribute("aria-selected") || el.getAttribute("role") === "tab" || el.dataset.slot === "filter-chip"))
+      .map(label);
+    /* an underline never acts: an underlined <button> is an action dressed as a link.
+       The one exemption is the provenance trigger — the underlined value opens where it
+       came from, which is going, not doing. */
+    const underlineActs = [...document.querySelectorAll("button")]
+      .filter((el) => vis(el) && el.textContent.trim() && el.dataset.slot !== "popover-trigger")
+      .filter((el) => getComputedStyle(el).textDecorationLine.includes("underline"))
+      .map(label);
+
+    /* The size scale (VIS-094, with a mouse): an action is 32 or 28, a pill that chooses
+       is 28, a chip is 22. And controls that share a row share a height — a 32 beside a
+       28 reads as two different things when it is one toolbar. Links (text) and chips
+       (state) sit beside controls without matching them. */
+    const h = (el) => Math.round(el.getBoundingClientRect().height);
+    const controls = [
+      ...[...document.querySelectorAll("[data-slot=button]")].filter((el) => el.dataset.variant !== "link").map((el) => ({ el, kind: "action", ok: [28, 32] })),
+      ...[...document.querySelectorAll("[role=tab], [data-slot=filter-chip]")].map((el) => ({ el, kind: "pill", ok: [28] })),
+      ...[...document.querySelectorAll("[data-slot=chip]")].map((el) => ({ el, kind: "chip", ok: [22] })),
+    ].filter((c) => vis(c.el));
+    const offScale = controls.filter((c) => !c.ok.includes(h(c.el))).map((c) => `${c.kind} ${h(c.el)}px “${label(c.el)}”`);
+    const rowsMixed = [];
+    const byRow = new Map();
+    for (const c of controls) {
+      if (c.kind === "chip") continue;
+      /* A row: the nearest flex-row ancestor the control shares with a sibling control. */
+      let row = c.el.parentElement;
+      while (row && getComputedStyle(row).display.indexOf("flex") < 0) row = row.parentElement;
+      if (!row || getComputedStyle(row).flexDirection !== "row") continue;
+      if (!byRow.has(row)) byRow.set(row, []);
+      byRow.get(row).push(c.el);
+    }
+    for (const [, els] of byRow) {
+      const hs = [...new Set(els.map(h))];
+      if (hs.length > 1) rowsMixed.push(els.map((e) => `${label(e)} ${h(e)}`).join(" · "));
+    }
     const titles = [...document.querySelectorAll(".type-title-page")].filter(vis).length;
 
     return {
       selectedWeak,
       notPill,
+      pillActs,
+      underlineActs,
+      offScale,
+      rowsMixed,
       titles,
       columns,
       bars,
@@ -241,7 +293,15 @@ try {
     record("at most one filled button", path, role, p.filledButtons.length <= 1,
       p.filledButtons.length > 1 ? p.filledButtons.join(" / ") : "");
 
-    record("the primary is a pill", path, role, p.notPill.length === 0, p.notPill.join(" / "));
+    record("the primary is a rectangle", path, role, p.notPill.length === 0, p.notPill.join(" / "));
+
+    record("a pill never acts", path, role, p.pillActs.length === 0, p.pillActs.join(" / "));
+
+    record("an underline never acts", path, role, p.underlineActs.length === 0, p.underlineActs.join(" / "));
+
+    record("every control is on the scale", path, role, p.offScale.length === 0, p.offScale.slice(0, 4).join(" / "));
+
+    record("a row of controls shares a height", path, role, p.rowsMixed.length === 0, p.rowsMixed.slice(0, 3).join(" | "));
 
     record("one page title", path, role, p.titles === 1, p.titles === 1 ? "" : p.titles + " type-title-page on screen");
 

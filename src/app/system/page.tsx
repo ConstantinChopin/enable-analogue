@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -30,7 +30,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShieldCheck, Search } from "lucide-react";
+import { ShieldCheck, Search, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 function Swatch({ name, cls }: { name: string; cls: string }) {
   return (
@@ -73,7 +74,7 @@ export default function SystemPage() {
             <div className="type-section">A chapter title (section 16/20 590)</div>
             <div className="type-section-quiet">A note&apos;s title (section-quiet 14/18 secondary)</div>
             <div className="type-figure">EUR 12,532 (figure 18/24 tnum)</div>
-            <div className="type-data">The data body, 14/18 400 — the floor of Inter&apos;s optical axis.</div>
+            <div className="type-data">The data body, 14/18 400, in Instrument Sans.</div>
             <div className="type-data-read max-w-[60ch]">A paragraph of machine text at 14/20, read rather than scanned, with room between the lines because someone reads it rather than scans it.</div>
             <div className="type-data-strong">The subject of a row (data-strong 14/18 590)</div>
             <div className="type-meta">Attribution, dates, secondary facts (meta 12/16 secondary)</div>
@@ -95,29 +96,33 @@ export default function SystemPage() {
           </div>
         </Section>
 
-        <Section title="Buttons" quiet>
+        {/* VIS-042: shape says what a control is. A rectangle does, a pill chooses, a
+            chip states, an underline goes. Fill says how much an action matters. */}
+        <Section title="Controls, by what they are" quiet>
           <div className="space-y-[var(--space-4)]">
-            <Specimen label="variants · md">
+            <Specimen label="does · a rectangle · md">
               <Button>Primary</Button>
               <Button variant="secondary">Secondary</Button>
-              <Button variant="outline">Outline</Button>
-              <Button variant="ghost">Ghost</Button>
-              <Button variant="link">Text action</Button>
+              <Button variant="tertiary">Tertiary</Button>
               <Button variant="destructive">Remove</Button>
-              <Button size="icon" variant="ghost" aria-label="Search"><Search /></Button>
             </Specimen>
-            <Specimen label="sm">
+            <Specimen label="does · sm">
+              <Button size="sm">Primary</Button>
               <Button size="sm" variant="secondary">Show all 30 amenities</Button>
-              <Button size="sm" variant="outline">Outline</Button>
-              <Button size="sm" variant="ghost">Ghost</Button>
-              <Button size="sm" variant="link">Edit</Button>
+              <Button size="sm" variant="tertiary">Add note</Button>
+            </Specimen>
+            <Specimen label="does · icon chrome · a circle">
+              <Button size="icon" variant="ghost" aria-label="Search"><Search /></Button>
               <Button size="icon-sm" variant="ghost" aria-label="Search"><Search /></Button>
             </Specimen>
-            <Specimen label="disabled">
+            <Specimen label="does · disabled">
               <Button disabled>Primary</Button>
               <Button variant="secondary" disabled>Secondary</Button>
-              <Button variant="outline" disabled>Outline</Button>
-              <Button variant="link" disabled>Text action</Button>
+              <Button variant="tertiary" disabled>Tertiary</Button>
+            </Specimen>
+            <Specimen label="goes · an underline">
+              <Button asChild variant="link"><Link href="/commissions">Open the ledger <ArrowRight aria-hidden /></Link></Button>
+              <Button asChild variant="link" size="sm"><Link href="/records">All records</Link></Button>
             </Specimen>
           </div>
         </Section>
@@ -154,31 +159,29 @@ export default function SystemPage() {
           </div>
         </Section>
 
-        <Section title="Selection — inverse, never a tint" quiet>
+        <Section title="Chooses — a pill; the selected one is inverse" quiet>
           <div className="space-y-[var(--space-4)]">
-            <Specimen label="filter chips">
+            <Specimen label="several of · filter chips">
               {["Hotel", "Villa", "DMC", "Cruise"].map((c) => (
                 <FilterChip key={c} selected={chip.includes(c)} onClick={() => toggle(c)} count={c === "Hotel" ? 128 : undefined}>{c}</FilterChip>
               ))}
             </Specimen>
-            <Specimen label="segmented">
+            <Specimen label="one of · segmented">
               <Segmented value={seg} onChange={setSeg} label="State" options={[{ value: "all", label: "All", count: 9 }, { value: "overdue", label: "Overdue", count: 3 }, { value: "paid", label: "Paid" }]} />
             </Specimen>
-            <Specimen label="tabs · line">
+            <Specimen label="one of · tabs">
               <Tabs defaultValue="fields">
-                <TabsList variant="line">
+                <TabsList>
                   <TabsTrigger value="fields">Fields</TabsTrigger>
                   <TabsTrigger value="sources">Sources</TabsTrigger>
                   <TabsTrigger value="history">History</TabsTrigger>
                 </TabsList>
-                <TabsContent value="fields"><p className="type-meta">The selected tab carries a 2px ink rule and the primary label.</p></TabsContent>
-                <TabsContent value="sources" /><TabsContent value="history" />
               </Tabs>
             </Specimen>
           </div>
         </Section>
 
-        <Section title="Status — words beside colour" quiet>
+        <Section title="States — a chip, never an action" quiet>
           <div className="space-y-[var(--space-4)]">
             <Specimen label="chips">
               <Chip tone="neutral">due 12 Sep</Chip><Chip tone="ok">verified today</Chip><Chip tone="primary">agency overlay</Chip><Chip tone="warn">96d unverified</Chip><Chip tone="crit">3 sources disagree</Chip>

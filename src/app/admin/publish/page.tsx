@@ -27,7 +27,7 @@ import { adminPolicy, people, type QueueItem, type QueueKind } from "@/data/seed
 import { useDemo, queueItems } from "@/lib/store";
 import { Page, PageHeader } from "@/components/layouts";
 import {
-  Chip, Section, NarrationNote, ConfirmBanner, Rows, Row, RowStack, DataList,
+  Chip, Section, ConfirmBanner, Rows, Row, RowStack, DataList,
 } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,6 +45,7 @@ const kindLabel: Record<QueueKind, string> = {
   trip: "Trip",
   traveller: "Traveller",
   mail: "Forwarded mail",
+  announcement: "Announcement",
 };
 
 export default function AdminPublish() {
@@ -97,10 +98,6 @@ export default function AdminPublish() {
       <div className="doc-layout">
         {/* ── the body: chapters at column width ── */}
         <div className="min-w-0">
-          <NarrationNote>
-            One sharing rule for everything: a colleague or a team at once, the whole agency only
-            through this queue. It is the single place the owner decides what everyone sees.
-          </NarrationNote>
 
           <div className="space-y-[var(--space-2)] pb-[var(--gap-2)] empty:hidden">
             <ConfirmBanner show={banner !== null}>{banner}</ConfirmBanner>
@@ -165,7 +162,7 @@ export default function AdminPublish() {
                         {mayPublish(q) && (
                           <Button variant="secondary" size="sm" onClick={() => publish(q)}>Publish</Button>
                         )}
-                        <Button variant="link" size="sm" onClick={() => { setNote(""); setReturning(q); }}>
+                        <Button variant="tertiary" size="sm" onClick={() => { setNote(""); setReturning(q); }}>
                           Return with a note
                         </Button>
                       </div>

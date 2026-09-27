@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { useDemo, canViewCommissions } from "@/lib/store";
 import { closedPayments, orphanedPayments, people } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
-import { Chip, Section, NarrationNote, ConfirmBanner, MoneyValue, Rows, Row, RowStack } from "@/components/bits";
+import { Chip, Section, ConfirmBanner, MoneyValue, Rows, Row, RowStack } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,8 +44,16 @@ export default function ResolutionQueue() {
   const [matches, setMatches] = useState<Record<string, MatchDecision>>({});
   const [justMatched, setJustMatched] = useState<string | null>(null);
 
+  /* A match made elsewhere (the assistant, on this person's confirmation) is in the store;
+     it counts here too, and survives leaving the page. */
+  const decided: Record<string, MatchDecision> = {
+    ...(s.paymentMatched && !matches.op1
+      ? { op1: { ref: "VO-2214 · booker M. Osei (traveller R. Osei)", reason: "Matched through the assistant on your confirmation: the payment came in under the traveller's name." } }
+      : {}),
+    ...matches,
+  };
   const open = orphanedPayments.find((p) => p.id === sheetFor);
-  const unmatched = orphanedPayments.filter((p) => !matches[p.id]);
+  const unmatched = orphanedPayments.filter((p) => !decided[p.id]);
   const stillOpen = unmatched.length;
   const next = unmatched[0];
 
@@ -80,20 +88,16 @@ export default function ResolutionQueue() {
       <div className="doc-layout">
         {/* ── the body: chapters at column width ── */}
         <div className="min-w-0">
-          <NarrationNote>
-            Money arrives under a traveller&rsquo;s name instead of the booker&rsquo;s, or against
-            a property name that does not resolve. It cannot auto-match, so it is visible and
-            ranked, and a person closes it with a reason.
-          </NarrationNote>
 
           <Section title="Open" chips={<Chip tone="neutral"><span className="tnum">{stillOpen}</span> to match</Chip>}>
             <Rows>
               {orphanedPayments.map((p) => {
-                const matched = matches[p.id];
+                const matched = decided[p.id];
                 const selected = sheetFor === p.id;
                 return (
                   <li
                     key={p.id}
+                    data-agent-target={`payment-${p.id}`}
                     className={cn("row-stack", selected && "border-l-2 border-l-selected pl-[var(--space-3)]")}
                   >
                     <div className="row-stack-head">

@@ -50,7 +50,7 @@ export interface Source {
   where: string;  // human label
   uri: string;    // provenance URI scheme
   when: string;
-  kind: "intranet" | "gdrive" | "email" | "axus" | "tripsuite" | "portal" | "manual";
+  kind: "intranet" | "gdrive" | "email" | "axus" | "tripsuite" | "portal" | "manual" | "announcement";
 }
 
 export interface Field {
@@ -97,21 +97,21 @@ export interface Product {
 }
 
 export const products: Product[] = [
-  { id: "maison-leandre", name: "Maison Léandre", city: "Paris 4e", country: "France", region: "Europe", category: "Hotel", luxuryTier: "Ultra-Luxury", status: "Active", brand: "Atelier Collection", programs: ["Atelier", "Meridian"], consortia: ["Consortium A"], rate: "12%", lastVerified: "Mar", updated: "12 Jun", evidence: { kind: "disagree", label: "3 sources disagree" }, address: "14 rue de Sévigné", rooms: 42, repFirm: "Corvin & Wells", hasNotice: true, blurb: "A courtyard hôtel particulier in the Marais, 42 rooms around a walled garden." },
+  { id: "maison-leandre", name: "Maison Léandre", city: "Paris 4e", country: "France", region: "Europe", category: "Hotel", luxuryTier: "Ultra-Luxury", status: "Active", brand: "Atelier Collection", programs: ["Atelier", "Meridian"], consortia: ["Virtuoso"], rate: "12%", lastVerified: "Mar", updated: "12 Jun", evidence: { kind: "disagree", label: "3 sources disagree" }, address: "14 rue de Sévigné", rooms: 42, repFirm: "Corvin & Wells", hasNotice: true, blurb: "A courtyard hôtel particulier in the Marais, 42 rooms around a walled garden." },
   { id: "hotel-verlaine", name: "Hôtel Verlaine", city: "Paris 8e", country: "France", region: "Europe", category: "Hotel", luxuryTier: "Luxury", status: "Active", programs: ["Meridian"], consortia: [], rate: "10%", lastVerified: "Jun", updated: "18 Jun", evidence: { kind: "verified", label: "verified" }, rooms: 68, repFirm: "Corvin & Wells", hasNotice: true, tags: ["contemporary design"], blurb: "Contemporary rooms off the Champs-Élysées; a rooftop bar that runs late." },
-  { id: "palacio-amoreiras", name: "Palácio das Amoreiras", city: "Lisbon", country: "Portugal", region: "Europe", category: "Hotel", luxuryTier: "Luxury", status: "Active", programs: ["Atelier"], consortia: ["Consortium A"], rate: "12%", lastVerified: "May", updated: "26 May", evidence: { kind: "verified", label: "verified" }, rooms: 31, blurb: "An eighteenth-century palace above the reservoir, restored around its tilework." },
+  { id: "palacio-amoreiras", name: "Palácio das Amoreiras", city: "Lisbon", country: "Portugal", region: "Europe", category: "Hotel", luxuryTier: "Luxury", status: "Active", programs: ["Atelier"], consortia: ["Virtuoso"], rate: "12%", lastVerified: "May", updated: "26 May", evidence: { kind: "verified", label: "verified" }, rooms: 31, blurb: "An eighteenth-century palace above the reservoir, restored around its tilework." },
   { id: "riad-anouar", name: "Riad Anouar", city: "Marrakech", country: "Morocco", region: "Africa", category: "Hotel", luxuryTier: "Boutique", status: "Active", programs: ["Atelier"], consortia: [], rate: "12%", lastVerified: "Jan", updated: "14 Jan", staleDays: 216, evidence: { kind: "stale", label: "6 months old" }, rooms: 11, blurb: "Eleven rooms in the medina, arranged around two courtyards and a plunge pool." },
   { id: "villa-ortensia", name: "Villa Ortensia", city: "Amalfi coast", country: "Italy", region: "Europe", category: "Hotel", luxuryTier: "Luxury", status: "Active", programs: ["Meridian"], consortia: ["Consortium B"], rate: "11%", lastVerified: "Jun", updated: "30 Jun", evidence: { kind: "incentive", label: "+3% to 30 Sep" }, rooms: 24, repFirm: "Lambert & Hale", blurb: "Terraced gardens above Praiano; the suites face west over the water." },
   { id: "cap-destel", name: "Cap d'Estel", city: "Èze", country: "France", region: "Europe", category: "Hotel", luxuryTier: "Luxury", status: "Active", programs: ["Meridian"], consortia: ["Consortium B"], rate: "11%", lastVerified: "Jun", updated: "22 Jun", evidence: { kind: "verified", label: "verified" }, rooms: 18, hasNotice: true, blurb: "A private headland between Nice and Monaco, reached by its own funicular." },
   { id: "ryokan-suikawa", name: "Ryokan Suikawa", city: "Kyoto", country: "Japan", region: "Asia", category: "Hotel", luxuryTier: "Ultra-Luxury", status: "Active", programs: ["Meridian"], consortia: [], rate: "11%", lastVerified: "May", updated: "04 Jun", evidence: { kind: "verified", label: "verified May 2026" }, rooms: 9, tags: ["kaiseki", "garden wing"], blurb: "Nine rooms on the Shirakawa canal; kaiseki served in-room, garden wing quietest." },
   { id: "sereno-kyoto", name: "Hotel Sereno Kyoto", city: "Kyoto", country: "Japan", region: "Asia", category: "Hotel", luxuryTier: "Luxury", status: "Coming Soon", programs: [], consortia: [], rate: "—", lastVerified: "—", updated: "today", evidence: { kind: "unconfirmed", label: "unconfirmed" }, rooms: 28, blurb: "Opening spring 2027 in Higashiyama. Record awaiting confirmation." },
   { id: "kirkfield-house", name: "Kirkfield House", city: "Cotswolds", country: "United Kingdom", region: "Europe", category: "Hotel", luxuryTier: "Boutique", status: "Active", programs: ["Atelier"], consortia: [], rate: "10%", lastVerified: "Apr", updated: "02 May", evidence: { kind: "verified", label: "verified" }, rooms: 16, blurb: "A manor with a working kitchen garden; the cookery school runs at weekends." },
-  { id: "borgo-selvane", name: "Borgo Selvane", city: "Val d'Orcia", country: "Italy", region: "Europe", category: "Hotel", luxuryTier: "Luxury", status: "Active", programs: ["Atelier", "Meridian"], consortia: ["Consortium A"], rate: "12%", lastVerified: "Feb", updated: "20 Feb", staleDays: 189, evidence: { kind: "stale", label: "6 months old" }, rooms: 27, blurb: "A restored hamlet with its own vineyard; family suites in the old granary." },
+  { id: "borgo-selvane", name: "Borgo Selvane", city: "Val d'Orcia", country: "Italy", region: "Europe", category: "Hotel", luxuryTier: "Luxury", status: "Active", programs: ["Atelier", "Meridian"], consortia: ["Virtuoso"], rate: "12%", lastVerified: "Feb", updated: "20 Feb", staleDays: 189, evidence: { kind: "stale", label: "6 months old" }, rooms: 27, blurb: "A restored hamlet with its own vineyard; family suites in the old granary." },
   { id: "the-brackenmoor", name: "The Brackenmoor", city: "Perthshire", country: "United Kingdom", region: "Europe", category: "Hotel", luxuryTier: "Luxury", status: "Active", programs: ["Meridian"], consortia: ["Consortium B"], rate: "11%", lastVerified: "Jun", updated: "11 Jun", evidence: { kind: "verified", label: "verified" }, rooms: 22, repFirm: "Corvin & Wells", blurb: "Highland sporting estate; stalking and river beats let by arrangement." },
   { id: "aurora-fjelland", name: "Aurora Fjelland", city: "Lofoten", country: "Norway", region: "Europe", category: "Hotel", luxuryTier: "Boutique", status: "Active", programs: [], consortia: [], rate: "10%", lastVerified: "Mar", updated: "08 Mar", staleDays: 173, evidence: { kind: "stale", label: "5 months old" }, rooms: 14, blurb: "Fourteen cabins on a working harbour, glazed to the north for the winter light." },
   { id: "dunes-al-marah", name: "Dunes Al Marah", city: "Wadi Rum", country: "Jordan", region: "Middle East", category: "Hotel", luxuryTier: "Luxury", status: "Active", programs: ["Atelier"], consortia: [], rate: "12%", lastVerified: "May", updated: "19 May", evidence: { kind: "verified", label: "verified" }, rooms: 20, blurb: "Twenty tented suites in the protected area; night skies are the point." },
   { id: "casa-marena", name: "Casa Marena", city: "Cartagena", country: "Colombia", region: "Americas", category: "Hotel", luxuryTier: "Luxury", status: "Active", programs: ["Meridian"], consortia: [], rate: "11%", lastVerified: "Apr", updated: "27 Apr", evidence: { kind: "verified", label: "verified" }, rooms: 26, repFirm: "Verity Marsh", blurb: "A colonial house inside the walled city, courtyards stepped down to a pool." },
-  { id: "tsavora-lodge", name: "Tsavora Lodge", city: "Serengeti", country: "Tanzania", region: "Africa", category: "Hotel", luxuryTier: "Ultra-Luxury", status: "Active", programs: ["Atelier"], consortia: ["Consortium A"], rate: "13%", lastVerified: "Jun", updated: "06 Jun", evidence: { kind: "verified", label: "verified" }, rooms: 8, repFirm: "Lambert & Hale", blurb: "Eight tents on a private concession; the camp moves with the migration." },
+  { id: "tsavora-lodge", name: "Tsavora Lodge", city: "Serengeti", country: "Tanzania", region: "Africa", category: "Hotel", luxuryTier: "Ultra-Luxury", status: "Active", programs: ["Atelier"], consortia: ["Virtuoso"], rate: "13%", lastVerified: "Jun", updated: "06 Jun", evidence: { kind: "verified", label: "verified" }, rooms: 8, repFirm: "Lambert & Hale", blurb: "Eight tents on a private concession; the camp moves with the migration." },
   { id: "playa-tulira", name: "Playa Tulira", city: "Riviera Nayarit", country: "Mexico", region: "Americas", category: "Hotel", luxuryTier: "Luxury", status: "Active", programs: ["Meridian"], consortia: ["Consortium B"], rate: "11%", lastVerified: "Jul", updated: "03 Jul", evidence: { kind: "verified", label: "verified" }, rooms: 45, blurb: "A long beach north of Punta Mita; minimum stays waived outside high season." },
   { id: "hanami-tarn", name: "Hanami Tarn", city: "Hakone", country: "Japan", region: "Asia", category: "Hotel", luxuryTier: "Luxury", status: "Closed", programs: ["Meridian"], consortia: [], rate: "—", lastVerified: "Feb", updated: "14 Feb", evidence: { kind: "stale", label: "closed for rebuild" }, rooms: 30, blurb: "Closed for rebuild until 2028. Kept on file for historical bookings." },
   { id: "villa-anzeleta", name: "Villa Anzeleta", city: "Paros", country: "Greece", region: "Europe", category: "Hotel", luxuryTier: "Boutique", status: "Active", programs: [], consortia: [], rate: "10%", lastVerified: "Jun", updated: "15 Jun", evidence: { kind: "verified", label: "verified" }, rooms: 7, blurb: "Seven rooms above Naoussa harbour, run by the family that built it." },
@@ -139,7 +139,7 @@ export const filterOptions = {
   luxuryTier: ["Ultra-Luxury", "Luxury", "Premium", "Boutique"] as LuxuryTier[],
   status: ["Active", "Coming Soon", "Closed"] as ProductStatus[],
   programme: ["Atelier", "Meridian"],
-  consortia: ["Consortium A", "Consortium B"],
+  consortia: ["Virtuoso", "Consortium B"],
   evidence: [
     { key: "verified", label: "Verified" },
     { key: "stale", label: "Stale 90d+" },
@@ -166,7 +166,7 @@ export const commissionConflict = {
   headline: "Three sources disagree. The product will not pick one.",
   sources: [
     { id: "portal", label: "Partner portal", detail: "Atelier Collection terms", when: "12 Mar 2026", value: "12%", status: "Signed terms", agree: 3, total: 4 },
-    { id: "feed", label: "Booking platform", detail: "Rate feed", when: "28 Feb 2026", value: "10%", status: "Superseded rate", agree: 1, total: 4 },
+    { id: "feed", label: "TripSuite", detail: "Rate feed", when: "28 Feb 2026", value: "10%", status: "Superseded rate", agree: 1, total: 4 },
     { id: "manual", label: "Manual entry", detail: "Keyed by JB", when: "03 Apr 2026", value: "14%", status: "Uncorroborated", agree: 1, total: 4 },
   ] as ConflictSource[],
   impact: [
@@ -192,7 +192,7 @@ export const leandreFields: Field[] = [
   { key: "amenities-desc", label: "Amenities copy", value: "“View Hotel — experience refined luxury…”", layer: "canonical", source: { what: "portal boilerplate", where: "Consortium portal", uri: "portal://consortium/desc", when: "Feb", kind: "portal" }, state: "template" },
   { key: "commission", label: "Commission", value: "12% Atelier rate", layer: "agency", source: { what: "“…participating agencies receive twelve percent (12%) on the Atelier Collection rate, paid within 45 days of departure…”", where: "Partner portal · Atelier terms p.4", uri: "claromentis://partners/atelier-terms.pdf", when: "12 Mar", kind: "intranet" }, state: "conflict" },
   { key: "perk", label: "Negotiated perk", value: "EUR 100 property credit + daily breakfast for two", layer: "agency", source: { what: "keyed after rep call", where: "Edited by R. Devane", uri: "manual://rd", when: "21 Jun", kind: "manual" }, state: "edited-overlay", beneath: { value: "Daily breakfast for two", source: { what: "programme standard", where: "Atelier terms", uri: "claromentis://partners/atelier-terms.pdf", when: "12 Mar", kind: "intranet" } } },
-  { key: "program", label: "Programme", value: "Atelier Collection", layer: "agency", source: { what: "programme membership", where: "Agency intranet", uri: "claromentis://programs/atelier", when: "04 Jun", kind: "intranet" } },
+  { key: "program", label: "Programme", value: "Atelier Collection", layer: "agency", source: { what: "programme membership", where: "Claromentis", uri: "claromentis://programs/atelier", when: "04 Jun", kind: "intranet" } },
   { key: "repfirm", label: "Rep firm", value: "Corvin & Wells — Paris account", layer: "agency", source: { what: "rate note", where: "Email · Corvin & Wells", uri: "email://msg-2026-06-21", when: "21 Jun", kind: "email" } },
   { key: "note-rd", label: "My note", value: "“Ask for the courtyard rooms.”", layer: "personal", source: { what: "personal note", where: "R. Devane · booked Mar 2026", uri: "manual://rd", when: "Mar", kind: "manual" } },
   { key: "note-team", label: "Team note", value: "“GM changed in spring; service dip settled by June.”", layer: "personal", source: { what: "team note", where: "J. Dubois · team scope", uri: "manual://jd", when: "Jun", kind: "manual" } },
@@ -223,17 +223,45 @@ export interface Notice {
   scope: "personal" | "team" | "agency";
   owner: string; openedAt: string; ageDays: number;
   staleReviewDue?: boolean;
+  /** When the condition it describes ends (ISO). After it, the notice can only mislead. */
+  until?: string;
   v1ValidUntil?: string; v1ExpiredOngoing?: boolean;
   endedPendingClose?: boolean;
 }
 
 export const notices: Notice[] = [
-  { id: "spa", productId: "maison-leandre", productName: "Maison Léandre", text: "Spa closed to 15 Sep.", severity: "Important", scope: "agency", owner: "MK", openedAt: "12 Jun", ageDays: 76, staleReviewDue: true, v1ValidUntil: "01 Aug", v1ExpiredOngoing: true },
+  { id: "spa", productId: "maison-leandre", productName: "Maison Léandre", text: "Spa closed to 15 Sep.", severity: "Important", scope: "agency", owner: "MK", openedAt: "12 Jun", ageDays: 76, staleReviewDue: true, until: "2026-09-15", v1ValidUntil: "01 Aug", v1ExpiredOngoing: true },
   { id: "gm", productId: "cap-destel", productName: "Cap d'Estel", text: "New general manager.", severity: "Info", scope: "agency", owner: "MK", openedAt: "30 May", ageDays: 90, staleReviewDue: true },
   { id: "verlaine-crit", productId: "hotel-verlaine", productName: "Hôtel Verlaine", text: "Water damage on floors 2–3 — do not confirm bookings until the property confirms reopening.", severity: "Critical", scope: "agency", owner: "MK", openedAt: "26 Aug", ageDays: 2 },
   { id: "contradict", productId: "maison-leandre", productName: "Maison Léandre", text: "Spa reopened — saw it Tuesday.", severity: "Info", scope: "personal", owner: "JD", openedAt: "25 Aug", ageDays: 3 },
   { id: "selvane-road", productId: "borgo-selvane", productName: "Borgo Selvane", text: "Approach road resurfacing until late September; transfers add 20 minutes.", severity: "Info", scope: "agency", owner: "MK", openedAt: "02 Aug", ageDays: 26 },
   { id: "tsavora-move", productId: "tsavora-lodge", productName: "Tsavora Lodge", text: "Camp relocating with the migration from 10 Sep; coordinates change.", severity: "Important", scope: "agency", owner: "MK", openedAt: "18 Aug", ageDays: 10 },
+];
+
+/* ── announcements ────────────────────────────────────────────
+   A dated message to the team or the whole agency (docs/rebuild/05-two-roles.md,
+   decided 2026-09-24). A notice is one fact on one record; an announcement is written
+   to people, can state facts, and links records. What the owner announces is an
+   agency source: answers may use it, and cite it with its date. It lives on the
+   Briefing as "From the agency" and in Knowledge as a source of its own.        */
+export interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  by: Persona;
+  /** Published on. */
+  when: string;
+  audience: "team" | "agency";
+  /** Product ids, in the order the writer linked them. */
+  links: string[];
+}
+
+export const announcements: Announcement[] = [
+  {
+    id: "kyoto-autumn", title: "New in Kyoto for autumn", by: "owner", when: "26 Aug", audience: "agency",
+    body: "Ryokan Suikawa is verified for the season: nine rooms on the Shirakawa canal, kaiseki served in-room, and the garden wing is the quietest. Hotel Sereno Kyoto opens in Higashiyama in spring 2027. Its record is still waiting to be confirmed, so quote nothing from it yet.",
+    links: ["ryokan-suikawa", "sereno-kyoto"],
+  },
 ];
 
 /* ── promotions ───────────────────────────────────────────── */
@@ -248,6 +276,10 @@ export const promotions = [
 
 export interface Commission {
   id: string; property: string; productId?: string; bookingRef: string;
+  /** The programme the booking was made under. A property can sit in several, and each
+      sets its own commission and amenities (the record's programme terms); the booking
+      is under exactly one. */
+  program?: string;
   amount: number; currency: "EUR";
   state: "overdue" | "due" | "paid" | "chased";
   dueDate: string; overdueDays?: number;
@@ -259,20 +291,20 @@ export interface Commission {
 }
 
 export const commissions: Commission[] = [
-  { id: "vo", property: "Villa Ortensia", productId: "villa-ortensia", bookingRef: "VO-2214", amount: 1240, currency: "EUR", state: "overdue", dueDate: "18 Jul", overdueDays: 12, traveller: "S. Marchetti", projected: { rate: "12%", source: "partner portal · Mar", incentive: "+3% active bonus — adds to base" } },
-  { id: "ml", property: "Maison Léandre", productId: "maison-leandre", bookingRef: "ML-1108", amount: 862, currency: "EUR", state: "due", dueDate: "this week", traveller: "A. Whitfield", projected: { rate: "12%", source: "Atelier terms p.4 · 12 Mar" } },
-  { id: "kh", property: "Kirkfield House", productId: "kirkfield-house", bookingRef: "KH-0907", amount: 410, currency: "EUR", state: "paid", dueDate: "25 Jul", paidDate: "28 Jul", traveller: "L. Grandin", projected: { rate: "10%", source: "rate feed · Feb" } },
-  { id: "pa", property: "Palácio das Amoreiras", productId: "palacio-amoreiras", bookingRef: "PA-1902", amount: 1008, currency: "EUR", state: "paid", dueDate: "02 Jul", paidDate: "09 Jul", traveller: "D. Lindqvist", projected: { rate: "12%", source: "partner portal · May" }, discrepancy: { expected: 1120, actual: 1008, causes: ["rate mismatch", "currency variance (EUR→USD conversion dated 14 Jul)"] } },
-  { id: "cd", property: "Cap d'Estel", productId: "cap-destel", bookingRef: "CD-3301", amount: 690, currency: "EUR", state: "overdue", dueDate: "01 Aug", overdueDays: 28, traveller: "R. & M. Osei", projected: { rate: "11%", source: "partner portal · Jun" } },
-  { id: "bs", property: "Borgo Selvane", productId: "borgo-selvane", bookingRef: "BS-1745", amount: 1520, currency: "EUR", state: "due", dueDate: "12 Sep", traveller: "T. & P. Osei", projected: { rate: "12%", source: "Atelier terms · Feb" } },
-  { id: "ra", property: "Riad Anouar", productId: "riad-anouar", bookingRef: "RA-0455", amount: 305, currency: "EUR", state: "paid", dueDate: "20 Jun", paidDate: "27 Jun", traveller: "S. Marchetti", projected: { rate: "12%", source: "rate feed · Jan" } },
-  { id: "tl", property: "Tsavora Lodge", productId: "tsavora-lodge", bookingRef: "TL-0088", amount: 3480, currency: "EUR", state: "due", dueDate: "30 Sep", traveller: "N. Achebe", projected: { rate: "13%", source: "partner portal · Jun" } },
-  { id: "au", property: "Aurelia", productId: "aurelia-voyages", bookingRef: "AU-6120", amount: 2240, currency: "EUR", state: "chased", dueDate: "05 Jul", overdueDays: 54, traveller: "H. Vandermeer", projected: { rate: "14%", source: "partner portal · Jun" } },
-  { id: "hv", property: "Hôtel Verlaine", productId: "hotel-verlaine", bookingRef: "HV-2088", amount: 455, currency: "EUR", state: "paid", dueDate: "14 Jun", paidDate: "21 Jun", traveller: "A. Whitfield", projected: { rate: "10%", source: "rate feed · Jun" } },
-  { id: "cm", property: "Casa Marena", productId: "casa-marena", bookingRef: "CM-4410", amount: 780, currency: "EUR", state: "overdue", dueDate: "10 Aug", overdueDays: 19, traveller: "L. Grandin", projected: { rate: "11%", source: "partner portal · Apr" } },
-  { id: "on", property: "Oberon Nile", productId: "oberon-nile", bookingRef: "ON-0301", amount: 1180, currency: "EUR", state: "due", dueDate: "22 Sep", traveller: "D. Lindqvist", projected: { rate: "12%", source: "Atelier terms · May" } },
+  { id: "vo", property: "Villa Ortensia", productId: "villa-ortensia", bookingRef: "VO-2214", program: "Meridian", amount: 1240, currency: "EUR", state: "overdue", dueDate: "18 Jul", overdueDays: 12, traveller: "S. Marchetti", projected: { rate: "12%", source: "partner portal · Mar", incentive: "+3% active bonus — adds to base" } },
+  { id: "ml", property: "Maison Léandre", productId: "maison-leandre", bookingRef: "ML-1108", program: "Atelier", amount: 862, currency: "EUR", state: "due", dueDate: "this week", traveller: "A. Whitfield", projected: { rate: "12%", source: "Atelier terms p.4 · 12 Mar" } },
+  { id: "kh", property: "Kirkfield House", productId: "kirkfield-house", bookingRef: "KH-0907", program: "Atelier", amount: 410, currency: "EUR", state: "paid", dueDate: "25 Jul", paidDate: "28 Jul", traveller: "L. Grandin", projected: { rate: "10%", source: "rate feed · Feb" } },
+  { id: "pa", property: "Palácio das Amoreiras", productId: "palacio-amoreiras", bookingRef: "PA-1902", program: "Atelier", amount: 1008, currency: "EUR", state: "paid", dueDate: "02 Jul", paidDate: "09 Jul", traveller: "D. Lindqvist", projected: { rate: "12%", source: "partner portal · May" }, discrepancy: { expected: 1120, actual: 1008, causes: ["rate mismatch", "currency variance (EUR→USD conversion dated 14 Jul)"] } },
+  { id: "cd", property: "Cap d'Estel", productId: "cap-destel", bookingRef: "CD-3301", program: "Meridian", amount: 690, currency: "EUR", state: "overdue", dueDate: "01 Aug", overdueDays: 28, traveller: "R. & M. Osei", projected: { rate: "11%", source: "partner portal · Jun" } },
+  { id: "bs", property: "Borgo Selvane", productId: "borgo-selvane", bookingRef: "BS-1745", program: "Atelier", amount: 1520, currency: "EUR", state: "due", dueDate: "12 Sep", traveller: "T. & P. Osei", projected: { rate: "12%", source: "Atelier terms · Feb" } },
+  { id: "ra", property: "Riad Anouar", productId: "riad-anouar", bookingRef: "RA-0455", program: "Atelier", amount: 305, currency: "EUR", state: "paid", dueDate: "20 Jun", paidDate: "27 Jun", traveller: "S. Marchetti", projected: { rate: "12%", source: "rate feed · Jan" } },
+  { id: "tl", property: "Tsavora Lodge", productId: "tsavora-lodge", bookingRef: "TL-0088", program: "Atelier", amount: 3480, currency: "EUR", state: "due", dueDate: "30 Sep", traveller: "N. Achebe", projected: { rate: "13%", source: "partner portal · Jun" } },
+  { id: "au", property: "Aurelia", productId: "aurelia-voyages", bookingRef: "AU-6120", program: "Meridian", amount: 2240, currency: "EUR", state: "chased", dueDate: "05 Jul", overdueDays: 54, traveller: "H. Vandermeer", projected: { rate: "14%", source: "partner portal · Jun" } },
+  { id: "hv", property: "Hôtel Verlaine", productId: "hotel-verlaine", bookingRef: "HV-2088", program: "Meridian", amount: 455, currency: "EUR", state: "paid", dueDate: "14 Jun", paidDate: "21 Jun", traveller: "A. Whitfield", projected: { rate: "10%", source: "rate feed · Jun" } },
+  { id: "cm", property: "Casa Marena", productId: "casa-marena", bookingRef: "CM-4410", program: "Meridian", amount: 780, currency: "EUR", state: "overdue", dueDate: "10 Aug", overdueDays: 19, traveller: "L. Grandin", projected: { rate: "11%", source: "partner portal · Apr" } },
+  { id: "on", property: "Oberon Nile", productId: "oberon-nile", bookingRef: "ON-0301", program: "Atelier", amount: 1180, currency: "EUR", state: "due", dueDate: "22 Sep", traveller: "D. Lindqvist", projected: { rate: "12%", source: "Atelier terms · May" } },
   { id: "isc", property: "Ischia booking", bookingRef: "IS-0912", amount: 540, currency: "EUR", state: "due", dueDate: "cancelled", traveller: "S. Marchetti", projected: { rate: "11%", source: "rate feed · May" }, creditNotRefund: true },
-  { id: "dam", property: "Dunes Al Marah", productId: "dunes-al-marah", bookingRef: "DM-1120", amount: 960, currency: "EUR", state: "paid", dueDate: "18 May", paidDate: "29 May", traveller: "N. Achebe", projected: { rate: "12%", source: "partner portal · May" } },
+  { id: "dam", property: "Dunes Al Marah", productId: "dunes-al-marah", bookingRef: "DM-1120", program: "Atelier", amount: 960, currency: "EUR", state: "paid", dueDate: "18 May", paidDate: "29 May", traveller: "N. Achebe", projected: { rate: "12%", source: "partner portal · May" } },
 ];
 
 export const commissionEdgeCases = {
@@ -291,15 +323,32 @@ export interface Trip {
   status: ItineraryStatus; nights: number; products: string[];
   checklist?: { done: number; of: number };
   alert?: string;
+  /** Properties shortlisted for the trip and not yet booked. */
+  shortlist?: string[];
+  /** The parts of the trip that happen on a given day. What an outside event is checked
+      against: an event that touches no leg is news, not an insight. */
+  legs?: TripLeg[];
+}
+
+export interface TripLeg {
+  kind: "transfer" | "hotel" | "dining" | "flight" | "touring";
+  /** ISO date. */
+  on: string;
+  what: string;
+  state: "confirmed" | "unconfirmed";
 }
 
 export const trips: Trip[] = [
   { id: "kyoto-kansai", title: "Kyoto & Kansai", traveller: "S. Marchetti", travellerId: "s-marchetti", destinations: ["Kyoto", "Nara", "Osaka"], dates: "12–19 Oct 2026", startsInDays: 12, status: "Booked", nights: 7, products: ["ryokan-suikawa"], checklist: { done: 6, of: 9 } },
-  { id: "lisbon-short", title: "Lisbon, four nights", traveller: "A. Whitfield", destinations: ["Lisbon"], dates: "02–06 Sep 2026", startsInDays: 3, status: "Booked", nights: 4, products: ["palacio-amoreiras"], alert: "transfer unconfirmed", checklist: { done: 7, of: 8 } },
+  { id: "lisbon-short", title: "Lisbon, four nights", traveller: "A. Whitfield", destinations: ["Lisbon"], dates: "02–06 Sep 2026", startsInDays: 3, status: "Booked", nights: 4, products: ["palacio-amoreiras"], alert: "transfer unconfirmed", checklist: { done: 7, of: 8 },
+    legs: [
+      { kind: "transfer", on: "2026-09-02", what: "Airport to Palácio das Amoreiras", state: "unconfirmed" },
+      { kind: "hotel", on: "2026-09-02", what: "Palácio das Amoreiras, four nights", state: "confirmed" },
+    ] },
   { id: "patagonia", title: "Patagonia crossing", traveller: "R. & M. Osei", destinations: ["Santiago", "Tierra del Fuego"], dates: "20 Sep–04 Oct 2026", startsInDays: 21, status: "Booked", nights: 14, products: ["australis-patagonia"], checklist: { done: 9, of: 9 } },
   { id: "amalfi-return", title: "Amalfi, return visit", traveller: "T. & P. Osei", destinations: ["Praiano", "Ravello"], dates: "11–18 Oct 2026", startsInDays: 34, status: "Planning", nights: 7, products: ["villa-ortensia"] },
   { id: "serengeti", title: "Serengeti, green season", traveller: "N. Achebe", destinations: ["Arusha", "Serengeti"], dates: "14–24 Jan 2027", startsInDays: 138, status: "Planning", nights: 10, products: ["tsavora-lodge"] },
-  { id: "paris-anniversary", title: "Paris, thirtieth anniversary", traveller: "L. Grandin", destinations: ["Paris"], dates: "03–07 Dec 2026", startsInDays: 96, status: "Planning", nights: 4, products: ["maison-leandre"] },
+  { id: "paris-anniversary", title: "Paris, thirtieth anniversary", traveller: "L. Grandin", destinations: ["Paris"], dates: "03–07 Dec 2026", startsInDays: 96, status: "Planning", nights: 4, products: ["maison-leandre"], shortlist: ["hotel-verlaine"] },
   { id: "nile-jan", title: "Nile, dahabiya", traveller: "D. Lindqvist", destinations: ["Luxor", "Aswan"], dates: "18–27 Jan 2027", startsInDays: 142, status: "Inbound", nights: 9, products: ["oberon-nile"] },
   { id: "cartagena-may", title: "Cartagena, long weekend", traveller: "H. Vandermeer", destinations: ["Cartagena"], dates: "08–12 May 2026", startsInDays: null, status: "Traveled", nights: 4, products: ["casa-marena"] },
 ];
@@ -307,6 +356,48 @@ export const trips: Trip[] = [
 export const departures = trips
   .filter((t) => t.startsInDays !== null && t.startsInDays <= 40 && t.status === "Booked")
   .sort((a, b) => (a.startsInDays ?? 0) - (b.startsInDays ?? 0));
+
+/* ── the rest of the desk ─────────────────────────────────── */
+
+/* Trips held by the agency's other advisors. Private to them: no screen shows a row of
+   this. The owner's surfaces only ever COUNT it, with names withheld (decided with
+   Constantin, 2026-09-24), so she can see how far something reaches without seeing
+   whose clients it reaches. */
+export interface DeskTrip {
+  id: string; advisor: string; destinations: string[]; startsOn: string;
+  products: string[]; legs: TripLeg[];
+}
+
+export const deskTrips: DeskTrip[] = [
+  { id: "dt-sintra", advisor: "J. Dubois", destinations: ["Lisbon", "Sintra"], startsOn: "2026-09-02", products: ["palacio-amoreiras"],
+    legs: [{ kind: "transfer", on: "2026-09-02", what: "Airport to Sintra", state: "confirmed" }] },
+  { id: "dt-porto", advisor: "E. Laurent", destinations: ["Lisbon", "Porto"], startsOn: "2026-09-02", products: [],
+    legs: [{ kind: "transfer", on: "2026-09-02", what: "Airport to Chiado", state: "unconfirmed" }] },
+  { id: "dt-paris", advisor: "J. Dubois", destinations: ["Paris"], startsOn: "2026-10-16", products: ["maison-leandre"], legs: [] },
+];
+
+/* ── the world ────────────────────────────────────────────── */
+
+/* Events outside the agency, read from outside feeds. Not agency knowledge: an answer
+   may cite one, but only with its feed and the time it was read, never as something the
+   agency wrote. An event becomes an insight only where it touches a leg of a trip on its
+   day, never for sharing a city. FICTIONAL: invented for the reconstruction, with no
+   claim about any real strike (canon: fictional). */
+export interface WorldEvent {
+  id: string; place: string; from: string; to: string;
+  kind: "strike" | "closure" | "weather" | "event";
+  headline: string; effect: string;
+  affects: TripLeg["kind"][];
+  source: string; readAt: string;
+  fictional: true;
+}
+
+export const worldEvents: WorldEvent[] = [
+  { id: "lisbon-strike", place: "Lisbon", from: "2026-09-02", to: "2026-09-02", kind: "strike",
+    headline: "Metro and suburban rail strike",
+    effect: "no metro or suburban trains all day, and taxis scarce at the airport",
+    affects: ["transfer"], source: "Transport operator notice", readAt: "07:10", fictional: true },
+];
 
 /* ── briefing, per role ───────────────────────────────────── */
 
@@ -331,6 +422,7 @@ export const widgetsFor: Record<Persona, Widget[]> = {
     { id: "commissions", title: "Commissions", expandsTo: "/commissions?state=open", expandLabel: "Open the ledger" },
     { id: "departures", title: "Departures", expandsTo: "/itineraries?window=30", expandLabel: "All departures" },
     { id: "notices", title: "Notices", expandsTo: "/notifications?tag=Records", expandLabel: "Open triage" },
+    { id: "announcements", title: "From the agency", expandsTo: "/knowledge?source=Announcements", expandLabel: "All announcements" },
     /* Expands into the promotion facet, which returns the same three records the widget
        lists. It pointed at `evidence=incentive`, which returned one of the three. */
     { id: "incentives", title: "Expiring incentives", expandsTo: "/records?promotion=active", expandLabel: "See affected records" },
@@ -342,6 +434,7 @@ export const widgetsFor: Record<Persona, Widget[]> = {
   owner: [
     { id: "confirm", title: "Records awaiting confirmation", expandsTo: "/admin/review", expandLabel: "Open the confirmation queue" },
     { id: "publish", title: "Waiting to be published", expandsTo: "/admin/publish", expandLabel: "Open the publish queue" },
+    { id: "announcements", title: "From the agency", expandsTo: "/knowledge?source=Announcements", expandLabel: "All announcements" },
     { id: "unmatched", title: "Unmatched payments", expandsTo: "/ops/resolution", expandLabel: "Match payments" },
     { id: "commissions", title: "Commissions", expandsTo: "/commissions?state=open", expandLabel: "Open the ledger" },
     { id: "discrepancies", title: "Projected vs actual", expandsTo: "/commissions?state=discrepancy", expandLabel: "Flagged commissions" },
@@ -372,7 +465,7 @@ export interface Notification {
 
 export const notifications: Notification[] = [
   { id: "n-conflict", roles: ["user", "owner"], tag: "Records", severity: "Important", headline: "Three sources disagree on a commission rate", detail: "Maison Léandre carries 12%, 10% and 14% from three sources. Nothing has been assumed.", subject: { label: "Maison Léandre", href: "/records/maison-leandre" }, evidence: "Partner portal 12 Mar · Booking platform 28 Feb · Manual entry 03 Apr", generatedBy: "Conflict detection on the agency overlay", when: "Today 08:12", action: { label: "Resolve on the record", href: "/records/maison-leandre" }, defaultState: "new" },
-  { id: "n-verlaine", roles: ["user"], tag: "Records", severity: "Critical", headline: "Critical notice blocks a property you have shortlisted", detail: "Hôtel Verlaine has water damage on floors 2–3. Output is blocked until the notice is acknowledged.", subject: { label: "Hôtel Verlaine", href: "/records/hotel-verlaine" }, evidence: "Opened 26 Aug by M. Keller, agency scope", generatedBy: "Advisory severity gate", when: "Today 07:40", action: { label: "Open the record", href: "/records/hotel-verlaine" }, defaultState: "new" },
+  { id: "n-verlaine", roles: ["user"], tag: "Records", severity: "Critical", headline: "Critical notice blocks a property you have shortlisted", detail: "Hôtel Verlaine has water damage on floors 2–3, and the agency has closed it to bookings. It is on the shortlist for L. Grandin's Paris trip.", subject: { label: "Hôtel Verlaine", href: "/records/hotel-verlaine" }, evidence: "Opened 26 Aug by M. Keller, agency scope", generatedBy: "Advisory severity gate", when: "Today 07:40", action: { label: "Open the record", href: "/records/hotel-verlaine" }, defaultState: "new" },
   { id: "n-overdue", roles: ["user", "owner"], tag: "Commissions", severity: "Important", headline: "Villa Ortensia commission is 12 days overdue", detail: "EUR 1,240 fell due 18 July. A reminder can be drafted; nothing sends without your review.", subject: { label: "VO-2214", href: "/commissions/vo" }, evidence: "Projected at 12% plus an active +3% bonus", generatedBy: "Commission ageing", when: "Today 06:00", action: { label: "Open the commission", href: "/commissions/vo" }, defaultState: "new" },
   { id: "n-stale", roles: ["user", "owner"], tag: "Records", severity: "Info", headline: "Four records have not been verified in 90 days", detail: "They still answer — with their date and a freshness warning attached.", subject: { label: "Records needing verification", href: "/records?evidence=stale" }, generatedBy: "Freshness sweep", when: "Yesterday 18:20", action: { label: "Review them", href: "/records?evidence=stale" }, defaultState: "seen" },
   { id: "n-incentive", roles: ["user"], tag: "Commissions", severity: "Important", headline: "A +3% incentive closes for booking in 9 days", detail: "Villa Ortensia. Book by 05 Sep, travel by 20 Dec. Three clients in your book match the window.", subject: { label: "Villa Ortensia", href: "/records/villa-ortensia" }, evidence: "Bonus — adds to base commission", generatedBy: "Incentive window watch", when: "Yesterday 09:05", action: { label: "See affected clients", href: "/records/villa-ortensia" }, defaultState: "new" },
@@ -386,7 +479,7 @@ export const notifications: Notification[] = [
   { id: "n-payment", roles: ["owner"], tag: "Commissions", severity: "Important", headline: "Two payments cannot be matched to a booking", detail: "EUR 410 arrived under a traveller name; EUR 862 against a property name that does not resolve. Unmatched money is visible, never parked.", subject: { label: "Unmatched payments", href: "/ops/resolution" }, generatedBy: "Payment reconciliation", when: "Today 04:10", action: { label: "Open matching", href: "/ops/resolution" }, defaultState: "new" },
   { id: "n-connector", roles: ["owner"], tag: "Connections", severity: "Critical", headline: "Partner portal credentials have expired", detail: "The connector last succeeded on 24 August. Answers exclude it and say so.", subject: { label: "Connections", href: "/connections" }, generatedBy: "Integration health", when: "Today 03:02", action: { label: "Open connections", href: "/connections" }, defaultState: "new" },
   { id: "n-publish", roles: ["owner"], tag: "Knowledge", severity: "Info", headline: "Four items are waiting to be published", detail: "Shared with the whole agency by R. Devane. Publishing keeps her as the author.", subject: { label: "Publish queue", href: "/admin/publish" }, generatedBy: "Publication queue", when: "Yesterday 15:30", action: { label: "Review and publish", href: "/admin/publish" }, defaultState: "new" },
-  { id: "n-sync", roles: ["owner"], tag: "Connections", severity: "Info", headline: "Booking-system figures are up to 48 hours behind", detail: "Totals derived from it carry their last-synced time rather than pretending to be current.", subject: null, generatedBy: "Sync monitor", when: "Yesterday 12:04", defaultState: "seen" },
+  { id: "n-sync", roles: ["owner"], tag: "Connections", severity: "Info", headline: "TripSuite figures are up to 48 hours behind", detail: "Totals derived from it carry their last-synced time rather than pretending to be current.", subject: null, generatedBy: "Sync monitor", when: "Yesterday 12:04", defaultState: "seen" },
 ];
 
 export const notificationsFor = (role: Persona) => notifications.filter((n) => n.roles.includes(role));
@@ -422,15 +515,15 @@ export const traveller = {
   preferences: [
     { id: "classic", text: "Prefers classic interiors", source: { kind: "email" as const, label: "email extract", when: "12 May 2026" }, sources: 3, confidence: 0.92 },
     { id: "floor", text: "No rooms above the third floor", source: { kind: "manual" as const, label: "manual note, R. Devane", when: "Apr 2026" }, sources: 1, confidence: 0.6 },
-    { id: "dog", text: "Travels with a small dog", source: { kind: "tripsuite" as const, label: "booking platform", when: "Feb 2026" }, sources: 1, confidence: 0.65 },
+    { id: "dog", text: "Travels with a small dog", source: { kind: "tripsuite" as const, label: "TripSuite", when: "Feb 2026" }, sources: 1, confidence: 0.65 },
     { id: "kaiseki", text: "Kaiseki over French dining", source: { kind: "manual" as const, label: "call transcript", when: "Jan 2026" }, sources: 1, confidence: 0.55, confirmThis: true },
-    { id: "pillows", text: "No feather pillows", source: { kind: "tripsuite" as const, label: "booking platform", when: "Mar 2026" }, sources: 2, confidence: 0.88 },
+    { id: "pillows", text: "No feather pillows", source: { kind: "tripsuite" as const, label: "TripSuite", when: "Mar 2026" }, sources: 2, confidence: 0.88 },
     { id: "checkout", text: "Late checkout where possible", source: { kind: "email" as const, label: "email extract", when: "Feb 2026" }, sources: 1, confidence: 0.62 },
   ],
   suggestions: [
     { id: "rail", text: "Prefers rail over short flights", basis: "inferred from trip history", confidence: 0.58 },
   ],
-  signalsBySource: [["Email extracts", 4], ["Call transcripts", 2], ["Booking platform", 2], ["Keyed by hand", 1]] as [string, number][],
+  signalsBySource: [["Email extracts", 4], ["Call transcripts", 2], ["TripSuite", 2], ["Keyed by hand", 1]] as [string, number][],
   sharing: { state: "private" as "private" | "full" | "basic", with: "J. Dubois" },
   trips: [
     { title: "Kyoto & Kansai", dates: "12–19 Oct 2026", status: "Booked" },
@@ -451,7 +544,7 @@ export const traveller = {
     averageTripValue: 21_229,
     averageDailyRate: 1_180,
     since: "2019",
-    source: "Booking system · synced yesterday 18:00",
+    source: "TripSuite · synced yesterday 18:00",
   },
   financialsGated: true,
 };
@@ -526,20 +619,20 @@ export const vaultDocs: VaultDoc[] = [
   { name: "Peru — just-back notes", source: "Upload", updated: "02 Jul", access: "team · Paris", state: "ok", by: "R. Devane" },
   { name: "Commission schedule.xlsx", source: "Drive sync", updated: "30 Jun", access: "admin only", state: "ok" },
   { name: "Rate note — Corvin & Wells", source: "Email-in", updated: "21 Jun", access: "private", state: "ok", by: "R. Devane" },
-  { name: "Kyoto ryokan briefing", source: "Intranet", updated: "04 Jun", access: "agency", state: "ok" },
+  { name: "Kyoto ryokan briefing", source: "Claromentis", updated: "04 Jun", access: "agency", state: "ok" },
   { name: "Supplier webinar notes", source: "Upload", updated: "28 May", access: "processing", state: "processing", by: "R. Devane" },
   { name: "Marrakech riad rate sheet.pdf", source: "Drive sync", updated: "18 May", access: "agency", state: "ok" },
   { name: "Team call notes — 12 May", source: "Upload", updated: "12 May", access: "team · Paris", state: "ok", by: "J. Dubois" },
-  { name: "Venice water-taxi contacts", source: "Intranet", updated: "02 May", access: "agency", state: "ok" },
+  { name: "Venice water-taxi contacts", source: "Claromentis", updated: "02 May", access: "agency", state: "ok" },
   { name: "Atelier Collection terms.pdf", source: "Drive sync", updated: "12 Mar", access: "agency", state: "ok", detail: { synced: "12:04 · every 15 min", usedIn: "14 answers this month", history: ["MK widened access: team → agency · 14 Jun · logged", "Uploaded by MK, private on arrival · 12 Mar"] } },
-  { name: "Meridian programme summary", source: "Intranet", updated: "28 Feb", access: "agency", state: "ok" },
+  { name: "Meridian programme summary", source: "Claromentis", updated: "28 Feb", access: "agency", state: "ok" },
   { name: "Serengeti camp relocation note", source: "Email-in", updated: "18 Aug", access: "agency", state: "ok", by: "R. Devane" },
   { name: "Patagonia operator comparison", source: "Upload", updated: "09 Aug", access: "team · Paris", state: "ok", by: "J. Dubois" },
   { name: "Villa contracts — owner default clause", source: "Drive sync", updated: "24 Jul", access: "admin only", state: "ok" },
   { name: "Winter rate sheet 2025 (superseded)", source: "Drive sync", updated: "12 May", access: "agency", state: "archived" },
 ];
 
-export const vaultStats = { total: 1284, verifiedSourcePct: 71, verified: 912, noSource: 372, tabs: { All: 1284, Drive: 812, Email: 96, Intranet: 341, Uploads: 35 } };
+export const vaultStats = { total: 1284, verifiedSourcePct: 71, verified: 912, noSource: 372, tabs: { All: 1284, Drive: 812, Email: 96, Claromentis: 341, Uploads: 35 } };
 
 /* ── connections ──────────────────────────────────────────── */
 
@@ -548,9 +641,9 @@ export const vaultStats = { total: 1284, verifiedSourcePct: 71, verified: 912, n
    advisor and what it indexes arrives closed to her. Either way connecting shares
    nothing. Nobody sees another advisor's personal sources, the owner included. */
 export const connections = [
-  { name: "Intranet documents", state: "ok" as const, lastSuccess: "09:12", posture: "MCP upstream", scope: "agency" as const, by: "owner" as Persona },
+  { name: "Claromentis documents", state: "ok" as const, lastSuccess: "09:12", posture: "MCP upstream", scope: "agency" as const, by: "owner" as Persona },
   { name: "Google Drive", state: "ok" as const, lastSuccess: "08:40", posture: "MCP upstream", scope: "agency" as const, by: "owner" as Persona },
-  { name: "Booking system", state: "syncing" as const, lastSuccess: "yesterday 18:00", posture: "read-only · ground truth stays in source · sync up to 48h", scope: "agency" as const, by: "owner" as Persona },
+  { name: "TripSuite", state: "syncing" as const, lastSuccess: "yesterday 18:00", posture: "read-only · ground truth stays in source · sync up to 48h", scope: "agency" as const, by: "owner" as Persona },
   { name: "Partner portal", state: "credentials" as const, lastSuccess: "24 Aug", posture: "self-hosted fallback", scope: "agency" as const, by: "owner" as Persona },
   { name: "Inbound mail — parisdesk@inbound.enable…", state: "ok" as const, lastSuccess: "11:52", posture: "private by default, sender-verified", scope: "agency" as const, by: "owner" as Persona },
   { name: "Gmail — r.devane@enable.example", state: "ok" as const, lastSuccess: "11:40", posture: "read-only · private to R. Devane", scope: "personal" as const, by: "user" as Persona },
@@ -643,7 +736,7 @@ export const connectors: Connector[] = [
   },
   {
     id: "intranet",
-    name: "Agency intranet",
+    name: "Claromentis",
     subtitle: "Published pages and policies",
     posture: "Self-hosted connector",
     grants: ["Read published pages in the spaces you select"],
@@ -723,10 +816,17 @@ export const conversations: Conversation[] = [
      own voice contradicts the thing being demonstrated. */
   { id: "spa-status", title: "Is the spa at Maison Léandre open?", preview: "Client asked directly. Checking before I answer.", when: "26 Aug", messages: 2, state: "answered" },
   { id: "rep-paris", title: "Who represents Maison Léandre?", preview: "Rep firm and the current Paris contact.", when: "24 Aug", messages: 2, state: "answered" },
+  /* Answered out of the owner's announcement: an agency source, cited with its date. */
+  { id: "kyoto-new", title: "What is new in Kyoto this autumn?", preview: "Client wants somewhere quiet in October.", when: "27 Aug", messages: 2, state: "answered" },
 ];
 
 export const askThreads = {
   rep: { q: "Who represents Maison Léandre?", a: "Corvin & Wells hold the Paris account. The rate note is dated 21 June 2026.", cites: [3] },
+  kyoto: {
+    q: "What is new in Kyoto this autumn?",
+    a1: "Ryokan Suikawa is verified for the season. It has nine rooms on the Shirakawa canal, kaiseki is served in-room, and the garden wing is the quietest.",
+    a2: "Hotel Sereno Kyoto opens in Higashiyama in spring 2027, but its record is still waiting to be confirmed, so nothing else is quoted from it.",
+  },
   commission: {
     q: "What is our commission on Maison Léandre, and does the Atelier rate include breakfast?",
     preResolve: "conflict" as const,
@@ -740,7 +840,7 @@ export const askThreads = {
     },
     sources: [
       { n: 1, label: "Partner portal", detail: "Atelier Collection terms · 12 Mar 2026 · p.4", doc: "atelier-terms", quote: "“…participating agencies receive twelve percent (12%) on the Atelier Collection rate, paid within 45 days of departure…”" },
-      { n: 2, label: "Agency intranet", detail: "Preferred partners · 04 Jun 2026", doc: "preferred-partners" },
+      { n: 2, label: "Claromentis", detail: "Preferred partners · 04 Jun 2026", doc: "preferred-partners" },
       { n: 3, label: "Email extract", detail: "Corvin & Wells · 21 Jun 2026", doc: "cw-rate-note" },
     ],
   },
@@ -822,7 +922,7 @@ export const sourceDocuments: Record<string, SourceDocument> = {
   "preferred-partners": {
     kind: "page",
     title: "Preferred partners — Paris",
-    subtitle: "Agency intranet · Partnerships desk",
+    subtitle: "Claromentis · Partnerships desk",
     header: [
       { label: "URL", value: "claromentis://programs/atelier" },
       { label: "Updated", value: "4 June 2026 by M. Keller" },
@@ -929,7 +1029,7 @@ export interface PublishSource {
 /* What an advisor has shared with the whole agency, waiting for the owner. Sharing with
    a named colleague or a team is immediate; sharing with the whole agency is not. Every
    kind of thing arrives here the same way, and goes out with its author kept. */
-export type QueueKind = "notice" | "note" | "record" | "document" | "trip" | "traveller" | "mail";
+export type QueueKind = "notice" | "note" | "record" | "document" | "trip" | "traveller" | "mail" | "announcement";
 
 export interface QueueItem {
   id: string;
@@ -946,7 +1046,7 @@ export interface QueueItem {
 export const publishQueue: QueueItem[] = [
   { id: "spa-pub", kind: "notice", by: "R. Devane", text: "Spa closure — Maison Léandre", preview: "Important · the spa is closed to 15 Sep. Written at team scope on 12 Jun, shared with the whole agency.", action: "Publish to the whole agency" },
   { id: "note-pub", kind: "note", by: "R. Devane", text: "Ask for the courtyard rooms — Maison Léandre", preview: "“Ask for the courtyard rooms; the street side takes the morning deliveries.”", action: "Publish to the whole agency" },
-  { id: "doc-pub", kind: "document", by: "R. Devane", text: "Kyoto ryokan briefing", preview: "Uploaded by R. Devane · 6 pages · Intranet format, 04 Jun.", action: "Publish to the whole agency" },
+  { id: "doc-pub", kind: "document", by: "R. Devane", text: "Kyoto ryokan briefing", preview: "Uploaded by R. Devane · 6 pages · Claromentis page, 04 Jun.", action: "Publish to the whole agency" },
   {
     id: "camp-pub", kind: "mail", by: "R. Devane", text: "Serengeti camp relocation — from forwarded mail", action: "Review source",
     /* An item that arrived by mail carries the mail. "Review source" opens this. */

@@ -1,0 +1,15 @@
+# Only what the site needs goes to Vercel. The working documents (the rebuild plan, the
+# Deel debrief, reviews, evals, reference captures) stay on this machine. Every entry is
+# anchored to the project root: an unanchored "review" also dropped src/app/admin/review.
+/docs
+/evals
+/reference
+/review
+/.claude
+/.next
+/.next-build
+/*.tsbuildinfo
+/AGENTS.md
+/CLAUDE.md
+/.env*
+/.vercel

@@ -29,7 +29,7 @@ import { useDemo } from "@/lib/store";
 import { candidates, products, people, filterOptions } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
 import {
-  Chip, Section, NarrationNote, ConfirmBanner, ConfidenceMeter, SeverityBanner,
+  Chip, Section, ConfirmBanner, ConfidenceMeter, SeverityBanner,
   SourceTag, Rows, Row, DataList,
 } from "@/components/bits";
 import { Button } from "@/components/ui/button";
@@ -167,7 +167,7 @@ export default function CandidateDetail() {
       : <Chip tone="primary">new candidate</Chip>;
 
   const reject = (
-    <Button variant="link" size="sm" onClick={() => { setRejectOpen(true); setReason(""); }}>
+    <Button variant="tertiary" size="sm" onClick={() => { setRejectOpen(true); setReason(""); }}>
       Reject — reason logged
     </Button>
   );
@@ -183,14 +183,6 @@ export default function CandidateDetail() {
       <div className="doc-layout">
         {/* ── the body: chapters at column width ── */}
         <div className="min-w-0">
-          {!isHeld && (
-            <NarrationNote>
-              Every extracted field arrives with what, where and when. The held fields demonstrate
-              the hold gate: a converted figure without its source currency, a rate with no
-              programme, an empty cell — and boilerplate masquerading as content.
-            </NarrationNote>
-          )}
-
           <div className="space-y-[var(--space-2)] pb-[var(--gap-2)] empty:hidden">
             {banner && <ConfirmBanner show>{banner}</ConfirmBanner>}
             {confirmedAlready && !banner && (
@@ -210,7 +202,7 @@ export default function CandidateDetail() {
                 </div>
                 <div className="mt-[var(--space-2)] flex flex-wrap gap-[var(--space-2)]">
                   {candidate.match.signals.map(([k, v]) => (
-                    <Chip key={k} tone="neutral" className="font-mono">{k} {v}</Chip>
+                    <Chip key={k} tone="neutral" className="tnum">{k} {v}</Chip>
                   ))}
                 </div>
                 <p className="mt-[var(--space-2)] type-meta">
@@ -383,7 +375,7 @@ export default function CandidateDetail() {
                               />
                             )}
                             {!options && <Button type="submit" variant="secondary" size="sm">Save</Button>}
-                            <Button type="button" variant="link" size="sm" onClick={() => setEditField(null)}>Cancel</Button>
+                            <Button type="button" variant="tertiary" size="sm" onClick={() => setEditField(null)}>Cancel</Button>
                           </form>
                         ) : (
                           <>
@@ -400,7 +392,7 @@ export default function CandidateDetail() {
                               </Button>
                             ) : (
                               <Button
-                                variant="link"
+                                variant="tertiary"
                                 size="sm"
                                 aria-label={`Fix ${f.label}`}
                                 onClick={() => { setEditField(f.label); setEditValue(fixed ?? f.value); }}
@@ -497,7 +489,7 @@ export default function CandidateDetail() {
                     />
                     <div className="flex items-center gap-[var(--space-2)]">
                       <Button type="submit" variant="secondary" size="sm">Save</Button>
-                      <Button type="button" variant="link" size="sm" onClick={() => setEditField(null)}>Cancel</Button>
+                      <Button type="button" variant="tertiary" size="sm" onClick={() => setEditField(null)}>Cancel</Button>
                     </div>
                   </form>
                 ) : (

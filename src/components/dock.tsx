@@ -2,17 +2,22 @@
 /**
  * The dock — the product's only persistent chrome.
  *
- * Per layout-exploration §4 and §10: fixed at the bottom, icon-only with the label
- * on hover, the active tile carrying its label permanently, a running-indicator dot,
- * a badge on Notifications alone, and a utility cluster (search · sync · account)
- * behind a divider. A tile is a place you work, not a place you configure — settings
- * and connections live behind the account.
+ * Per layout-exploration §4 and §10: fixed at the bottom, a badge on Notifications
+ * alone, and a utility cluster (search · sync · account) behind a divider. A tile is a
+ * place you work, not a place you configure — settings and connections live behind the
+ * account.
+ *
+ * A tile follows the control grammar (VIS-042 as amended 2026-09-25, Constantin): the
+ * dock CHOOSES where you are, so the place you are is a pill, icon and label on the
+ * accent; every other place is a circle with no surface, its name in the tooltip.
  */
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useDemo, inboxFor } from "@/lib/store";
+import { useDemo, inboxFor, canViewCommissions } from "@/lib/store";
+import { areaFor } from "@/lib/areas";
+import { SearchPalette } from "@/components/assistant";
 import type { Persona } from "@/data/seed";
 /* Identity — name, role label and initials — comes from the seed, never from a
    second map here. Two label maps produced two spellings of the same role. */
@@ -25,15 +30,12 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
-} from "@/components/ui/command";
-import {
-  Sunrise, Bell, MessageCircle, LayoutGrid, Users, Route as RouteIcon, Archive,
-  Search, RefreshCw, ClipboardCheck, Send, Scale,
+  Sunrise, Bell, LayoutGrid, Users, Route as RouteIcon, Archive,
+  Search, RefreshCw, ClipboardCheck, Send, Scale, Wallet,
 } from "lucide-react";
 
 /* ── Geometry. Pages clear the dock using DOCK_CLEARANCE (see layouts.tsx). ── */
-export const DOCK_TILE = 44;
+export const DOCK_TILE = 36; /* 44 under a finger: --dock-tile */
 /** Distance from the viewport's bottom edge to the dock's own bottom edge. */
 export const DOCK_GAP = 16;
 
@@ -46,7 +48,6 @@ export interface DockTile {
 const T = {
   briefing: { href: "/briefing", label: "Briefing", icon: Sunrise },
   notifications: { href: "/notifications", label: "Notifications", icon: Bell },
-  ask: { href: "/ask", label: "Ask", icon: MessageCircle },
   records: { href: "/records", label: "Records", icon: LayoutGrid },
   travellers: { href: "/travellers", label: "Travellers", icon: Users },
   itineraries: { href: "/itineraries", label: "Itineraries", icon: RouteIcon },
@@ -57,25 +58,29 @@ const T = {
   confirm: { href: "/admin/review", label: "Confirm records", icon: ClipboardCheck },
   publish: { href: "/admin/publish", label: "Publish queue", icon: Send },
   resolution: { href: "/ops/resolution", label: "Unmatched payments", icon: Scale },
+  commissions: { href: "/commissions", label: "Commissions", icon: Wallet },
 } satisfies Record<string, DockTile>;
 
-/** Per-role tile sets — the permission story you can see at a glance (§10.7, §10b). */
-export const dockTiles: Record<Persona, DockTile[]> = {
-  user: [T.briefing, T.notifications, T.ask, T.records, T.travellers, T.itineraries, T.knowledge],
-  /* The user's seven, with the owner's three acts after her inbox. */
-  owner: [T.briefing, T.notifications, T.confirm, T.publish, T.resolution, T.ask, T.records, T.travellers, T.itineraries, T.knowledge],
+/* Per-role tile sets, ordered by area (one spacing throughout: the order and the pill’s
+   colour carry the grouping, not a gap — Constantin, 2026-09-25)
+   (src/lib/areas.ts; the permission story you can see at a glance, §10.7, §10b). The areas are the same for both roles; the ORDER is the role.
+   The advisor's day leads with her clients; the owner's with the agency's knowledge,
+   her three acts first inside the areas they change. Commissions joins both docks:
+   without it the advisor had no Money area at all. */
+export const areaDock: Record<Persona, DockTile[][]> = {
+  user: [
+    [T.briefing, T.notifications],
+    [T.travellers, T.itineraries],
+    [T.records, T.knowledge],
+    [T.commissions],
+  ],
+  owner: [
+    [T.briefing, T.notifications],
+    [T.confirm, T.publish, T.records, T.knowledge],
+    [T.resolution, T.commissions],
+    [T.travellers, T.itineraries],
+  ],
 };
-
-/** ⌘K canned destinations — no live search index in this build. */
-const paletteGroups: { heading: string; items: { label: string; href: string }[] }[] = [
-  { heading: "Records", items: [
-    { label: "Maison Léandre", href: "/records/maison-leandre" },
-    { label: "Records directory", href: "/records" },
-  ]},
-  { heading: "Travellers", items: [{ label: "S. Marchetti", href: "/travellers/s-marchetti" }] },
-  { heading: "Notifications", items: [{ label: "Everything needing a decision", href: "/notifications" }] },
-  { heading: "Ask", items: [{ label: "Ask a question…", href: "/ask" }] },
-];
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
@@ -95,23 +100,21 @@ function Tile({ tile, active, badge, index }: {
           aria-current={active ? "page" : undefined}
           className="group relative flex shrink-0 flex-col items-center"
         >
-          {/* Every tile is the same 44px square, active or not. The active tile used to
-              grow to fit its label, and because the dock is centre-justified the whole
-              dock slid sideways on every navigation — 56px between the shortest label
-              and the longest, so the tile under the cursor moved as you arrived.
-              The label is gone rather than floated: the frame bar's breadcrumb already
-              names the current surface, so a permanent dock label said it twice. The
-              dock now answers only "where can I go" — active state is the filled tile
-              and the indicator dot, and every label is one hover away. */}
+          {/* The place you are carries its name; the others are one hover away. The
+              active pill is wider than a circle, and the dock is centre-justified, so
+              arriving somewhere shifts the row; the label's width eases open so the
+              shift reads as the pill opening rather than the row jumping. */}
           <span
+            style={{ "--tile-hover": `var(--area-${areaFor(tile.href) ?? "today"}-subtle)` } as React.CSSProperties}
             className={cn(
-              "pressable relative flex size-11 items-center justify-center rounded-lg",
+              "pressable relative flex h-[var(--dock-tile)] items-center justify-center rounded-full transition-[background-color,padding] duration-200",
               active
-                ? "bg-selected text-on-selected"
-                : "text-label-secondary hover:bg-interactive hover:text-label",
+                ? "gap-1.5 bg-selected pl-3 pr-3.5 text-on-selected"
+                : "w-[var(--dock-tile)] text-label-secondary hover:bg-[var(--tile-hover,var(--sys-fill-interactive))] hover:text-label",
             )}
           >
-            <Icon className="size-[18px] shrink-0" aria-hidden />
+            <Icon className="size-[17px] shrink-0" aria-hidden />
+            {active && <span className="dock-label whitespace-nowrap type-data font-medium">{tile.label}</span>}
             {badge ? (
               <span
                 className="absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-crit px-1 type-micro text-on-ink tnum ring-2 ring-overlay"
@@ -123,8 +126,14 @@ function Tile({ tile, active, badge, index }: {
           </span>
         </Link>
       </TooltipTrigger>
-      <TooltipContent side="top" sideOffset={10}>
-        {tile.label}
+      {/* The tooltip previews the place: it wears the colour of the area the tile leads to
+          (2026-09-25). A place outside every area keeps the ordinary tooltip ink. */}
+      <TooltipContent
+        side="top"
+        sideOffset={10}
+        style={{ backgroundColor: `var(--area-${areaFor(tile.href) ?? "today"}-solid, var(--sys-ink))` }}
+      >
+        {active ? "You are here" : tile.label}
         {badge ? ` · ${badge} new` : ""}
         <span className="ml-2 text-on-selected/60">⌘{index + 1}</span>
       </TooltipContent>
@@ -142,7 +151,7 @@ function UtilityButton({
           type="button"
           onClick={onClick}
           aria-label={label}
-          className="pressable grid size-9 shrink-0 cursor-pointer place-items-center rounded-md text-label-secondary hover:bg-interactive hover:text-label"
+          className="pressable grid size-[var(--dock-tile)] shrink-0 cursor-pointer place-items-center rounded-full text-label-secondary hover:bg-interactive hover:text-label"
         >
           {children}
         </button>
@@ -158,7 +167,35 @@ export function Dock() {
   const router = useRouter();
   const [paletteOpen, setPaletteOpen] = useState(false);
 
-  const tiles = dockTiles[s.role] ?? dockTiles.user;
+  /* Grouped by area; money is absent, not masked, without the entitlement. Ask is not a
+     tile: it is the assistant, in the corner of every screen (live 2026-09-25). */
+  const groups = (areaDock[s.role] ?? areaDock.user)
+    .map((g) => g.filter((t) => t.href !== "/commissions" || canViewCommissions(s)))
+    .filter((g) => g.length > 0);
+  const tiles = groups.flat();
+
+  /* The canvas glow sits behind the tile of the place you are (2026-09-25):
+     the dock writes that tile’s centre to <html> as --glow-x / --glow-y, and the
+     gradient centres there. Re-measured when the row changes size, since the active
+     pill’s label eases open and moves every tile after it. */
+  const navRef = React.useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const html = document.documentElement;
+    const place = () => {
+      const pill = nav.querySelector<HTMLElement>('[aria-current="page"] > span');
+      if (!pill) { html.style.removeProperty("--glow-x"); html.style.removeProperty("--glow-y"); return; }
+      const r = pill.getBoundingClientRect();
+      html.style.setProperty("--glow-x", `${Math.round(r.left + r.width / 2)}px`);
+      html.style.setProperty("--glow-y", `${Math.round(r.top + r.height / 2)}px`);
+    };
+    place();
+    const ro = new ResizeObserver(place);
+    ro.observe(nav);
+    window.addEventListener("resize", place);
+    return () => { ro.disconnect(); window.removeEventListener("resize", place); };
+  }, [pathname, s.role]);
 
   /* Badge: this person's inbox — the seeded day and what happened since — still "new". */
   const newForRole = useMemo(
@@ -166,14 +203,14 @@ export function Dock() {
     [s],
   );
 
-  const go = useCallback((href: string) => { setPaletteOpen(false); router.push(href); }, [router]);
-
   /* ⌘K palette · ⌘1…⌘7 workspace jumps. */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
       const k = e.key.toLowerCase();
       if (k === "k") { e.preventDefault(); setPaletteOpen((o) => !o); return; }
+      /* ⌘J: the assistant, as in Notion */
+      if (k === "j") { e.preventDefault(); d({ type: "assistant", open: !s.assistantOpen }); return; }
       const n = Number(e.key);
       if (Number.isInteger(n) && n >= 1 && n <= tiles.length) {
         e.preventDefault();
@@ -182,46 +219,34 @@ export function Dock() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [router, tiles]);
+  }, [router, tiles, s.assistantOpen, d]);
 
   return (
     <TooltipProvider delayDuration={200}>
-      <CommandDialog
-        open={paletteOpen}
-        onOpenChange={setPaletteOpen}
-        title="Search everything"
-        description="Jump to a record, traveller, or question"
-      >
-        <CommandInput placeholder="Search records, travellers, questions…" />
-        <CommandList>
-          <CommandEmpty>Nothing here by that name.</CommandEmpty>
-          {paletteGroups.map((g) => (
-            <CommandGroup key={g.heading} heading={g.heading}>
-              {g.items.map((i) => (
-                <CommandItem key={i.href} onSelect={() => go(i.href)}>{i.label}</CommandItem>
-              ))}
-            </CommandGroup>
-          ))}
-        </CommandList>
-      </CommandDialog>
+      <SearchPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
 
       <div className="pointer-events-none fixed inset-x-0 bottom-3 z-40 flex justify-center px-3">
         <nav
+          ref={navRef}
           aria-label="Workspaces"
           /* Seven 44px tiles plus the account do not fit 375px, and shrinking them
              would drop below the 44pt touch minimum the iOS thesis rests on. So the
              dock scrolls — and the edge fade says so. Without it the row simply ended
              mid-tile and read as clipped chrome rather than a scrollable one. */
-          className="pointer-events-auto flex max-w-full items-center gap-1.5 overflow-x-auto rounded-xl bg-overlay px-2 py-2 shadow-elev-2 [scrollbar-width:none] [mask-image:linear-gradient(to_right,transparent_0,#000_12px,#000_calc(100%-12px),transparent_100%)] sm:[mask-image:none] [&::-webkit-scrollbar]:hidden"
+          className="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-full glass p-1.5 [scrollbar-width:none] [mask-image:linear-gradient(to_right,transparent_0,#000_12px,#000_calc(100%-12px),transparent_100%)] sm:[mask-image:none] [&::-webkit-scrollbar]:hidden"
         >
-          {tiles.map((t, i) => (
-            <Tile
-              key={t.href}
-              tile={t}
-              index={i}
-              active={isActive(pathname, t.href)}
-              badge={t.href === "/notifications" ? newForRole : undefined}
-            />
+          {groups.map((g, gi) => (
+            <div key={gi} className="contents">
+              {g.map((t) => (
+                <Tile
+                  key={t.href}
+                  tile={t}
+                  index={tiles.indexOf(t)}
+                  active={isActive(pathname, t.href)}
+                  badge={t.href === "/notifications" ? newForRole : undefined}
+                />
+              ))}
+            </div>
           ))}
 
           <span className="mx-1 h-8 w-px shrink-0 self-center bg-hairline" aria-hidden />
@@ -249,7 +274,7 @@ export function Dock() {
                     <button
                       type="button"
                       aria-label="Account"
-                      className="pressable grid size-9 shrink-0 cursor-pointer place-items-center rounded-full bg-sunken type-micro text-label hover:bg-interactive-hover"
+                      className="pressable grid size-[var(--dock-tile)] shrink-0 cursor-pointer place-items-center rounded-full bg-sunken type-micro text-label hover:bg-interactive-hover"
                     >
                       {personInitials[s.role]}
                     </button>

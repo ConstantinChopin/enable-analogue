@@ -43,7 +43,9 @@ export const CONTRACTS = {
       user: "see what today needs from me and go to it",
       owner: "see what only I can clear today, and go to it",
     },
-    primaryAction: { user: "open the ledger", owner: "confirm records" },
+    /* The insight rail's first move is the first act (2026-09-25): one card, its action
+       named for what it does. A cold reader should name that action. */
+    primaryAction: { user: "act on the first insight", owner: "act on the first insight" },
     taxonomies: ["severity", "freshness"],
   },
 
@@ -65,12 +67,14 @@ export const CONTRACTS = {
     taxonomies: ["evidence state", "layer ownership"],
   },
 
+  /* Asking is the assistant, on every screen (2026-09-25). This page keeps the saved
+     conversations in full, with the sources behind each answer. */
   "/ask": {
     job: {
-      user: "ask a question and be able to check the answer",
-      owner: "ask a question and be able to check the answer",
+      user: "reread a conversation and check the sources behind its answer",
+      owner: "reread a conversation and check the sources behind its answer",
     },
-    primaryAction: "ask a question",
+    primaryAction: "open a conversation",
     taxonomies: ["answer state"],
   },
 

@@ -23,14 +23,17 @@
  */
 import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useDemo, canViewCommissions } from "@/lib/store";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useDemo, canViewCommissions, allTrips, type DemoState } from "@/lib/store";
+import { NewTripButton } from "@/components/new-trip";
+import { linesOf } from "@/data/trip-lines";
+import { tripChecks, tallyOf } from "@/lib/trip-checks";
 import {
-  trips, itinerary, productById, type ItineraryStatus, type Trip,
+  itinerary, productById, type ItineraryStatus, type Trip,
 } from "@/data/seed";
 import { PageHeader, SplitPage, PropertyImage } from "@/components/layouts";
 import {
-  Chip, EmptyState, Section, SeverityBanner, NarrationNote, SchematicBadge, FilterChip,
+  Chip, EmptyState, Section, SeverityBanner, SchematicBadge, FilterChip,
   Rows, Row, RowStack, DataList, StatusDot,
 } from "@/components/bits";
 import { Button } from "@/components/ui/button";
@@ -78,10 +81,22 @@ export default function ItinerariesPage() {
   );
 }
 
+/* In the builder (the lab), what a row says about readiness comes from its lines: the
+   most urgent check if one needs you, else how many lines are confirmed. */
+function readiness(s: DemoState, t: Trip) {
+  const lines = linesOf(s.tripLines, t.id);
+  if (!lines.length) return null;
+  const first = tripChecks(s, t)[0];
+  if (first && first.tier === 1) return <Chip tone="warn">{first.headline}</Chip>;
+  const n = tallyOf(lines);
+  return <Chip tone={n.confirmed === n.total ? "ok" : "neutral"} className="tnum">{n.confirmed} of {n.total} confirmed</Chip>;
+}
+
 function Itineraries() {
   const { s } = useDemo();
   const money = canViewCommissions(s);
   const search = useSearchParams();
+  const router = useRouter();
 
   /* The Departures widget arrives with its view already applied. */
   const windowParam = search?.get("window") ?? null;
@@ -89,8 +104,9 @@ function Itineraries() {
   const [status, setStatus] = useState<ItineraryStatus | "all">("all");
   const [selected, setSelected] = useState<string | null>(null);
 
+  const all = useMemo(() => allTrips(s), [s]);
   const rows = useMemo(() => {
-    let list = [...trips];
+    let list = [...all];
     if (near) list = list.filter((t) => t.startsInDays !== null && t.startsInDays <= 30);
     if (status !== "all") list = list.filter((t) => t.status === status);
     return list.sort((a, b) => {
@@ -98,15 +114,15 @@ function Itineraries() {
       const bv = b.startsInDays ?? Number.MAX_SAFE_INTEGER;
       return av - bv;
     });
-  }, [near, status]);
+  }, [near, status, all]);
 
   const counts = useMemo(() => {
-    const base = near ? trips.filter((t) => t.startsInDays !== null && t.startsInDays <= 30) : trips;
+    const base = near ? all.filter((t) => t.startsInDays !== null && t.startsInDays <= 30) : all;
     const c = {} as Record<ItineraryStatus, number>;
     for (const st of STATUSES) c[st] = 0;
     for (const t of base) c[t.status] += 1;
     return c;
-  }, [near]);
+  }, [near, all]);
 
   const active = selected ? rows.find((t) => t.id === selected) : undefined;
 
@@ -119,17 +135,13 @@ function Itineraries() {
             {/* Counts what is on screen, so the title agrees with the list under it. */}
             <Chip tone="neutral">
               <span className="tnum">{rows.length}</span>
-              {rows.length === trips.length ? " trips" : ` of ${trips.length} trips`}
+              {rows.length === all.length ? " trips" : ` of ${all.length} trips`}
             </Chip>
           </>
         }
+        actions={<NewTripButton />}
       />
 
-      <NarrationNote>
-        Departures are not a second data set. The widget expands into the surface that already holds
-        the trips, with the view applied — which is what makes the briefing proof that the underlying
-        surfaces are real.
-      </NarrationNote>
     </>
   );
 
@@ -199,7 +211,8 @@ function Itineraries() {
                   return (
                     <TableRow
                       key={t.id}
-                      onClick={() => setSelected(on ? null : t.id)}
+                      data-agent-target={`trip-${t.id}`}
+                      onClick={() => (s.lab ? router.push(`/itineraries/${t.id}`) : setSelected(on ? null : t.id))}
                       aria-selected={on}
                       data-state={on ? "selected" : undefined}
                       className="cursor-pointer"
@@ -213,7 +226,7 @@ function Itineraries() {
                         {t.dates} · {t.nights}n
                       </TableCell>
                       <TableCell>
-                        {t.alert
+                        {s.lab && readiness(s, t) ? readiness(s, t) : t.alert
                           ? <Chip tone="warn">{t.alert}</Chip>
                           : t.checklist
                             ? <Chip tone="neutral" className="tnum">checklist {t.checklist.done}/{t.checklist.of}</Chip>
@@ -232,12 +245,13 @@ function Itineraries() {
         )}
 
         <p className="mt-[var(--space-3)] type-meta tnum">
-          {rows.length} of {trips.length} trips shown · sorted by days to departure
+          {rows.length} of {all.length} trips shown · sorted by days to departure
         </p>
       </Section>
 
-      {/* ── one trip, opened — the document beneath the ledger ── */}
-      <OpenedTrip money={money} />
+      {/* ── one trip, opened — the document beneath the ledger. In the lab the builder
+          replaces it: each trip is its own page (/itineraries/[id]). ── */}
+      {!s.lab && <OpenedTrip money={money} />}
     </SplitPage>
   );
 }
@@ -351,11 +365,6 @@ function OpenedTrip({ money }: { money: boolean }) {
           {itinerary.sharedWith} · saved 12:04
         </p>
 
-        <NarrationNote>
-          The itinerary surface is deliberately schematic. It exists to show where record intelligence
-          lands: programme chips, incentive windows, and the preference warning at the moment of
-          selection.
-        </NarrationNote>
 
         <Tabs value={String(openDay)} onValueChange={(v) => setOpenDay(Number(v))} className="mt-[var(--space-3)]">
           <TabsList aria-label="Itinerary days">

@@ -1,0 +1,25 @@
+{
+  "$comment": "Areas: colour means one thing, where you are (Constantin, 2026-09-25). Every screen belongs to one area for every role; roles differ only in which areas their dock holds and in what order. Read by src/lib/areas.ts and by evals/tier1-static.mjs, so the map lives in one place. Hues are OKLCH angles at one lightness and chroma (L .37, C .05); the colours themselves are in globals.css.",
+  "areas": {
+    "today":     { "name": "Today",     "about": "your queue: the day, and what is waiting on you", "hue": 54 },
+    "clients":   { "name": "Clients",   "about": "people and their trips; communication",          "hue": 258 },
+    "knowledge": { "name": "Knowledge", "about": "what the agency knows, and asking it; data management", "hue": 192 },
+    "money":     { "name": "Money",     "about": "what is owed, and what arrived",                  "hue": 322 }
+  },
+  "routes": {
+    "/briefing": "today",
+    "/notifications": "today",
+    "/notices": "today",
+    "/travellers": "clients",
+    "/itineraries": "clients",
+    "/records": "knowledge",
+    "/knowledge": "knowledge",
+    "/ask": "knowledge",
+    "/admin/review": "knowledge",
+    "/admin/publish": "knowledge",
+    "/connections": "knowledge",
+    "/commissions": "money",
+    "/ops/resolution": "money"
+  },
+  "unassigned": ["/settings", "/system", "/signin", "/roadmap", "/door", "/lab"]
+}

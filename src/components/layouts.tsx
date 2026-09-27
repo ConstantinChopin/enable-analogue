@@ -7,7 +7,8 @@
 import React, { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
-import { Segmented } from "@/components/bits";
+import { useDemo } from "@/lib/store";
+import { Segmented, IconChrome } from "@/components/bits";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +24,11 @@ export const DOCK_CLEARANCE = "pb-[112px]";
    The title row: the page's name, and its text actions right-aligned (Airbnb's
    title row carries Share · Save as text). The primary never lives here; it sits
    at the bottom of the tool that owns it.                                       */
+/* ── PageHeader — the title-row rule (Constantin, 2026-09-25) ─────────────────
+   The title row holds the title, WHAT YOU ARE LOOKING AT, and the page's acts:
+   a state or view switch (Open · Actioned · Deferred, Open · Overdue · Paid, Grid ·
+   Table) and the actions go in `actions`, on the title's line, at the right. The line
+   below holds only what NARROWS the list: tags, sources, facets, search.            */
 export function PageHeader({
   back, crumb, title, actions, children, className,
 }: {
@@ -46,9 +52,12 @@ export function PageHeader({
 }
 
 /* ── Page ─────────────────────────────────────────────────────────────────────
-   Content sits in a centred column capped at `--content-max` (Airbnb's 1120),
-   so a wide panel gets gutters instead of a page that stretches to its edges.
-   Only genuine prose keeps a reading measure. The page owns its scroll.        */
+   Every page has the same side margins: the panel's own padding, on both sides,
+   at every width (Constantin, 2026-09-25). The centred 1120 column gave a wide
+   panel gutters that no ledger page had, so the Briefing and Notifications sat
+   at different distances from the frame. Prose keeps its measure inside the
+   column (62ch on the lead, 72ch on a text page), aligned left, never centred.
+   The page owns its scroll.                                                     */
 export function Page({
   width = "wide", className, fill = false, children,
 }: {
@@ -57,7 +66,7 @@ export function Page({
   fill?: boolean;
   children: React.ReactNode;
 }) {
-  const max = { wide: "max-w-[var(--content-max)] mx-auto", text: "max-w-[72ch]", full: "max-w-none" }[width];
+  const max = { wide: "max-w-none", text: "max-w-[72ch]", full: "max-w-none" }[width];
   return (
     <div className={cn("h-full w-full overflow-y-auto p-[var(--panel-pad)]", className)}>
       <div className={cn("w-full min-w-0", max, fill && "h-full")}>{children}</div>
@@ -87,25 +96,46 @@ export function SplitPage({
     return () => window.removeEventListener("keydown", onKey);
   }, [panelOpen, onClosePanel]);
 
-  const open = isDesktop && panelOpen;
+  const { s, d } = useDemo();
+  /* The right-hand slot holds one card at a time: choosing an item folds the assistant
+     away, so the item shows. */
+  useEffect(() => {
+    if (panelOpen && s.assistantOpen) d({ type: "assistant", open: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panelOpen]);
+  const open = isDesktop && panelOpen && !s.assistantOpen;
 
   return (
     <div className="flex h-full min-h-0 w-full">
-      <div className="min-w-0 flex-1 overflow-y-auto p-[var(--panel-pad)]">
+      {/* With the card open the column gives it the room: the card is 400 wide and inset
+          4 from the panel edge, with 20 of air between the column’s scrollbar and the
+          card. The column keeps its own padding inside that. */}
+      <div className={cn("min-w-0 flex-1 overflow-y-auto p-[var(--panel-pad)]", open && "mr-[424px]")}>
         {header}
         {children}
       </div>
 
+      {/* The inspector is a card that fits on the right, not a column that opens from
+          the frame edge (Constantin, 2026-09-25): the panel’s full height, inset 12 from
+          its edges, its own corners and shadow, white on the glass, the close in its
+          top-right corner. It is placed against the panel itself (the Shell’s <main> is
+          the positioned box), so it rises above the top bar, which draws in to its left
+          (.frame-bar, globals.css). Its corners are concentric with the panel’s: the
+          panel stays radius-4 (16) and the card takes radius-3 (12), so it sits 16 − 12 = 4
+          inside the panel and the two curves run parallel (Constantin, 2026-09-25). */}
       {open && (
         <aside
           aria-label={panelTitle}
-          className="flex h-full w-[400px] shrink-0 flex-col border-l border-hairline bg-raised"
+          data-inspector
+          className="inspector-in absolute top-[var(--space-1)] right-[var(--space-1)] bottom-[var(--space-1)] z-10 flex w-[400px] flex-col overflow-hidden rounded-lg bg-raised shadow-elev-3"
         >
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-hairline px-[var(--space-6)] py-[var(--space-3)]">
-            <span className="truncate type-section">{panelTitle}</span>
-            <Button variant="ghost" size="icon-sm" onClick={onClosePanel} aria-label="Close panel"><X /></Button>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-[var(--space-6)]">{panel}</div>
+            <div className="flex shrink-0 items-start justify-between gap-[var(--space-3)] px-[var(--space-6)] pt-[var(--space-6)] pb-[var(--space-2)]">
+              <span className="min-w-0 truncate type-section">{panelTitle}</span>
+              <IconChrome label="Close panel" onClick={onClosePanel} className="-mt-0.5 -mr-1">
+                <X aria-hidden />
+              </IconChrome>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-[var(--space-6)] pt-[var(--space-2)] pb-[var(--space-6)]">{panel}</div>
         </aside>
       )}
 
@@ -115,7 +145,7 @@ export function SplitPage({
             <SheetTitle asChild><span className="sr-only">{panelTitle}</span></SheetTitle>
             <div className="flex items-center justify-between gap-2 border-b border-hairline px-[var(--space-6)] py-[var(--space-3)]">
               <span className="truncate type-section">{panelTitle}</span>
-              <Button variant="ghost" size="icon-sm" onClick={onClosePanel} aria-label="Close panel"><X /></Button>
+              <IconChrome label="Close panel" onClick={onClosePanel}><X aria-hidden /></IconChrome>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-[var(--space-6)] pb-[var(--space-8)]">{panel}</div>
           </SheetContent>

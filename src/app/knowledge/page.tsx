@@ -3,11 +3,17 @@
  * Knowledge vault — recomposed as a document with a ledger (Pass 1.5), read by both
  * types (docs/rebuild/05-two-roles.md §3).
  *
- * Chapters, in order: Needs you (only when something of this person's is indexing or
- * one of her sources needs attention) · Documents (the ledger) · Carrying a verified
- * source (quiet, deep) · Adding a document (quiet, deep).
- * The inspector is the tool that follows: the selected document's provenance, whose it
- * is, its history, and the ONE primary at its bottom:
+ * Chapters, in order: Documents (the ledger) · Carrying a verified source (quiet, deep)
+ * · Adding a document (quiet, deep). What used to open the page as "Needs you" (her own
+ * documents indexing, her sources needing attention) is status, not a chapter, and it is
+ * not raised as a pop-up either (the toasts went on 2026-09-25): a document still
+ * indexing says so on its own row, and source health lives on Connections and in
+ * Notifications. The assistant's peek is the one thing that interrupts.
+ * The inspector is the tool that follows, and it starts CLOSED: the vault opens on the
+ * ledger, and a row opens the inspector (2026-09-24, Constantin). Only a link that names
+ * one document (`?doc=`) arrives with it open, because that reader came to read it.
+ * It shows the selected document's provenance, whose it is, its history, and the ONE
+ * primary at its bottom:
  *   owner, on a document from the agency's sources   "Assign access"
  *   everyone else, on every other document           "Open document"
  * An advisor's own document — one she uploaded or forwarded, or indexed from her own
@@ -32,17 +38,18 @@
  *
  * Local components (not promoted to bits): AccessChip, ProvenancePanel.
  */
-import React, { useMemo, useState, useSyncExternalStore } from "react";
+import React, { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useDemo } from "@/lib/store";
+import { useDemo, announcementsFor, type AnnouncementView } from "@/lib/store";
 import {
-  vaultDocs, vaultStats, connections, connectionsFor, people, personName,
+  vaultDocs, vaultStats, connections, people, personName, productById,
   type Persona, type VaultDoc,
 } from "@/data/seed";
 import { PageHeader, SplitPage } from "@/components/layouts";
 import {
-  Chip, DataList, Section, NarrationNote, SchematicBadge, StatusDot, Rows, Row, RowStack, ConfirmBanner,
+  Chip, DataList, Section, SchematicBadge, StatusDot, Rows, Row, RowStack, ConfirmBanner,
 } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -53,7 +60,7 @@ import {
 } from "@/components/ui/sheet";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Building2, FileText, HardDrive, Lock, Mail, User, Users2, Loader2 } from "lucide-react";
+import { Building2, FileText, HardDrive, Lock, Mail, User, Users2, Loader2, Megaphone } from "lucide-react";
 
 /* ── C1: one tone for the meter and its key ─────────────────────────────────────
    The bar and the legend swatch beneath it both read this. A legend that disagrees
@@ -68,7 +75,6 @@ const digits = (v: number) => v.toLocaleString("en-GB");
 type Noun = readonly [singular: string, plural: string];
 const DOCUMENTS: Noun = ["document", "documents"];
 const RECORDS: Noun = ["record", "records"];
-const SOURCES: Noun = ["source", "sources"];
 function count(v: number, noun: Noun) {
   return (
     <>
@@ -81,7 +87,8 @@ const sourceIcon: Record<string, React.ElementType> = {
   Upload: FileText,
   "Drive sync": HardDrive,
   "Email-in": Mail,
-  Intranet: FileText,
+  Claromentis: FileText,
+  Announcement: Megaphone,
 };
 
 /** Tab → the source it selects. `null` selects everything. */
@@ -89,9 +96,20 @@ const tabSource: Record<string, string | null> = {
   All: null,
   Drive: "Drive sync",
   Email: "Email-in",
-  Intranet: "Intranet",
+  Claromentis: "Claromentis",
   Uploads: "Upload",
+  Announcements: "Announcement",
 };
+
+/* ── announcements, as the vault holds them ─────────────────────────────────────
+   A source of its own (05-two-roles.md, 2026-09-24): what the agency wrote to its desk,
+   dated, with its author and audience. It reaches whoever it was written for, so the
+   rows are already filtered by the store. */
+const ANNOUNCEMENT = "Announcement";
+const asDoc = (a: AnnouncementView): VaultDoc => ({
+  name: a.title, source: ANNOUNCEMENT, updated: a.when,
+  access: a.audience === "agency" ? "agency" : "team · Paris", state: "ok", by: personName[a.by],
+});
 
 /* ── whose document it is ───────────────────────────────────────────────────────
    The seed says (VaultDoc.by). Absent means it arrived through one of the agency's
@@ -140,21 +158,33 @@ function AccessChip({ access }: { access: string }) {
   );
 }
 
-const DESKTOP = "(min-width: 1024px)";
-const subscribeDesktop = (cb: () => void) => {
-  const mq = window.matchMedia(DESKTOP);
-  mq.addEventListener("change", cb);
-  return () => mq.removeEventListener("change", cb);
-};
 
-export default function KnowledgeVault() {
+export default function KnowledgePage() {
+  return (
+    <Suspense fallback={null}>
+      <KnowledgeVault />
+    </Suspense>
+  );
+}
+
+function KnowledgeVault() {
   const { s, d } = useDemo();
   const owner = s.role === "owner";
+  /* Arriving from the Briefing or a notification: `?source=Announcements&doc=<id>`
+     opens the archive on that announcement, with the inspector open because that reader
+     came to read it. Read once, as the initial state. */
+  const params = useSearchParams();
+  const arrival = (() => {
+    const src = params?.get("source") ?? null;
+    const id = params?.get("doc") ?? null;
+    const a = id ? announcementsFor(s).find((x) => x.id === id) : undefined;
+    return { tab: src && src in tabSource ? src : "All", doc: a?.title ?? null };
+  })();
   /* Both types connect sources: an advisor her own mailbox or Drive, the owner the
      agency's. Connecting indexes and never shares, so it needs no gate. */
   const canConnect = true;
-  const [tab, setTab] = useState<string>("All");
-  const [selected, setSelected] = useState<string | null>("Atelier Collection terms.pdf");
+  const [tab, setTab] = useState<string>(arrival.tab);
+  const [selected, setSelected] = useState<string | null>(arrival.doc);
 
   /* The access sheet, and what was decided in it this session. A share that takes
      effect at once rewrites the document's chip; a user's share with the whole agency
@@ -172,18 +202,11 @@ export default function KnowledgeVault() {
     ),
   );
 
-  /* The panel is the vault's second column, so it opens with the page — but only
-     where there is a column for it. On a phone SplitPage is a sheet, and a sheet
-     that opens by itself is an ambush. `null` means "follow the layout"; opening
-     or closing it by hand pins it. */
-  const desktop = useSyncExternalStore(
-    subscribeDesktop,
-    () => window.matchMedia(DESKTOP).matches,
-    () => false,
-  );
-  const [pinned, setPinned] = useState<boolean | null>(null);
-  const panelOpen = pinned ?? desktop;
-  const setPanelOpen = (v: boolean) => setPinned(v);
+  /* The inspector starts closed, on every layout: the vault opens on its ledger, and
+     choosing a row is what opens the inspector. On a phone it is a sheet, and a sheet
+     that opens by itself is an ambush; on a desktop, a document nobody chose pushed the
+     ledger into a narrower column for nothing. */
+  const [panelOpen, setPanelOpen] = useState(arrival.doc !== null);
 
   /* The vault is permission-filtered like every other surface: a document a person
      cannot open does not appear in the list at all — absent, not masked, and not
@@ -192,9 +215,10 @@ export default function KnowledgeVault() {
      owner never sees it either — the personal layer is the advisor's, inside an agency
      or not. Counting rows after the filter is deliberate: the totals a reader is given
      must be totals of what they can actually reach. */
+  const announced = useMemo(() => announcementsFor(s), [s]);
   const visible = useMemo(() => {
     const canSeeAdminOnly = owner;
-    return vaultDocs.filter((doc) => {
+    const docs = vaultDocs.filter((doc) => {
       if (doc.access === "admin only") return canSeeAdminOnly;
       if (doc.access === "private" || doc.access === "processing") {
         const h = holderOf(doc);
@@ -202,7 +226,8 @@ export default function KnowledgeVault() {
       }
       return true;
     });
-  }, [owner, s.role]);
+    return [...announced.map(asDoc), ...docs];
+  }, [owner, s.role, announced]);
 
   const rows = useMemo(() => {
     const src = tabSource[tab];
@@ -217,22 +242,19 @@ export default function KnowledgeVault() {
     : undefined;
   const inbound = connections.find((c) => c.name.startsWith("Inbound mail"));
 
-  /* What needs this person: her own documents still indexing, and her own sources
-     that need attention (for the owner, the agency's too). */
-  const indexingCount = visible.filter((doc) => doc.access === "processing").length;
-  const troubled = connectionsFor(s.role).filter((c) => c.state !== "ok");
 
   /* The vault's figures are agency-wide; a user's totals must be totals of what she
      can reach, or the page breaks its own rule. The owner reaches the whole vault. */
   const tabCounts: Record<string, number> = owner
-    ? vaultStats.tabs
+    ? { ...vaultStats.tabs, All: vaultStats.tabs.All + announced.length, Announcements: announced.length }
     : Object.fromEntries(
-        Object.keys(vaultStats.tabs).map((t) => {
+        [...Object.keys(vaultStats.tabs), "Announcements"].map((t) => {
           const src = tabSource[t];
           return [t, src === null ? visible.length : visible.filter((doc) => doc.source === src).length];
         }),
       );
-  const total = owner ? vaultStats.total : visible.length;
+  const total = owner ? vaultStats.total + announced.length : visible.length;
+  const selAnnouncement = sel?.source === ANNOUNCEMENT ? announced.find((a) => a.title === sel.name) : undefined;
 
   const openDoc = (name: string) => {
     setSelected(name);
@@ -300,7 +322,7 @@ export default function KnowledgeVault() {
               </Button>
             )}
             <span className="inline-flex items-center gap-[var(--space-2)]">
-              <Button variant="link" size="sm">Upload</Button>
+              <Button variant="tertiary" size="sm">Upload</Button>
               <SchematicBadge />
             </span>
           </>
@@ -319,12 +341,6 @@ export default function KnowledgeVault() {
         </Tabs>
       </PageHeader>
 
-      <NarrationNote>
-        Access defaults are the governance posture — a document arrives closed to whoever brought
-        it in, and every widening is an act somebody performs and the log records. The owner
-        assigns access on the agency&rsquo;s sources; an advisor&rsquo;s own documents are hers to
-        share.
-      </NarrationNote>
     </>
   );
 
@@ -335,57 +351,19 @@ export default function KnowledgeVault() {
       onClosePanel={() => setPanelOpen(false)}
       panelTitle={sel ? sel.name : "No document selected"}
       panel={
-        <ProvenancePanel
-          sel={sel}
-          access={sel ? accessOf(sel) : ""}
-          waiting={!!sel && !!waiting[sel.name]}
-          onManageAccess={openAccess}
-        />
+        selAnnouncement ? (
+          <AnnouncementPanel a={selAnnouncement} />
+        ) : (
+          <ProvenancePanel
+            sel={sel}
+            access={sel ? accessOf(sel) : ""}
+            waiting={!!sel && !!waiting[sel.name]}
+            onManageAccess={openAccess}
+          />
+        )
       }
     >
       <div className="min-w-0">
-        {/* ── what needs a decision ──────────────────────────────────────────
-            Only what is this person's to act on: her own documents still indexing,
-            and her own sources that need attention — for the owner, the agency's as
-            well. Other people's work is not a queue on the screen where she came to
-            find a document, so with nothing of hers waiting the chapter is absent. */}
-        {(indexingCount > 0 || troubled.length > 0) && (
-          <Section title="Needs you">
-            <Rows>
-              {indexingCount > 0 && (
-                <Row>
-                  <span className="row-primary">
-                    <StatusDot tone="warn">
-                      {count(indexingCount, DOCUMENTS)} indexing · closed to{" "}
-                      {owner ? "the administrators" : "you"} when it lands
-                    </StatusDot>
-                  </span>
-                  <span className="row-trailing">
-                    <Button variant="secondary" size="sm" onClick={() => setTab("Uploads")}>
-                      Review
-                    </Button>
-                  </span>
-                </Row>
-              )}
-              {troubled.length > 0 && (
-                <Row>
-                  <span className="row-primary">
-                    <StatusDot tone={troubled.some((c) => c.state === "credentials") ? "crit" : "warn"}>
-                      {count(troubled.length, SOURCES)} {troubled.length === 1 ? "needs" : "need"} attention
-                      {" · "}{troubled.map((c) => c.name).join(", ")}
-                    </StatusDot>
-                  </span>
-                  <span className="row-trailing">
-                    <Button asChild variant="secondary" size="sm">
-                      <Link href="/connections">Open connections</Link>
-                    </Button>
-                  </span>
-                </Row>
-              )}
-            </Rows>
-          </Section>
-        )}
-
         {/* ── the ledger ── */}
         <Section
           title="Documents"
@@ -536,6 +514,53 @@ export default function KnowledgeVault() {
         </Sheet>
       </div>
     </SplitPage>
+  );
+}
+
+/* ── the inspector for an announcement ───────────────────────────────────────────
+   The message as written, who wrote it and for whom, and the records it links, each a
+   way into the record. It is an agency source once it reaches the agency, so the panel
+   says what that means: answers may cite it, with its date. No filled action — the
+   next step is a record, and a record is a link. */
+function AnnouncementPanel({ a }: { a: AnnouncementView }) {
+  const agency = a.audience === "agency" && !a.waiting;
+  return (
+    <div className="space-y-[var(--space-6)]">
+      <DataList
+        rows={[
+          { label: "Source", value: "Announcement" },
+          { label: "Written by", value: personName[a.by] },
+          { label: "Published", value: <span className="tnum">{a.waiting ? "waiting for release" : a.when}</span> },
+          { label: "For", value: <AccessChip access={a.audience === "agency" ? "agency" : "team · Paris"} /> },
+        ]}
+      />
+      <p className="max-w-[60ch] type-prose">{a.body}</p>
+      {a.links.length > 0 && (
+        <div>
+          <h3 className="type-section-quiet">Linked records</h3>
+          <Rows className="mt-[var(--space-2)]">
+            {a.links.map((id) => {
+              const p = productById(id);
+              return (
+                <Row key={id}>
+                  <Link href={`/records/${id}`} className="row-primary type-data-strong underline decoration-hairline underline-offset-4 hover:decoration-ink">
+                    {p?.name ?? id}
+                  </Link>
+                  <span className="row-trailing type-meta">{p ? `${p.city} · ${p.status === "Active" ? p.evidence.label : p.status.toLowerCase()}` : ""}</span>
+                </Row>
+              );
+            })}
+          </Rows>
+        </div>
+      )}
+      <p className="border-t border-hairline pt-[var(--space-4)] type-meta">
+        {a.waiting
+          ? `Waiting for ${people.owner} to release it to the whole agency. Until then it reaches its author and the Paris desk.`
+          : agency
+            ? "An agency source: answers may cite it, with its date. The facts it states stay on the records it links."
+            : "Shared with the Paris desk. Answers for anyone on it may cite it, with its date."}
+      </p>
+    </div>
   );
 }
 

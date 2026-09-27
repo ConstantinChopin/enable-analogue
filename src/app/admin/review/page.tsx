@@ -18,7 +18,7 @@ import Link from "next/link";
 import { useDemo } from "@/lib/store";
 import { candidates, confirmedRecently } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
-import { Chip, Section, NarrationNote, Rows, Row, RowStack } from "@/components/bits";
+import { Chip, Section, Rows, Row, RowStack } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 
 type Candidate = (typeof candidates)[number];
@@ -47,10 +47,6 @@ export default function ReviewQueue() {
 
       <div className="doc-layout">
         <div className="min-w-0">
-          <NarrationNote>
-            The pipeline proposes; people decide. Below the reliability bar, auto-commit destroys
-            trust faster than a missing record does.
-          </NarrationNote>
 
           <Section title="In review" chips={<Chip tone="neutral"><span className="tnum">{inReview}</span> waiting</Chip>}>
             <Rows>

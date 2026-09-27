@@ -49,8 +49,9 @@ import {
   traveller, travellerCards, trips, shortlistConflict, people, personName, type TravellerCard,
 } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
+import { NewTripButton } from "@/components/new-trip";
 import {
-  Chip, DataList, Section, SeverityBanner, NarrationNote, ConfirmBanner, SourceTag, SchematicBadge,
+  Chip, DataList, Section, SeverityBanner, ConfirmBanner, SourceTag, SchematicBadge,
   ConfidenceMeter, Rows, Row, RowStack,
 } from "@/components/bits";
 import { Button } from "@/components/ui/button";
@@ -200,6 +201,7 @@ function MarchettiProfile() {
             <Chip tone="warn">departs in {traveller.departure.inDays} days</Chip>
           </>
         }
+        actions={<NewTripButton travellerId={traveller.id} label="Start a trip" />}
       >
         <p className="mt-[var(--space-2)] type-meta">
           {traveller.relationshipStatus} · {traveller.preferences.length} preferences, each
@@ -207,11 +209,6 @@ function MarchettiProfile() {
         </p>
       </PageHeader>
 
-      <NarrationNote>
-        The sharing model is a three-stage documented iteration: tiered sharing called required,
-        all-or-nothing shipped for simplicity with a revisit trigger, and the trigger fired —
-        Collaborator Full / Basic is the schema&rsquo;s answer.
-      </NarrationNote>
 
       <div className="doc-layout">
         {/* ── the body: chapters at column width ── */}
@@ -264,7 +261,7 @@ function MarchettiProfile() {
                           ) : asks ? (
                             <>
                               <Chip tone="warn">1 source</Chip>
-                              <Button variant="link" size="sm" onClick={() => d({ type: "confirmPref" })}>confirm this</Button>
+                              <Button variant="tertiary" size="sm" onClick={() => d({ type: "confirmPref" })}>confirm this</Button>
                             </>
                           ) : (
                             <Chip tone="neutral" className="tnum">{p.sources} {p.sources === 1 ? "source" : "sources"}</Chip>
@@ -323,7 +320,7 @@ function MarchettiProfile() {
                       <Button variant="secondary" size="sm" onClick={() => d({ type: "confirmPref" })}>
                         Confirm as preference
                       </Button>
-                      <Button variant="link" size="sm" onClick={() => setSuggestion("discarded")}>
+                      <Button variant="tertiary" size="sm" onClick={() => setSuggestion("discarded")}>
                         Discard
                       </Button>
                     </div>
@@ -443,7 +440,7 @@ function MarchettiProfile() {
                 ]}
               />
               <p className="mt-[var(--space-3)] type-meta">
-                {traveller.financials.source}. Figures follow the booking system, which stays
+                {traveller.financials.source}. Figures follow TripSuite, which stays
                 authoritative for money — they carry its sync time rather than claiming to be
                 current.
               </p>
@@ -589,6 +586,7 @@ function GenericProfile({ id }: { id: string }) {
             )}
           </>
         }
+        actions={s.role === "user" ? <NewTripButton travellerId={card.id} label="Start a trip" /> : undefined}
       >
         <p className="mt-[var(--space-2)] type-meta">{card.relationshipStatus}</p>
       </PageHeader>
@@ -644,7 +642,7 @@ function GenericProfile({ id }: { id: string }) {
                     </div>
                   )}
                   <Button asChild variant="secondary" size="sm" className="mt-[var(--space-4)]">
-                    <Link href="/itineraries">Open the itinerary <ArrowRight aria-hidden /></Link>
+                    <Link href={s.lab ? `/itineraries/${trip.id}` : "/itineraries"}>Open the itinerary <ArrowRight aria-hidden /></Link>
                   </Button>
                 </>
               ) : (

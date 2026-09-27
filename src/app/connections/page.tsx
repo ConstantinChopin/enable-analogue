@@ -27,7 +27,7 @@ import { useSearchParams } from "next/navigation";
 import { connectionsFor, type Persona } from "@/data/seed";
 import { useDemo } from "@/lib/store";
 import { Page, PageHeader } from "@/components/layouts";
-import { Chip, Section, NarrationNote, Rows, Row, StatusDot, ConfirmBanner } from "@/components/bits";
+import { Chip, Section, Rows, Row, StatusDot, ConfirmBanner } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import {
   Table, TableHeader, TableBody, TableHead, TableRow, TableCell,
@@ -88,7 +88,7 @@ function Connections() {
     <Page width="wide">
       <PageHeader
         title="Connections"
-        actions={<Button variant="link" size="sm" onClick={() => setAddOpen(true)}>Add connection</Button>}
+        actions={<Button variant="tertiary" size="sm" onClick={() => setAddOpen(true)}>Add connection</Button>}
       >
         <p className="mt-[var(--space-2)] type-meta">
           <StatusDot tone={attention.length > 0 ? "warn" : "ok"}>
@@ -107,12 +107,6 @@ function Connections() {
       <div className="doc-layout">
         {/* ── the body: the ledger ── */}
         <div className="min-w-0">
-          <NarrationNote>
-            Integration health is a surface, not a log line. A failed source degrades answers
-            visibly, which is the difference between a system you can trust and one you have to
-            second-guess. Connecting a source shares nothing: what it indexes arrives closed to
-            whoever connected it.
-          </NarrationNote>
 
           <Section title="Sources">
             <Table>

@@ -155,7 +155,7 @@ export function AddConnection({
                 <div className="flex flex-wrap items-center gap-[var(--space-2)]">
                   <Chip tone="ok">authorised</Chip>
                   <span className="type-data">{account}</span>
-                  <Button variant="link" size="sm" onClick={() => setAccount(null)}>
+                  <Button variant="tertiary" size="sm" onClick={() => setAccount(null)}>
                     Use another account
                   </Button>
                 </div>

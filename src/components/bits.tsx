@@ -5,10 +5,10 @@
  */
 import React from "react";
 import { cn } from "@/lib/utils";
-import { useDemo } from "@/lib/store";
+import type { Area } from "@/lib/areas";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileText, HardDrive, Mail, Route, Database, Globe, PenLine, Presentation } from "lucide-react";
+import { FileText, HardDrive, Mail, Route, Database, Globe, PenLine, Megaphone } from "lucide-react";
 
 /* ── Absent ──────────────────────────────────────────────────────────────────
    One vocabulary for empty. Restricted material never reaches the page; every
@@ -103,9 +103,9 @@ export function RowStack({
    stays on top. Words always; the tone is redundant with them.                 */
 export function Chip({ tone = "neutral", className, title, children }: { tone?: "neutral" | "ok" | "warn" | "crit" | "primary"; className?: string; title?: string; children: React.ReactNode }) {
   const tones = {
-    neutral: "border-hairline text-label-secondary",
+    neutral: "border-chip-edge bg-chip-rest text-label-secondary",
     ok: "border-ok/40 text-ok",
-    primary: "border-strong text-label",
+    primary: "border-chip-edge-strong bg-chip-rest text-label",
     warn: "border-warn-soft bg-warn-soft text-warn",
     crit: "border-crit-soft bg-crit-soft text-crit",
   } as const;
@@ -136,7 +136,7 @@ export function FilterChip({
         "pressable inline-flex h-[var(--control-h-sm)] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border px-[var(--control-px-sm)] type-data font-medium",
         selected
           ? "border-selected bg-selected text-on-selected"
-          : "border-hairline bg-raised text-label hover:border-stroke-hover",
+          : "border-control-edge bg-control-rest text-label hover:border-control-edge-hover hover:bg-control-rest-hover",
         className,
       )}
     >
@@ -150,6 +150,49 @@ export function FilterChip({
 
 /* ── StatusDot — a state, in a word, with a dot beside it ─────────────────────
    The label is a REQUIRED child: you cannot render a naked coloured circle.   */
+/* ── IconChrome — the small round control on a floating surface (2026-09-25) ──
+   Close, all, new, previous, next: a 28 circle on the faintest surface, the same on every
+   card, sheet, dialog, rail and toast, so a close always looks like a close. `pressed`
+   marks the one that is showing (the assistant's list of conversations). */
+export const IconChrome = React.forwardRef<
+  HTMLButtonElement,
+  React.ComponentProps<"button"> & { label: string; pressed?: boolean }
+>(function IconChrome({ label, pressed, className, children, ...props }, ref) {
+  return (
+    <button
+      ref={ref}
+      type="button"
+      aria-label={label}
+      title={label}
+      aria-pressed={pressed}
+      className={cn(
+        "pressable grid size-7 shrink-0 cursor-pointer place-items-center rounded-full hover:bg-interactive hover:text-label disabled:cursor-not-allowed disabled:text-label-disabled [&_svg]:size-3.5",
+        pressed ? "bg-interactive text-label" : "bg-faint text-label-secondary",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+});
+
+/* ── AreaDot — where something leads, in the colour of that area (areas.ts) ───
+   Wayfinding, not state: the dot is the area's solid and never a trust colour. Like
+   StatusDot it cannot render without its words. A thing in no area gets a quiet grey. */
+export function AreaDot({ area, className, children }: { area: Area | null; className?: string; children: React.ReactNode }) {
+  return (
+    <span className={cn("inline-flex min-w-0 items-center gap-1.5", className)}>
+      <span
+        className="size-2 shrink-0 rounded-full"
+        style={{ backgroundColor: area ? `var(--area-${area}-solid)` : "var(--sys-label-quaternary)" }}
+        aria-hidden
+      />
+      {children}
+    </span>
+  );
+}
+
 export function StatusDot({
   tone, children, className,
 }: {
@@ -197,7 +240,7 @@ export function FreshnessDate({ children, stale }: { children: React.ReactNode; 
 }
 
 /* ── SourceTag ── */
-const sourceIcons = { intranet: FileText, gdrive: HardDrive, email: Mail, axus: Route, tripsuite: Database, portal: Globe, manual: PenLine } as const;
+const sourceIcons = { intranet: FileText, gdrive: HardDrive, email: Mail, axus: Route, tripsuite: Database, portal: Globe, manual: PenLine, announcement: Megaphone } as const;
 export function SourceTag({ kind, label }: { kind: keyof typeof sourceIcons; label: string }) {
   const Icon = sourceIcons[kind];
   return (
@@ -277,23 +320,11 @@ export function SchematicBadge() {
   return (
     <Chip
       tone="neutral"
-      className="font-mono uppercase tracking-wide"
+      className="uppercase tracking-wide"
       title="Drawn, not wired — these controls do not change anything in this build."
     >
       schematic
     </Chip>
-  );
-}
-
-/* ── NarrationNote: presenter-overlay only ── */
-export function NarrationNote({ children }: { children: React.ReactNode }) {
-  const { s } = useDemo();
-  if (!s.narration) return null;
-  return (
-    <aside className="flex gap-2 rounded-lg border border-dashed border-strong bg-sunken/60 px-[var(--space-4)] py-[var(--space-3)] type-data-read text-label">
-      <Presentation className="mt-0.5 size-[var(--icon-md)] shrink-0 text-label-secondary" aria-hidden />
-      <span>{children}</span>
-    </aside>
   );
 }
 
@@ -328,7 +359,7 @@ export function ProvenancePopover({ source, children }: { source: { what: string
  * (controls only). Status that describes the content belongs in the body.
  */
 export function Section({
-  title, chips, actions, footer, variant = "chapter", quiet, deep, follows, className, bodyClassName, children,
+  title, chips, actions, footer, variant = "chapter", quiet, deep, follows, anchor, className, bodyClassName, children,
 }: {
   title?: React.ReactNode;
   chips?: React.ReactNode;
@@ -341,6 +372,9 @@ export function Section({
   deep?: boolean;
   /** A tool that follows you: elevation 2. */
   follows?: boolean;
+  /** The chapter's name for a tool that follows the reading position (the Briefing's
+      insight rail): rendered as `data-chapter`, and as the id `chapter-<anchor>`. */
+  anchor?: string;
   className?: string;
   bodyClassName?: string;
   children: React.ReactNode;
@@ -351,6 +385,8 @@ export function Section({
     <section
       data-slot={chapter ? "chapter" : "card"}
       data-variant={variant}
+      data-chapter={anchor}
+      id={anchor ? `chapter-${anchor}` : undefined}
       className={cn(
         chapter && "chapter",
         chapter && deep && "chapter-deep",
@@ -417,7 +453,7 @@ export function Segmented<T extends string>({
               "pressable flex h-[var(--control-h-sm)] shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border px-[var(--control-px-sm)] type-data font-medium",
               on
                 ? "border-selected bg-selected text-on-selected"
-                : "border-hairline bg-raised text-label-secondary hover:border-stroke-hover hover:text-label",
+                : "border-control-edge bg-control-rest text-label-secondary hover:border-control-edge-hover hover:bg-control-rest-hover hover:text-label",
             )}
           >
             {Icon && <Icon className="size-[var(--icon-md)]" aria-hidden />}

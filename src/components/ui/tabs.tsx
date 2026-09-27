@@ -70,8 +70,8 @@ function TabsTrigger({
       className={cn(
         "pressable relative inline-flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap type-data font-medium text-label-secondary hover:text-label disabled:cursor-not-allowed disabled:text-label-disabled [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[var(--icon-md)]",
         /* pills */
-        "group-data-[variant=default]/tabs-list:h-[var(--control-h-sm)] group-data-[variant=default]/tabs-list:rounded-full group-data-[variant=default]/tabs-list:border group-data-[variant=default]/tabs-list:border-hairline group-data-[variant=default]/tabs-list:bg-raised group-data-[variant=default]/tabs-list:px-[var(--control-px-sm)]",
-        "group-data-[variant=default]/tabs-list:hover:border-stroke-hover",
+        "group-data-[variant=default]/tabs-list:h-[var(--control-h-sm)] group-data-[variant=default]/tabs-list:rounded-full group-data-[variant=default]/tabs-list:border group-data-[variant=default]/tabs-list:border-control-edge group-data-[variant=default]/tabs-list:bg-control-rest group-data-[variant=default]/tabs-list:px-[var(--control-px-sm)]",
+        "group-data-[variant=default]/tabs-list:hover:border-control-edge-hover group-data-[variant=default]/tabs-list:hover:bg-control-rest-hover",
         "group-data-[variant=default]/tabs-list:data-[state=active]:border-selected group-data-[variant=default]/tabs-list:data-[state=active]:bg-selected group-data-[variant=default]/tabs-list:data-[state=active]:text-on-selected",
         /* line */
         "group-data-[variant=line]/tabs-list:-mb-px group-data-[variant=line]/tabs-list:h-[var(--control-h-md)] group-data-[variant=line]/tabs-list:border-b-2 group-data-[variant=line]/tabs-list:border-transparent group-data-[variant=line]/tabs-list:px-1",

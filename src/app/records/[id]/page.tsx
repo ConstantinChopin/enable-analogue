@@ -38,9 +38,10 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  useDemo, canViewCommissions, scopeWrite, scopeAudience,
+  useDemo, canViewCommissions, scopeWrite, scopeAudience, createdNoticesOn, announcementsFor,
   type CreatedRecord, type DemoState, type EditScope, type ShareScope,
 } from "@/lib/store";
+import { NoticeSheet } from "@/components/publish-sheets";
 import {
   products, productById, leandreFields, leandreContext, commissionConflict,
   notices, promotions, people, personName,
@@ -48,7 +49,7 @@ import {
 } from "@/data/seed";
 import { Page, PageHeader, PropertyGallery } from "@/components/layouts";
 import {
-  Chip, Section, SeverityBanner, NarrationNote, FreshnessDate, EvidenceDot,
+  Chip, Section, SeverityBanner, FreshnessDate, EvidenceDot,
   ConfirmBanner, SchematicBadge, LayerBadge, ProvenancePopover, SourceTag, ConfidenceMeter,
   Rows, Row, DataList,
 } from "@/components/bits";
@@ -253,9 +254,6 @@ function ResolveSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
           <SheetDescription>{commissionConflict.headline}</SheetDescription>
         </SheetHeader>
         <SheetBody className="space-y-[var(--space-4)]">
-          <NarrationNote>
-            A ranking rule would settle this in a line of code — and would be wrong often enough to cost money. The advisor decides, once; the choice is stored at the agency layer and the question is not asked again.
-          </NarrationNote>
 
           <div role="radiogroup" aria-label="Sources" className="space-y-[var(--space-2)]">
             {commissionConflict.sources.map((src) => {
@@ -408,11 +406,11 @@ function LeandreRecord() {
         title={<>Maison Léandre <Chip tone="neutral">Hotel · Paris 4e</Chip></>}
         actions={
           <>
-            <Button variant="link" size="sm" onClick={() => setEditing((v) => !v)}>
+            <Button variant="tertiary" size="sm" onClick={() => setEditing((v) => !v)}>
               {editing ? "Done editing" : "Edit"}
             </Button>
-            <Button variant="link" size="sm" onClick={() => setNoteOpen(true)}>Add note</Button>
-            <Button variant="link" size="sm" onClick={() => setNoticeOpen(true)}>Add notice</Button>
+            <Button variant="tertiary" size="sm" onClick={() => setNoteOpen(true)}>Add note</Button>
+            <Button variant="tertiary" size="sm" onClick={() => setNoticeOpen(true)}>Add notice</Button>
           </>
         }
       >
@@ -422,11 +420,9 @@ function LeandreRecord() {
       <div className="doc-layout">
         {/* ── the body: chapters at column width ── */}
         <div className="min-w-0">
-          <NarrationNote>
-            The record is the model, inspectable — every value carries where it came from, how old it is, and which layer owns it. The conflict is seen here before it is felt in the conversation.
-          </NarrationNote>
 
           <div className="space-y-[var(--space-2)] pb-[var(--gap-2)] empty:hidden">
+            {createdNoticesOn(s, "maison-leandre").map((n) => <CreatedNotice key={n.id} n={n} />)}
             {s.world === "v2" && spaNotice && (
               s.retired[spaNotice.id]
                 ? <RetiredBanner n={spaNotice} />
@@ -661,31 +657,8 @@ function LeandreRecord() {
         </SheetContent>
       </Sheet>
 
-      {/* ── notice composer (schematic) ── */}
-      <Sheet open={noticeOpen} onOpenChange={setNoticeOpen}>
-        <SheetContent side="right">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">Add a notice <SchematicBadge /></SheetTitle>
-            <SheetDescription>A notice carries a severity, a scope, and an owner. It stays open until someone closes it.</SheetDescription>
-          </SheetHeader>
-          <SheetBody>
-            <Textarea placeholder="What changed at the property?" aria-label="Notice text" />
-            <div>
-              <div className="mb-[var(--space-2)] type-micro-caps text-label-tertiary">Severity</div>
-              <div className="flex gap-2">
-                <Chip tone="neutral">Info</Chip><Chip tone="warn">Important</Chip><Chip tone="crit">Critical</Chip>
-              </div>
-            </div>
-            <div>
-              <div className="mb-[var(--space-2)] type-micro-caps text-label-tertiary">Scope</div>
-              <div className="flex gap-2">
-                <Chip tone="neutral">Personal</Chip><Chip tone="neutral">Team</Chip><Chip tone="primary">Agency</Chip>
-              </div>
-            </div>
-            <Button variant="secondary">{s.role === "owner" ? "Publish" : "Submit for review"}</Button>
-          </SheetBody>
-        </SheetContent>
-      </Sheet>
+      {/* ── notice composer: who it is for, what changed, how severe ── */}
+      <NoticeSheet productId="maison-leandre" productName="Maison Léandre" open={noticeOpen} onOpenChange={setNoticeOpen} />
     </Page>
   );
 }
@@ -801,7 +774,7 @@ function FieldRow({
             <Button variant="secondary" size="sm" onClick={() => d({ type: "revertField", key: f.key })}>
               Remove my change
             </Button>
-            {onEdit && <Button variant="link" size="sm" onClick={onEdit}>Edit again</Button>}
+            {onEdit && <Button variant="tertiary" size="sm" onClick={onEdit}>Edit again</Button>}
           </div>
         </div>
       )}
@@ -818,7 +791,7 @@ function FieldRow({
           <p className="mt-1 type-meta">The record answers with its current value until you approve.</p>
           <div className="mt-[var(--space-3)] flex flex-wrap items-center gap-[var(--space-3)]">
             <Button variant="secondary" size="sm" onClick={onApprove}>Approve</Button>
-            <Button variant="link" size="sm" onClick={onReturn}>Return with a note</Button>
+            <Button variant="tertiary" size="sm" onClick={onReturn}>Return with a note</Button>
           </div>
         </div>
       )}
@@ -980,6 +953,7 @@ function VerlaineRecord() {
 /* ═══════════════ Every other record — real, from its own fields ═══════════════ */
 function GenericRecord({ id }: { id: string }) {
   const { s } = useDemo();
+  const [noticeOpen, setNoticeOpen] = useState(false);
   const money = canViewCommissions(s);
   const p = productById(id);
   const reviewer = s.role === "owner";
@@ -1024,7 +998,10 @@ function GenericRecord({ id }: { id: string }) {
 
   /* A personal or team notice reaches only whoever wrote it; the agency's reach everyone. */
   const productNotices = notices.filter((n) => n.productId === p.id && (n.scope === "agency" || ownsNotice(n, s.role)));
+  const madeNotices = createdNoticesOn(s, p.id);
   const productPromo = promotions.find((x) => x.productId === p.id);
+  /* What the agency announced about this property: the record links back to it. */
+  const announcedHere = announcementsFor(s).filter((a) => a.links.includes(p.id) && !a.waiting);
 
   return (
     <Page width="wide">
@@ -1032,18 +1009,35 @@ function GenericRecord({ id }: { id: string }) {
         back="/records"
         crumb={`Records / ${p.category}`}
         title={<>{p.name} <Chip tone="neutral">{p.category} · {p.city}</Chip></>}
+        actions={<Button variant="tertiary" size="sm" onClick={() => setNoticeOpen(true)}>Add notice</Button>}
       >
         <RecordPlate p={p} />
       </PageHeader>
 
       <div className="doc-layout">
         <div className="min-w-0">
-          {productNotices.length > 0 && (
+          {(productNotices.length > 0 || madeNotices.length > 0) && (
             <div className="space-y-[var(--space-2)] pb-[var(--gap-2)]">
+              {madeNotices.map((n) => <CreatedNotice key={n.id} n={n} />)}
               {productNotices.map((n) =>
                 s.retired[n.id] ? <RetiredBanner key={n.id} n={n} /> : <NoticeBanner key={n.id} n={n} />,
               )}
             </div>
+          )}
+
+          {announcedHere.length > 0 && (
+            <Section title="Announced">
+              <Rows>
+                {announcedHere.map((a) => (
+                  <Row key={a.id}>
+                    <Link href={`/knowledge?source=Announcements&doc=${a.id}`} className="row-primary type-data-strong underline decoration-hairline underline-offset-4 hover:decoration-ink">
+                      {a.title}
+                    </Link>
+                    <span className="row-trailing type-meta tnum">{personName[a.by]} · {a.when}</span>
+                  </Row>
+                ))}
+              </Rows>
+            </Section>
           )}
 
           <Section title="The record">
@@ -1105,6 +1099,8 @@ function GenericRecord({ id }: { id: string }) {
           </Section>
         </aside>
       </div>
+
+      <NoticeSheet productId={p.id} productName={p.name} open={noticeOpen} onOpenChange={setNoticeOpen} />
     </Page>
   );
 }
@@ -1210,12 +1206,25 @@ function NoticeBanner({ n }: { n: Notice }) {
         {owns && due && (
           <div className="mt-[var(--space-3)] flex flex-wrap items-center gap-[var(--space-3)]">
             <Button variant="secondary" size="sm" onClick={() => setRetireOpen(true)}>Retire</Button>
-            <Button variant="link" size="sm" onClick={() => setStillTrue(true)}>Still true</Button>
+            <Button variant="tertiary" size="sm" onClick={() => setStillTrue(true)}>Still true</Button>
           </div>
         )}
       </SeverityBanner>
       {owns && <RetireNoticeSheet n={n} open={retireOpen} onOpenChange={setRetireOpen} />}
     </>
+  );
+}
+
+/* A notice written this session: the same banner, and while it waits for the owner,
+   the line that says so to its author. */
+function CreatedNotice({ n }: { n: Notice & { waiting: boolean } }) {
+  return (
+    <div>
+      <NoticeBanner n={n} />
+      {n.waiting && (
+        <p className="mt-1 type-meta">Shared with the whole agency · waiting for {people.owner} to release it.</p>
+      )}
+    </div>
   );
 }
 

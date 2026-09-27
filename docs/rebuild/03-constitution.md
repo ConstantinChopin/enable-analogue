@@ -69,9 +69,9 @@ Inside a thing: 2 · 4 · 8 · 12 · 16 · 24 · 32. Between things: 16 · 24 ·
 | 5 | 20 | the gallery image |
 | 6 | 24 | a person (identity card) |
 | 7 | 32 | a sheet over the page |
-| pill | 999 | the one primary action per surface; chips; anything that floats over content |
+| pill | 999 | a choice (tabs, segmented, filter chips, 32 high); a state (chips, 24 high); anything that floats over content. Never an action (VIS-042) |
 
-Radius rises with elevation and with how alone the object stands. **The primary action is a pill**, and it is the only pill that acts; secondary actions are radius-2 grey fills; tertiary actions are text with an underline. That is the action ladder made visible without colour.
+Radius rises with elevation and with how alone the object stands. **Shape says what a control is (VIS-042): a rectangle does, a pill chooses, a chip states, an underline goes.** The primary action is an ink radius-2 rectangle; secondary actions are radius-2 grey fills; tertiary actions are quiet radius-2 rectangles, no fill at rest; the underline is navigation only. (Superseded wording follows.) Tertiary actions are text with an underline. That is the action ladder made visible without colour.
 
 ## 5. Elevation — a ladder that starts at a hairline
 
@@ -105,7 +105,7 @@ One curve (`cubic-bezier(0.2, 0, 0, 1)`) at 200ms for every state change. Press 
 
 **Cards exist only for tools.** A hairline box on the page is a tool that must stay in reach while the page scrolls (a sticky summary, a composer). An elevated card (step 2) exists only when that tool follows you. Content is never boxed.
 
-**One primary per surface.** The pill, at the bottom of the tool that owns it. Secondary actions are grey fills under the content they extend. Text actions live in the title row, right-aligned.
+**One primary per surface.** The ink rectangle, at the bottom of the tool that owns it (VIS-042). Secondary actions are grey fills under the content they extend. Text actions live in the title row, right-aligned.
 
 **Disclosure.** Preview in place → one grey button at the content's left edge → a sheet (radius 7, step 4) that reuses the page's row anatomy. Never pagination, never an accordion on desktop.
 

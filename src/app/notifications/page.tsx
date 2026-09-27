@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 import { useDemo, inboxFor, canViewCommissions, type NoticeState } from "@/lib/store";
 import type { Notification, NotifTag } from "@/data/seed";
 import { PageHeader, SplitPage } from "@/components/layouts";
-import { Chip, DataList, EmptyState, Section, Segmented, NarrationNote, SchematicBadge, Rows } from "@/components/bits";
+import { Chip, DataList, EmptyState, Section, Segmented, SchematicBadge, Rows } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Check, Clock } from "lucide-react";
 
@@ -152,20 +152,24 @@ function Triage() {
             )}
           </>
         }
-      >
-        <p className="mt-[var(--space-2)] max-w-[62ch] type-data-read text-label-secondary">
-          What changed, and what the system noticed. Each item carries its subject and its decision.
-        </p>
-
-        {/* Two controls, one row: the state on the left because it is the smaller,
-            more-used axis, the tags on the right. Clicking the live tag clears it. */}
-        <div className="mt-[var(--space-4)] flex flex-wrap items-center gap-x-[var(--space-4)] gap-y-[var(--space-2)]">
+        /* What you are looking at sits on the title's line (the title-row rule,
+           layouts.tsx): the triage state is the view, not a filter. */
+        actions={
           <Segmented
             value={stateFilter}
             onChange={setStateFilter}
             options={STATE_FILTERS}
             label="Triage state"
           />
+        }
+      >
+        <p className="mt-[var(--space-2)] max-w-[62ch] type-data-read text-label-secondary">
+          What changed, and what the system noticed. Each item carries its subject and its decision.
+        </p>
+
+        {/* The tags narrow the list, so they sit below the title row. Clicking the
+            live tag clears it. */}
+        <div className="mt-[var(--space-4)] flex flex-wrap items-center gap-x-[var(--space-4)] gap-y-[var(--space-2)]">
           <Segmented<NotifTag | "all">
             value={tag}
             onChange={(v) => setTag(v === tag ? "all" : v)}
@@ -179,11 +183,6 @@ function Triage() {
         </div>
       </PageHeader>
 
-      <NarrationNote>
-        The briefing is the day&rsquo;s shape; this is the stream of things asking for a decision. The
-        product exists partly because the inbox failed, so the rule here is that an item is never a
-        message you must interpret and act on somewhere else.
-      </NarrationNote>
     </>
   );
 
@@ -350,7 +349,7 @@ function ItemPanel({ n, state }: { n: Notification; state: NoticeState }) {
 
         {(state === "actioned" || state === "deferred") && (
           <div className="flex justify-center pt-[var(--space-2)]">
-            <Button variant="link" size="sm" onClick={() => set("seen")}>
+            <Button variant="tertiary" size="sm" onClick={() => set("seen")}>
               Put it back in the open list
             </Button>
           </div>

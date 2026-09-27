@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 
 /* A menu is a popover (elevation 3, radius-3) of 36px rows. Focus is a fill step. */
 const ITEM =
-  "relative flex h-9 cursor-pointer items-center gap-2 rounded-md px-2.5 type-data text-label outline-hidden select-none focus:bg-interactive data-[disabled]:pointer-events-none data-[disabled]:text-label-disabled [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[var(--icon-md)] [&_svg:not([class*='text-'])]:text-label-secondary"
+  "relative flex h-8 pointer-coarse:h-11 cursor-pointer items-center gap-2 rounded-md px-2.5 type-data text-label outline-hidden select-none focus:bg-interactive data-[disabled]:pointer-events-none data-[disabled]:text-label-disabled [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[var(--icon-md)] [&_svg:not([class*='text-'])]:text-label-secondary"
 
 function DropdownMenu({
   ...props

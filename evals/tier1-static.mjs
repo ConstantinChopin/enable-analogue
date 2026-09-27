@@ -31,7 +31,11 @@ const files = walk(SRC).map((p) => ({
   path: p,
   rel: relative(ROOT, p).split(sep).join("/"),
   text: readFileSync(p, "utf8"),
-}));
+}))
+  /* /roadmap reproduces the CPO's roadmap in HIS type and palette, word for word, so it
+     reads as his document (2026-09-25). It is not an Enable surface, and holding it to
+     Enable's tokens would restyle someone else's work. */
+  .filter((f) => !f.rel.startsWith("src/app/roadmap/"));
 
 /* A line is exempt if it sits inside a comment. These rules are about what SHIPS, and
    this repository is full of prose describing the very patterns the rules ban. */
@@ -215,6 +219,23 @@ for (const path of Object.keys(CONTRACTS)) {
   }
 }
 
+/* ── 11. every contracted screen belongs to an area ─────────────────────────────
+   Colour means one thing, where you are (src/lib/areas.ts, 2026-09-25). A screen in
+   no area has no colour to wear, so the next screen anyone adds, a person or an
+   agent, has to say where it belongs. The map is src/data/areas.json; a route listed
+   there as unassigned sits outside every area on purpose (settings, the system page). */
+const AREAS = JSON.parse(readFileSync(join(SRC, "data", "areas.json"), "utf8"));
+const under = (path, p) => path === p || path.startsWith(p + "/");
+for (const path of Object.keys(CONTRACTS)) {
+  if (AREAS.unassigned.some((p) => under(path, p))) continue;
+  const route = Object.keys(AREAS.routes).filter((p) => under(path, p)).sort((a, b) => b.length - a.length)[0];
+  if (!route) {
+    add("screen-without-area", "src/data/areas.json", 0, path, "a contracted screen belongs to no area");
+  } else if (!AREAS.areas[AREAS.routes[route]]) {
+    add("screen-without-area", "src/data/areas.json", 0, path, `names an area that does not exist: ${AREAS.routes[route]}`);
+  }
+}
+
 /* ── report ─────────────────────────────────────────────────────────────────── */
 const RULES = [
   ["colour-alone", "Colour with no word"],
@@ -223,6 +244,7 @@ const RULES = [
   ["raw-type-utility", "Raw type utility instead of a role"],
   ["uncoloured-bar-beside-legend", "Bar that disagrees with its key"],
   ["contract-without-screen", "Contract with no screen"],
+  ["screen-without-area", "Screen with no area"],
   ["deprecated-alias", "Deprecated shadcn-era utility"],
   ["raw-value", "Raw radius, shadow or colour"],
   ["opacity-disabled", "Disabled by opacity"],

@@ -38,7 +38,7 @@ import { useDemo, canViewCommissions } from "@/lib/store";
 import { commissions, commissionEdgeCases, people, personName, roleLabel, type Persona } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
 import {
-  Chip, Section, SeverityBanner, NarrationNote, ConfirmBanner, MoneyValue, SourceTag,
+  Chip, Section, SeverityBanner, ConfirmBanner, MoneyValue, SourceTag,
   FreshnessDate, StatusDot, SchematicBadge, Rows, RowStack,
 } from "@/components/bits";
 import { Button } from "@/components/ui/button";
@@ -92,7 +92,7 @@ function ProjectedAgainstActual({ expected, actual }: { expected: number; actual
       </TimelineRow>
       <TimelineRow
         stage="Actual"
-        provenance={<SourceTag kind="tripsuite" label="booking system remittance · read-only" />}
+        provenance={<SourceTag kind="tripsuite" label="TripSuite remittance · read-only" />}
       >
         <span className="type-data-strong"><MoneyValue amount={actual} /></span>
         <Chip tone="warn" className="ml-[var(--space-2)] tnum">{eur(expected - actual)} under</Chip>
@@ -185,21 +185,13 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
           booking <span className="type-code">{c.bookingRef}</span>
           {c.traveller && <> · {c.traveller}</>}
           {" · "}
-          <FreshnessDate>actuals synced 12:04 · booking-system figures up to 48h behind</FreshnessDate>
+          <FreshnessDate>actuals synced 12:04 · TripSuite figures up to 48h behind</FreshnessDate>
         </p>
       </PageHeader>
 
       <div className={rich ? "doc-layout" : "min-w-0"}>
         {/* ── the body: chapters at column width ── */}
         <div className="min-w-0">
-          {rich && (
-            <NarrationNote>
-              The year-scale recovery hunt (SIG-30) becomes a daily, drafted, human-approved motion.
-              The send-gate is a designed absence (SIG-35): no bulk-send, no auto-send, no scheduled
-              chase — every path ends at a review step.
-            </NarrationNote>
-          )}
-
           {c.creditNotRefund && (
             <div className="pb-[var(--gap-2)]">
               <SeverityBanner severity="Critical">
@@ -235,7 +227,7 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
                 stage={<StatusDot tone={c.state === "paid" ? "ok" : "muted"}>Paid</StatusDot>}
                 provenance={
                   <>
-                    <SourceTag kind="tripsuite" label="booking system · read-only" />
+                    <SourceTag kind="tripsuite" label="TripSuite · read-only" />
                     <FreshnessDate>{c.state === "paid" ? c.paidDate : "synced 12:04 · nothing received"}</FreshnessDate>
                   </>
                 }
@@ -247,7 +239,7 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
                   </>
                 ) : (
                   <span className="text-label-secondary">
-                    unpaid — actuals arrive read-only from the booking system
+                    unpaid — actuals arrive read-only from TripSuite
                   </span>
                 )}
               </TimelineRow>
@@ -342,7 +334,7 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
 
         {/* ── the tool that follows you: the reminder, and the one action ── */}
         {rich && (
-          <aside className="doc-rail" data-rail-label="Reminder">
+          <aside className="doc-rail" data-rail-label="Reminder" data-agent-target="reminder-vo">
             <Section variant="tool" follows title="Reminder">
               {s.reminder === "idle" && (
                 <>

@@ -98,7 +98,7 @@ Evidence classes: **[A]** Airbnb pattern (anatomy file) · **[E]** editorial ref
 **What we'd change if wrong:** collapse 20 into 16.
 **Enforced by:** tier 1 (no arbitrary `rounded-[…]`).
 
-## VIS-041 · 2026-09-10 · proposed
+## VIS-041 · 2026-09-10 · superseded by VIS-042
 **Decision:** the primary action is a pill, the only pill that acts; secondary is a radius-2 grey fill; tertiary is text.
 **Problem it serves:** the action ladder must be visible without colour; one primary per surface.
 **Evidence:** [A] pill reserved for the one primary and for things that float (`anatomy/components/button.md`).
@@ -178,3 +178,30 @@ Evidence classes: **[A]** Airbnb pattern (anatomy file) · **[E]** editorial ref
 **Why this one:** the act a sheet exists for is the most important thing on it while it is open.
 **What we'd change if wrong:** nothing structural; the check scope is one line.
 **Enforced by:** tier 2 "at most one filled button" (scoped to the topmost layer).
+
+## VIS-090 · 2026-09-24 · proposed
+**Decision:** the machine voice is Instrument Sans, replacing Inter. Newsreader and IBM Plex Mono stay.
+**Problem it serves:** the product's sans read as the default of every tool the panel already knows; the case study needs a voice that is chosen, not inherited.
+**Evidence:** [M] ten sans-serifs set live on `/briefing` and captured with their own metrics (`evals/paper/out-fonts`, `evals/paper/fonts.cjs`): Geist, IBM Plex Sans, Instrument Sans, DM Sans, Manrope, Figtree, Public Sans, Hanken Grotesk, Schibsted Grotesk, Albert Sans; [M] tokens-aa 39/39 after the change.
+**Alternatives considered:** keep Inter; the nine other candidates above. Schibsted Grotesk set tabular commas wide ("EUR 12 , 532").
+**Why this one:** _(draft for Constantin to rewrite)_ It sets 4% narrower than Inter at the same size and weight (regular 0.960, semibold 0.964, measured on twelve Briefing lines, 2026-09-24), so a ledger keeps a name and an amount on one line at the 14px floor without shrinking the type; among the ten, it held tabular figures cleanly where Schibsted did not.
+**What we'd change if wrong:** the swap is one line in `layout.tsx`; VIS-010's evidence (Inter's opsz floor at 14) no longer holds and needs its own argument for 14/18.
+**Enforced by:** `layout.tsx` is the only place a family is named; tier 1 `raw-type-utility` keeps every size a role.
+
+## VIS-091 · 2026-09-24 · proposed
+**Decision:** surfaces take constantin.studio's language: the ground is paper (white); the frame and the dock are glass (79% white tint, 18px blur, glass edge, glass shadow); elevation 1–4 is the glass edge over a warm shadow; neutral rules are translucent ink at 12% (the studio `--rule`); neutral fills are `--surface` at 6–12%. The ink primary, the selected fill and the trust tints are unchanged.
+**Problem it serves:** the case study presents Enable inside the studio's frame; a product whose surfaces argue with the frame reads as two authors.
+**Evidence:** [E] `constantin.studio.site/src/styles.css` 21–54 (glass contract), 905–910 ("content is paper, chrome is glass"); [M] tokens-aa 39/39 with translucent fills composited over the ground; tier 1 at zero.
+**Alternatives considered:** frame each screen as a studio figure and leave the product's surfaces as shipped (the case study's first option).
+**Why this one:** _(draft for Constantin to rewrite)_ It gives the product a rule it lacked: what the agency knows sits on paper, and only what moves you around (the frame, the dock) floats as glass, so navigation is never mistaken for knowledge. The constitution rules out Linear's glass as a borrowed material; this glass is the author's own studio language and stays on chrome, never on content, which is the line to hold if the two are compared.
+**What we'd change if wrong:** revert the `ref`/`sys` block and the two `glass` class uses (shell frame, dock); nothing else names a surface.
+**Enforced by:** tokens-aa (contrast of every pair, translucent fills composited); tier 1 `raw-value` (no literal outside `ref`).
+
+## VIS-042 · 2026-09-24 · proposed · supersedes VIS-041
+**Decision:** a control's shape says what it is, its fill says how much it matters. **A rectangle does** (radius-2): primary ink fill, secondary grey fill, tertiary quiet (no fill at rest, grey on hover), destructive claret. **A pill chooses** (32 high: tabs, segmented, filter chips; the selected one inverse, VIS-021). **A chip states** (24 high, never interactive). **An underline goes** (navigation only; "Open the ledger →"). Icon-only chrome is a circle. The scale: actions 40 or 32, pills 32, chips 24, and controls that share a row share a height. `outline` and line tabs are retired.
+**Problem it serves:** under VIS-041 the pill meant both "the primary action" and "the selected view", so a selected Grid toggle read exactly like the page's one action (the risk VIS-021 named); and 29 actions were drawn as underlined links, so doing and going looked the same (Constantin, the knowledge vault, 2026-09-24).
+**Evidence:** [M] census of every rendered control on 22 screens, 2026-09-24: actions 40/32 radius 8, pills 32 full, chips 24 full, no size outside the scale; [M] 29 underlined buttons that ran an action, 12 that navigated; [A] Airbnb keeps the primary as its only pill (`anatomy/components/button.md`), which VIS-041 named as a blind-resemblance risk.
+**Alternatives considered:** keep the primary as the ink pill and tell it from a selected view by size and position (VIS-041 as it stood); make every button a pill.
+**Why this one:** _(draft for Constantin to rewrite)_ One shape per kind of thing, with no exceptions, is a rule a person learns once and an agent can check on every screen; the contrast between the rectangle that acts and the pill that chooses is the one that read clearly on the Travellers toolbar.
+**What we'd change if wrong:** if the ink rectangle loses the primary in a dense toolbar, keep it a rectangle and give it the 40 height where secondaries are 32, rather than returning to the pill.
+**Enforced by:** tier 2 "the primary is a rectangle", "a pill never acts", "an underline never acts", "every control is on the scale", "a row of controls shares a height"; the button primitive (`src/components/ui/button.tsx`) documents the grammar; `/system` renders it.

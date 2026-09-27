@@ -52,6 +52,12 @@ Fourteen surfaces in common, four for the owner alone, eighteen in all. The four
 
 **Itineraries are built in Enable** (decided 2026-09-11, design deferred). Both types create a trip and compose its days here — events, transfers, dining, accommodation — rather than handing it to Axus or Travify. This withdraws DEC-10's refusal of an itinerary builder, so the case study's account of what Enable chose not to build must be rewritten. The builder is designed after the rest of this document is settled; until then the itinerary rows below say *deferred* rather than guess.
 
+**Two ways to publish to the team: a notice and an announcement** (decided 2026-09-24, corrected the same day; design pending). A *notice* is one fact about one property ("spa closed to 15 September"): it lives on the record and stays until someone retires it. An *announcement* is a dated message to people ("new in: three Kyoto ryokans"): it goes to the team or the whole agency, it can state facts, and it **links** records or a destination guide. **Anything the owner notices or announces is an agency source: it influences the assistant's answers, and every answer that uses it cites it, with its date, so its age is visible** (Constantin, 2026-09-24). The two differ in shape, not in authority. Both follow the one sharing rule: the owner's go out directly; an advisor's agency-wide post waits in the publish queue, and once the owner releases it, it carries the same weight with its author kept.
+
+**Where announcements live** (decided 2026-09-24). A "From the agency" chapter on the Briefing for what is new, and an archive in Knowledge as a source of its own. No new dock tile: the dock stays at seven tiles for the user and ten for the owner.
+
+**A destination guide is its own object** (decided 2026-09-24, design pending). A guide is a durable collection of records curated for a destination and a kind of traveller ("Kyoto, for couples"). It is not an announcement: an announcement is dated and can link a guide; a guide is kept, edited and shared like any other thing made in Enable, private until shared.
+
 **What the cut removes.** The colleague's briefing, the ops briefing, the route-role table's four-way split, two sign-in rows, and every `role !== "colleague"` branch in the pages. What it adds: one entitlement switch in the owner's settings.
 
 ---
@@ -112,8 +118,10 @@ All of U1–U17 as herself, plus:
 | O13 | **Match money nobody claimed.** Match an unmatched payment to a booking with a reason; read the closed ones. | Unmatched payments → Match sheet | C U1 |
 | O16 | **Chase a commission on someone else's booking.** Open any overdue commission in the agency, draft the reminder, edit it, send it in her own name; the chase log shows hers beside the advisor's. | Commissions → Commission → Reminder tool | C §4, U4 |
 | O14 | **Reconcile.** Read collected against outstanding across the agency; find bookings under projection; read a processor-migration note. | Commissions (Reconciliation, Discrepancies) | C U3, E2 |
+| O17 | **Publish an announcement.** From the Briefing, write to the team or the agency; link records from the directory; publish, live at once (a user's agency-wide one waits in the queue). Linked records link back; answers cite it. *Built 2026-09-24; guide links wait for O18.* | Briefing → Composer → Briefing ("From the agency") · Knowledge archive | this doc, 2026-09-24 |
+| O18 | **Create a destination guide.** Collect records for a destination and a kind of traveller, order them, add a line on each; keep it private or share it. *Design pending.* | Records → Guide | this doc, 2026-09-24 |
 | O15 | **Retire an advisory she owns.** Answer the review nudge on an agency notice — still true, or closed, by a named person on a dated day. Every agency notice in the seed is hers; two are past their review at 76 and 90 days open. Nothing expires on a timer. | Record → Notice; Notifications (review due) | B §4, U5, DEC-03 |
-Fourteen owner journeys, on top of every journey she performs as a user. Two were removed: O8, setting sharing defaults, when everything became private by default; and O9, opening an advisor's private work under policy, when personal became off limits to the owner. O2–O6 are the demo's third journey; O7 and O10 exist in the schema and the decision log but have no surface yet, which is the first thing this exercise exposes.
+Sixteen owner journeys, on top of every journey she performs as a user (O17 and O18 added 2026-09-24, design pending). Two were removed: O8, setting sharing defaults, when everything became private by default; and O9, opening an advisor's private work under policy, when personal became off limits to the owner. O2–O6 are the demo's third journey; O7 and O10 exist in the schema and the decision log but have no surface yet, which is the first thing this exercise exposes.
 
 ---
 

@@ -35,7 +35,7 @@ import { cn } from "@/lib/utils";
 import { useDemo, type CreatedTraveller, type DemoState } from "@/lib/store";
 import { travellerCards, traveller, people, personName, type Persona } from "@/data/seed";
 import { PageHeader, SplitPage, ViewToggle } from "@/components/layouts";
-import { Chip, DataList, EmptyState, NarrationNote, ConfirmBanner, SeverityBanner, SourceTag } from "@/components/bits";
+import { Chip, DataList, EmptyState, ConfirmBanner, SeverityBanner, SourceTag } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -239,10 +239,6 @@ export default function TravellersPage() {
         </p>
       </PageHeader>
 
-      <NarrationNote>
-        Ownership and sharing are the only two rules that differ from product records. Everything
-        else on a profile inherits the layered anatomy.
-      </NarrationNote>
     </>
   );
 

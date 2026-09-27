@@ -47,7 +47,7 @@ import {
 import { PageHeader, SplitPage, ViewToggle, PropertyImage } from "@/components/layouts";
 import {
   Chip, ConfirmBanner, EmptyState, Section, Segmented, FilterChip, EvidenceDot, FreshnessDate, SeverityBanner,
-  NarrationNote, SourceTag, DataList,
+  SourceTag, DataList,
 } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -128,7 +128,7 @@ function FacetChip({
         "pressable inline-flex h-[var(--control-h-sm)] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border px-[var(--control-px-sm)] type-data",
         selected
           ? "border-selected bg-selected text-on-selected"
-          : "border-hairline bg-raised text-label hover:border-stroke-hover",
+          : "border-control-edge bg-control-rest text-label hover:border-control-edge-hover hover:bg-control-rest-hover",
         className,
       )}
       {...props}
@@ -311,10 +311,6 @@ function RecordsCatalogue() {
         </div>
       </PageHeader>
 
-      <NarrationNote>
-        The catalogue door into the same reconciled model the chat answers from. Every trust state is
-        visible on the card, before it is ever felt in a conversation.
-      </NarrationNote>
     </>
   );
 
@@ -400,7 +396,7 @@ function RecordsCatalogue() {
                 <span className="sr-only">Remove filter</span>
               </FilterChip>
             ))}
-            <Button variant="link" size="sm" onClick={() => setFilters(EMPTY)}>Clear all</Button>
+            <Button variant="tertiary" size="sm" onClick={() => setFilters(EMPTY)}>Clear all</Button>
           </div>
         )}
 
@@ -630,7 +626,7 @@ function RecordPanel({ p }: { p: Product }) {
           <Link href={`/records/${p.id}`}>Open full record <ArrowRight aria-hidden /></Link>
         </Button>
         <Button asChild variant="secondary" size="sm">
-          <Link href="/ask" onClick={() => d({ type: "askScope", scope: p.name })}>
+          <Link href={`/records/${p.id}`} onClick={() => { d({ type: "thread", id: null }); d({ type: "assistant", open: true }); }}>
             <MessageSquareText aria-hidden /> Ask about this
           </Link>
         </Button>

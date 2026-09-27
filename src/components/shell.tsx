@@ -5,23 +5,27 @@
  * Per review 01 §1 and §7: no banner, no world switch, no persona switch, no
  * presenter rail. The demo machinery survives in two places only — the sign-in
  * screen (which sits outside the product) and a keyboard layer here that renders
- * nothing unless invoked. The single presenter pixel allowed in the product is the
- * narration marker, so the presenter can see the overlay is live.
+ * nothing unless invoked. The narration overlay (presenter notes on every page, and
+ * its marker) was removed on 2026-09-25: notes about the product do not belong in it.
  */
 import React, { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, History } from "lucide-react";
-import { useDemo, type Action } from "@/lib/store";
+import { ArrowLeft, ArrowRight, FlaskConical, History } from "lucide-react";
+import { useDemo, allTrips, type Action, type DemoState } from "@/lib/store";
+import { cn } from "@/lib/utils";
 import { Dock } from "@/components/dock";
 import { QuietLoading } from "@/components/bits";
+import { AssistantButton, AssistantCard } from "@/components/assistant";
+import { SupplierReplies } from "@/components/supplier-replies";
 import { productById, travellerCards, commissions, candidates, type Persona } from "@/data/seed";
+import { areaFor } from "@/lib/areas";
 
 /* ── the frame bar: back · forward · breadcrumb, outside the panel ── */
 
 const sectionLabel: Record<string, string> = {
   briefing: "Briefing",
   notifications: "Notifications",
-  ask: "Ask",
+  ask: "Conversations",
   records: "Records",
   travellers: "Travellers",
   commissions: "Commissions",
@@ -36,18 +40,20 @@ const sectionLabel: Record<string, string> = {
   review: "Confirm new records",
   settings: "Settings",
   system: "The system",
+  lab: "Lab",
 };
 
 /** Resolve a dynamic segment to the name of the thing it is. */
-function entityLabel(section: string, id: string): string {
+function entityLabel(section: string, id: string, s: DemoState): string {
   if (section === "records") return productById(id)?.name ?? id;
   if (section === "travellers") return travellerCards.find((t) => t.id === id)?.name ?? id;
   if (section === "commissions") return commissions.find((c) => c.id === id)?.property ?? id;
   if (section === "review") return candidates.find((c) => c.id === id)?.name ?? id;
+  if (section === "itineraries") return allTrips(s).find((t) => t.id === id)?.title ?? id;
   return sectionLabel[id] ?? id;
 }
 
-function crumbFor(pathname: string): string[] {
+function crumbFor(pathname: string, s: DemoState): string[] {
   const parts = pathname.split("/").filter(Boolean);
   if (parts.length === 0) return ["Briefing"];
   const out: string[] = [];
@@ -56,28 +62,31 @@ function crumbFor(pathname: string): string[] {
     const known = sectionLabel[part];
     if (known) { out.push(known); return; }
     const parent = parts[i - 1] ?? "";
-    out.push(entityLabel(parent, part));
+    out.push(entityLabel(parent, part, s));
   });
   return out.length ? out : ["Briefing"];
 }
 
+/* The bar lives in the panel's top edge (Constantin, 2026-09-25): no strip of its own
+   above the frame, just the smallest chrome. Back and forward are tiny circles and each
+   crumb a tiny pill, on the faintest surface. */
 function FrameBar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { s } = useDemo();
-  const crumbs = crumbFor(pathname);
-  const btn =
-    "pressable grid size-7 cursor-pointer place-items-center rounded-md text-label-secondary " +
-    "hover:bg-interactive hover:text-label disabled:text-label-disabled";
+  const { s, d } = useDemo();
+  const crumbs = crumbFor(pathname, s);
+  const btn = "pressable grid size-6 cursor-pointer place-items-center rounded-full bg-faint text-label-secondary hover:bg-interactive hover:text-label";
   return (
-    <div className="flex h-8 shrink-0 items-center gap-1 px-1">
-      <button onClick={() => router.back()} className={btn} aria-label="Back"><ArrowLeft className="size-3.5" /></button>
-      <button onClick={() => router.forward()} className={btn} aria-label="Forward"><ArrowRight className="size-3.5" /></button>
-      <nav aria-label="Breadcrumb" className="ml-1 flex min-w-0 items-center gap-1.5 type-meta">
+    <div className="frame-bar box-content flex h-6 shrink-0 items-center gap-1 px-[var(--space-4)] pt-[var(--space-4)]">
+      <button onClick={() => router.back()} className={btn} aria-label="Back"><ArrowLeft className="size-3" /></button>
+      <button onClick={() => router.forward()} className={btn} aria-label="Forward"><ArrowRight className="size-3" /></button>
+      <nav aria-label="Breadcrumb" className="ml-1 flex min-w-0 items-center gap-1">
         {crumbs.map((c, i) => (
-          <span key={`${c}-${i}`} className="flex min-w-0 items-center gap-1.5">
-            {i > 0 && <span className="text-label-quaternary">/</span>}
-            <span className={i === crumbs.length - 1 ? "truncate text-label" : "truncate"}>{c}</span>
+          <span
+            key={`${c}-${i}`}
+            className={cn("flex h-6 min-w-0 items-center truncate rounded-full bg-faint px-2.5 type-micro", i === crumbs.length - 1 ? "text-label" : "text-label-secondary")}
+          >
+            {c}
           </span>
         ))}
       </nav>
@@ -86,6 +95,18 @@ function FrameBar() {
           one surface and not the others, so pressing V on Ask made the product look
           like it gave two answers to one question — a bug, not an iteration. Here it
           is true everywhere at once, and no screen has to caption its own failure. */}
+      {/* The lab: the itinerary builder on trial (docs/rebuild/06-itinerary-builder.md).
+          Switching back keeps the page. */}
+      {s.lab && (
+        <button
+          type="button"
+          onClick={() => d({ type: "lab", on: false })}
+          className="ml-auto flex h-6 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-faint px-2.5 type-micro text-label-secondary hover:bg-interactive hover:text-label"
+        >
+          <FlaskConical className="size-3" aria-hidden />
+          Lab · the itinerary builder · switch to live
+        </button>
+      )}
       {s.world === "v1" && (
         <span
           className="ml-auto mr-1 flex h-[var(--chip-h)] shrink-0 items-center gap-1.5 rounded-full bg-crit-soft px-2.5 type-micro text-crit"
@@ -129,8 +150,8 @@ const checkpoints: { key: string; label: string; go: (r: Router, d: Dispatch) =>
   { key: "1", label: "morning", go: (r, d) => { d({ type: "signIn", role: "user" }); d({ type: "world", world: "v2" }); r.push("/briefing"); } },
   { key: "2", label: "commission", go: (r, d) => { d({ type: "signIn", role: "user" }); r.push("/commissions/vo"); } },
   { key: "3", label: "record", go: (r, d) => { d({ type: "signIn", role: "user" }); d({ type: "world", world: "v2" }); r.push("/records/maison-leandre"); } },
-  { key: "4", label: "ask", go: (r, d) => { d({ type: "askScope", scope: "Maison Léandre" }); r.push("/ask"); } },
-  { key: "5", label: "refusal", go: (r, d) => { d({ type: "askScope", scope: null }); r.push("/ask?state=refusal"); } },
+  { key: "4", label: "ask", go: (r) => { r.push("/ask?c=leandre-rate"); } },
+  { key: "5", label: "refusal", go: (r) => { r.push("/ask?state=refusal"); } },
   { key: "6", label: "v1 rewind", go: (r, d) => { d({ type: "world", world: "v1" }); r.push("/records/maison-leandre"); } },
   { key: "7", label: "traveller", go: (r, d) => { d({ type: "world", world: "v2" }); r.push("/travellers/s-marchetti"); } },
   { key: "8", label: "admin confirm", go: (r, d) => { d({ type: "signIn", role: "owner" }); r.push("/admin/review/sereno"); } },
@@ -152,6 +173,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const onSignIn = pathname === "/signin";
+  /* Outside the product too: the clickable roadmap (/roadmap) and the door that enters the
+     prototype as someone (/door). No frame, no sign-in redirect. */
+  const outside = pathname.startsWith("/roadmap") || pathname === "/door";
+
+  /* The current area is written as data-area on <html>, so the canvas, the selected
+     controls, the primary and every portal (menus, sheets, tooltips, toasts) wear it. */
+  useEffect(() => {
+    const html = document.documentElement;
+    const area = areaFor(pathname);
+    if (area) html.dataset.area = area; else delete html.dataset.area;
+  }, [pathname]);
 
   /* The store rehydrates from sessionStorage in an effect, and a child's effect runs
      before the provider's. Settle one tick later so a mid-demo reload is not read as
@@ -163,10 +195,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!settled) return;
+    if (!settled || outside) return;
     if (!s.signedIn && !onSignIn) router.replace("/signin");
     if (s.signedIn && onSignIn) router.replace("/briefing");
-  }, [settled, s.signedIn, onSignIn, router]);
+  }, [settled, s.signedIn, onSignIn, outside, router]);
 
   /* Role scoping is a product claim, not a nav convenience: a surface a role cannot
      use does not exist for them. Hiding the dock tile is not enough — the route has
@@ -182,20 +214,20 @@ export function Shell({ children }: { children: React.ReactNode }) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;   /* ⌘1…⌘7 belong to the dock */
     if (typingOrDialog(e)) return;
     const k = e.key.toLowerCase();
-    if (k === "n") { d({ type: "narration" }); return; }
     if (k === "v") { d({ type: "world", world: s.world === "v2" ? "v1" : "v2" }); return; }
+    if (k === "l") { d({ type: "lab" }); return; }
     const cp = checkpoints.find((c) => c.key === e.key);
     if (cp) { e.preventDefault(); cp.go(router, d); }
   }, [router, d, s.world]);
 
   useEffect(() => {
-    if (onSignIn) return;
+    if (onSignIn || outside) return;
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onKey, onSignIn]);
+  }, [onKey, onSignIn, outside]);
 
   /* Sign-in sits outside the product: no dock, no page chrome, no presenter keys. */
-  if (onSignIn) return <>{children}</>;
+  if (onSignIn || outside) return <>{children}</>;
 
   /* While the store rehydrates — and while a session-less route is being replaced —
      the frame is drawn and the panel carries the one loading treatment. A blank
@@ -203,50 +235,47 @@ export function Shell({ children }: { children: React.ReactNode }) {
      for a product whose argument is that nothing is hidden. */
   if (!settled || !s.signedIn) {
     return (
-      <div className="h-dvh overflow-hidden bg-base p-[var(--frame-inset)]">
+      <div className="canvas h-dvh overflow-hidden bg-base p-[var(--frame-inset)]">
         <div className="flex h-full flex-col gap-[var(--frame-inset)]">
-          <div className="h-7 shrink-0" aria-hidden />
           <div
-            className="min-h-0 flex-1 overflow-hidden rounded-xl border border-frame bg-raised"
+            className="min-h-0 flex-1 overflow-hidden rounded-xl frame-surface"
           >
             <QuietLoading note="Restoring the session. The workspace draws once who you are is settled." />
           </div>
-          <div className="h-[60px] shrink-0" aria-hidden />
+          <div className="h-[var(--dock-row)] shrink-0" aria-hidden />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-dvh overflow-hidden bg-base p-[var(--frame-inset)]">
+    <div className="canvas h-dvh overflow-hidden bg-base p-[var(--frame-inset)] transition-colors duration-300">
       {/* The frame: a breadcrumb strip outside the border, a panel that owns its own
           scroll, and the dock floating over the inset below. The page never scrolls. */}
       <div className="flex h-full flex-col gap-[var(--frame-inset)]">
-        <FrameBar />
         <main
           /* The frame does not scroll — each page owns its scroll, so an inspector can
-             be a genuinely full-height column beside content that scrolls independently. */
-          className="min-h-0 flex-1 overflow-hidden rounded-xl border border-frame bg-raised"
+             be a genuinely full-height column beside content that scrolls independently.
+             The bar sits in its top edge. */
+          className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl frame-surface"
         >
-          {children}
+          <FrameBar />
+          {/* The assistant's card takes the right-hand slot on every page, and the page
+              gives it the room, as it does for an inspector. */}
+          <div className={cn("min-h-0 flex-1", s.assistantOpen && "mr-[424px]")}>{children}</div>
+          {s.assistantOpen && <AssistantCard />}
         </main>
         {/* The dock's own row — the panel ends above it, so the border truly
-            excludes the dock rather than being overlapped by it. */}
-        <div className="h-[60px] shrink-0" aria-hidden />
+            excludes the dock rather than being overlapped by it. The dock is 48 tall,
+            12 from the bottom; this row is 42, so the panel ends 6 above the dock
+            (tightened 2026-09-25). */}
+        <div className="h-[var(--dock-row)] shrink-0" aria-hidden />
       </div>
 
-      {s.narration && (
-        <div
-          /* Above the dock, not beside it. At 375px the dock fills the width and the
-             badge sat on top of the first tile. */
-          className="pointer-events-none fixed bottom-[84px] left-4 z-50 rounded-full bg-overlay px-2.5 py-1 type-code uppercase tracking-widest text-label-secondary shadow-elev-1 sm:bottom-6"
-          role="status"
-        >
-          narration
-        </div>
-      )}
-
       <Dock />
+      <AssistantButton />
+      {s.lab && <SupplierReplies />}
+
     </div>
   );
 }

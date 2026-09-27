@@ -20,12 +20,24 @@ function resolve(name, depth = 0) {
   const ref = v.match(/^var\((--[\w-]+)\)$/);
   return ref ? resolve(ref[1], depth + 1) : v;
 }
+/* A colour is a hex, or a translucent `rgb(<triplet> / <alpha>)` — the studio's rules
+   and fills (VIS-091) — which is composited over the page ground before it is measured,
+   because a translucent fill has no contrast of its own. */
+const GROUND = "--sys-bg-base";
 function hex(name) {
   const v = resolve(name);
   const m = v && v.match(/^#([0-9a-f]{6})$/i);
-  if (!m) throw new Error(`${name} does not resolve to a hex colour (got ${v})`);
-  const n = parseInt(m[1], 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  if (m) {
+    const n = parseInt(m[1], 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  const t = v && v.match(/^rgb\((?:var\((--[\w-]+)\)|(\d+ \d+ \d+))\s*\/\s*([\d.]+)\)$/);
+  if (t && name !== GROUND) {
+    const rgb = (t[1] ? resolve(t[1]) : t[2]).split(/\s+/).map(Number);
+    const a = Number(t[3]), under = hex(GROUND);
+    return rgb.map((c, i) => Math.round(a * c + (1 - a) * under[i]));
+  }
+  throw new Error(`${name} does not resolve to a hex or rgb(<triplet> / <alpha>) colour (got ${v})`);
 }
 function lum([r, g, b]) {
   const f = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };

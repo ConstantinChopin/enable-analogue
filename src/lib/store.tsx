@@ -4,7 +4,7 @@
  *
  * Two layers live here and they are deliberately separate:
  *  - session: who is signed in. Changing it is a sign-out/sign-in, not a toggle.
- *  - demo:    the presenter's affordances (build vintage, narration, checkpoints).
+ *  - demo:    the presenter's affordances (build vintage, checkpoints).
  *             These never render as product chrome; they are reached by keyboard,
  *             or set on the sign-in screen, which sits outside the product.
  *
@@ -15,9 +15,14 @@
  */
 import React, { createContext, useContext, useReducer } from "react";
 import {
-  personName, publishQueue, leandreFields, travellerCards, notificationsFor, people,
+  personName, personInitials, publishQueue, leandreFields, travellerCards, notificationsFor, people, announcements,
 } from "@/data/seed";
-import type { Persona, World, Notification, QueueItem, ProductCategory } from "@/data/seed";
+import type { Persona, World, Notification, QueueItem, ProductCategory, Announcement, Notice } from "@/data/seed";
+import { trips, type Trip } from "@/data/seed";
+
+/** Every trip on this desk: the seeded ones, and those started by hand this session. */
+export const allTrips = (s: Pick<DemoState, "createdTrips">): Trip[] => [...trips, ...s.createdTrips];
+import { seedLines, replyFor, stamp, shortDate, type TripLine, type LineRequest, type DraftBrief } from "@/data/trip-lines";
 
 export type NoticeState = "new" | "seen" | "actioned" | "deferred";
 
@@ -68,6 +73,30 @@ export interface CreatedTraveller {
   share: ShareScope;
 }
 
+/* ── publishing to the team: a notice and an announcement ─────────────────────
+   Both answer "who is this for" first and follow the one sharing rule. A notice is
+   one fact on one record; an announcement is a dated message that links records.
+   What the owner publishes, and what she releases, is an agency source: answers use
+   it and cite it with its date (docs/rebuild/05-two-roles.md, 2026-09-24).       */
+export interface CreatedNotice {
+  id: string;
+  productId: string;
+  productName: string;
+  text: string;
+  severity: "Info" | "Important" | "Critical";
+  scope: ShareScope;
+  by: Persona;
+}
+
+export interface CreatedAnnouncement {
+  id: string;
+  title: string;
+  body: string;
+  links: string[];
+  audience: "team" | "agency";
+  by: Persona;
+}
+
 export interface DemoState {
   /* session */
   signedIn: boolean;
@@ -75,7 +104,27 @@ export interface DemoState {
 
   /* presenter */
   world: World;
-  narration: boolean;
+  /** The lab: the itinerary builder on trial (docs/rebuild/06-itinerary-builder.md), for
+      this session. Entered at /lab or with L; the frame bar switches back to live. The
+      assistant it first held went live on 2026-09-25. */
+  lab: boolean;
+  /** Whether the assistant's card is out. Closed until asked for: the
+      button, ⌘J, the ⌘K hand-off, a "Why?" or a peek. */
+  assistantOpen: boolean;
+  /** The conversations, newest first, each with its turns and the page it began on (its
+      context). A turn is a question with the answer it was given, or a task the
+      assistant is performing. */
+  assistantThreads: AssistantThread[];
+  /** The conversation in front; null means the next question starts a new one. */
+  assistantThread: string | null;
+  /** Properties taken off a trip's shortlist this session: trip id → product ids. */
+  shortlistOff: Record<string, string[]>;
+  /** Every trip's lines (src/data/trip-lines.ts): the itinerary builder's state. What the
+      live app derives from trips (a leg's state, a shortlist) reads these, so an act in
+      the builder is true everywhere at once. */
+  tripLines: TripLine[];
+  /** Trips started by hand this session (the builder): Planning, private to whoever made them. */
+  createdTrips: Trip[];
 
   /* the agency's entitlement for its user: whether R. Devane sees money. The owner
      always does. Set in the owner's settings. */
@@ -97,7 +146,6 @@ export interface DemoState {
   requestFiled: boolean;
   noteSaved: boolean;
   prefConfirmed: boolean;
-  askScope: string | null;
   notices: Record<string, NoticeState>;
   /** Field key → the edit written over it, if any. */
   fieldEdits: Record<string, FieldEdit>;
@@ -105,6 +153,10 @@ export interface DemoState {
   /* made by hand this session */
   createdRecords: CreatedRecord[];
   createdTravellers: CreatedTraveller[];
+  createdNotices: CreatedNotice[];
+  createdAnnouncements: CreatedAnnouncement[];
+  /** Closed by hand this session: status toasts, and the Briefing's insight rail. */
+  dismissed: Record<string, true>;
   /** Publish-queue item id → what the owner decided. */
   released: Record<string, { outcome: "published" | "returned"; note?: string }>;
   /** Notice id → who retired it and why. Nothing expires on a timer. */
@@ -119,7 +171,13 @@ const initial: DemoState = {
   signedIn: false,
   role: "user",
   world: "v2",
-  narration: false,
+  lab: false,
+  assistantOpen: false,
+  assistantThreads: [],
+  assistantThread: null,
+  shortlistOff: {},
+  tripLines: seedLines,
+  createdTrips: [],
   commissionAccess: true,
   conflictResolved: false,
   conflictChoice: null,
@@ -134,11 +192,13 @@ const initial: DemoState = {
   requestFiled: false,
   noteSaved: false,
   prefConfirmed: false,
-  askScope: null,
   notices: {},
   fieldEdits: {},
   createdRecords: [],
   createdTravellers: [],
+  createdNotices: [],
+  createdAnnouncements: [],
+  dismissed: {},
   released: {},
   retired: {},
   accessRequests: [],
@@ -150,7 +210,23 @@ export type Action =
   | { type: "signIn"; role: Persona }
   | { type: "signOut" }
   | { type: "world"; world: World }
-  | { type: "narration"; on?: boolean }
+  | { type: "lab"; on?: boolean }
+  | { type: "assistant"; open: boolean }
+  | { type: "ask"; q: string; path: string; answer?: AssistantAnswer; title?: string }
+  | { type: "task"; task: TaskId; label: string; path: string; brief?: DraftBrief }
+  | { type: "taskStep"; thread: string; index: number; steps: number }
+  | { type: "taskEnd"; thread: string; index: number; status: "done" | "cancelled" }
+  | { type: "thread"; id: string | null }
+  | { type: "shortlistOff"; trip: string; product: string }
+  /* the itinerary builder: a line is added, changed, asked about, answered, accepted */
+  | { type: "tripCreate"; trip: Trip }
+  | { type: "tripRemove"; id: string }
+  | { type: "lineAdd"; line: TripLine }
+  | { type: "lineRemove"; id: string }
+  | { type: "lineSet"; id: string; patch: Partial<TripLine> }
+  | { type: "lineSend"; id: string; request: LineRequest }
+  | { type: "lineReply"; id: string; request: string }
+  | { type: "lineAccept"; id: string; request: string }
   | { type: "commissionAccess"; on: boolean }
   | { type: "resolveConflict"; choice: string; reason: string }
   | { type: "reminder"; state: DemoState["reminder"] }
@@ -162,19 +238,65 @@ export type Action =
   | { type: "fileRequest" }
   | { type: "saveNote" }
   | { type: "confirmPref" }
-  | { type: "askScope"; scope: string | null }
   | { type: "notice"; id: string; state: NoticeState }
   | { type: "editField"; key: string; edit: FieldEdit }
   | { type: "revertField"; key: string }
   | { type: "reviewEdit"; key: string; outcome: "approved" | "returned"; note?: string }
   | { type: "createRecord"; record: CreatedRecord }
   | { type: "createTraveller"; traveller: CreatedTraveller }
+  | { type: "createNotice"; notice: CreatedNotice }
+  | { type: "createAnnouncement"; announcement: CreatedAnnouncement }
+  | { type: "dismiss"; id: string }
+  | { type: "restore"; id: string }
   | { type: "shareCreated"; kind: "record" | "traveller"; id: string; scope: ShareScope }
   | { type: "release"; id: string; outcome: "published" | "returned"; note?: string }
   | { type: "retireNotice"; id: string; reason: string }
   | { type: "requestAccess"; travellerId: string }
   | { type: "shareDocument"; name: string; scope: ShareScope }
   | { type: "reset" };
+
+/* ── the assistant's conversations (the lab) ─────────────────────────────────── */
+export type TaskId = "match-op1" | "draft-vo" | "shortlist-verlaine" | "ask-ideas" | "draft-trip";
+export interface AssistantTurn {
+  q: string;
+  path: string;
+  task?: { id: TaskId; step: number; status: "running" | "ready" | "done" | "cancelled"; brief?: DraftBrief };
+  /** The answer as it was given. A conversation is a record: later changes to the model
+      must not rewrite what was said (an answer about a payment that has since been
+      matched still reads as it did). */
+  answer?: AssistantAnswer;
+}
+export interface AssistantAnswer {
+  text: string[];
+  facts?: [string, string][];
+  sources?: string[];
+  actions?: { label: string; href?: string; sheet?: "announcement"; task?: TaskId; brief?: DraftBrief; reply?: string }[];
+  /** A draft in conversation: the brief so far, and the question it waits on. */
+  draft?: DraftBrief;
+  /** Quick replies to the question asked: one group answers on a tap; several are
+      chosen, then sent with `submit`. Typing answers too. */
+  ask?: { groups: { name: string; options: string[] }[]; submit?: string };
+}
+export interface AssistantThread { id: string; title: string; path: string; when: string; turns: AssistantTurn[] }
+
+/** A turn goes on the conversation in front, or starts one titled by its first words. */
+function addTurn(s: DemoState, turn: AssistantTurn, title?: string): DemoState {
+  const cur = s.assistantThreads.find((t) => t.id === s.assistantThread);
+  if (cur) {
+    return { ...s, assistantOpen: true, assistantThreads: s.assistantThreads.map((t) => (t.id === cur.id ? { ...t, turns: [...t.turns, turn] } : t)) };
+  }
+  const id = `c${s.assistantThreads.length + 1}`;
+  return {
+    ...s, assistantOpen: true, assistantThread: id,
+    assistantThreads: [{ id, title: title ?? turn.q, path: turn.path, when: "Today", turns: [turn] }, ...s.assistantThreads],
+  };
+}
+function mapTurn(s: DemoState, thread: string, index: number, f: (t: AssistantTurn) => AssistantTurn): DemoState {
+  return {
+    ...s,
+    assistantThreads: s.assistantThreads.map((t) => (t.id === thread ? { ...t, turns: t.turns.map((x, i) => (i === index ? f(x) : x)) } : t)),
+  };
+}
 
 function reducer(s: DemoState, a: Action): DemoState {
   switch (a.type) {
@@ -183,7 +305,62 @@ function reducer(s: DemoState, a: Action): DemoState {
     /* The session ends; the agency's day does not. */
     case "signOut": return { ...s, signedIn: false };
     case "world": return { ...s, world: a.world };
-    case "narration": return { ...s, narration: a.on ?? !s.narration };
+    case "lab": return { ...s, lab: a.on ?? !s.lab };
+    case "assistant": return { ...s, assistantOpen: a.open };
+    case "ask": return addTurn(s, { q: a.q, path: a.path, answer: a.answer }, a.title);
+    case "task": return addTurn(s, { q: a.label, path: a.path, task: { id: a.task, step: 0, status: "running", brief: a.brief } });
+    case "taskStep": return mapTurn(s, a.thread, a.index, (t) => t.task ? {
+      ...t, task: { ...t.task, step: t.task.step + 1, status: t.task.step + 1 >= a.steps ? "ready" : "running" },
+    } : t);
+    case "taskEnd": return mapTurn(s, a.thread, a.index, (t) => t.task ? { ...t, task: { ...t.task, status: a.status } } : t);
+    case "thread": return { ...s, assistantOpen: true, assistantThread: a.id };
+    case "shortlistOff": return {
+      ...s, shortlistOff: { ...s.shortlistOff, [a.trip]: [...(s.shortlistOff[a.trip] ?? []), a.product] },
+      /* the shortlist is the trip's ideas: taking a property off takes its idea away */
+      tripLines: s.tripLines.filter((l) => !(l.tripId === a.trip && l.productId === a.product && l.status === "idea")),
+    };
+    case "tripCreate": return s.createdTrips.some((t) => t.id === a.trip.id) ? s : { ...s, createdTrips: [...s.createdTrips, a.trip] };
+    case "tripRemove": return { ...s, createdTrips: s.createdTrips.filter((t) => t.id !== a.id), tripLines: s.tripLines.filter((l) => l.tripId !== a.id) };
+    case "lineAdd": return s.tripLines.some((l) => l.id === a.line.id) ? s : { ...s, tripLines: [...s.tripLines, a.line] };
+    case "lineRemove": return { ...s, tripLines: s.tripLines.filter((l) => l.id !== a.id) };
+    case "lineSet": return { ...s, tripLines: s.tripLines.map((l) => (l.id === a.id ? { ...l, ...a.patch } : l)) };
+    case "lineSend": return {
+      ...s,
+      tripLines: s.tripLines.map((l) => (l.id !== a.id ? l : {
+        ...l,
+        /* an idea (or a refusal) becomes a question; a hold stays a hold while it is confirmed */
+        status: l.status === "idea" || l.status === "declined" ? "requested" : l.status,
+        requests: [...l.requests, a.request],
+      })),
+    };
+    case "lineReply": return {
+      ...s,
+      tripLines: s.tripLines.map((l) => (l.id !== a.id ? l : {
+        ...l,
+        requests: l.requests.map((r) => {
+          if (r.id !== a.request || r.reply) return r;
+          const { subject, ...read } = replyFor(l, r.kind);
+          return { ...r, reply: { at: stamp(), doc: subject, read } };
+        }),
+      })),
+    };
+    case "lineAccept": return {
+      ...s,
+      tripLines: s.tripLines.map((l) => {
+        if (l.id !== a.id) return l;
+        const r = l.requests.find((x) => x.id === a.request);
+        if (!r?.reply) return l;
+        const { read } = r.reply;
+        const at = stamp();
+        return {
+          ...l,
+          status: read.status,
+          holdUntil: read.status === "held" ? read.until : undefined,
+          confirmation: read.status === "confirmed" ? { ref: read.ref ?? "by reply", by: s.role, at: at.slice(0, 6), source: r.reply.doc } : l.confirmation,
+          requests: l.requests.map((x) => (x.id === r.id ? { ...x, reply: { ...r.reply!, accepted: { by: s.role, at } } } : x)),
+        };
+      }),
+    };
     case "commissionAccess": return { ...s, commissionAccess: a.on };
     case "resolveConflict": return { ...s, conflictResolved: true, conflictChoice: a.choice, conflictReason: a.reason };
     case "reminder": return { ...s, reminder: a.state, reminderBy: a.state === "sent" ? s.role : a.state === "idle" ? null : s.reminderBy };
@@ -195,7 +372,6 @@ function reducer(s: DemoState, a: Action): DemoState {
     case "fileRequest": return { ...s, requestFiled: true };
     case "saveNote": return { ...s, noteSaved: true };
     case "confirmPref": return { ...s, prefConfirmed: true };
-    case "askScope": return { ...s, askScope: a.scope };
     case "notice": return { ...s, notices: { ...s.notices, [a.id]: a.state } };
     case "editField": return { ...s, fieldEdits: { ...s.fieldEdits, [a.key]: a.edit } };
     case "revertField": {
@@ -213,6 +389,10 @@ function reducer(s: DemoState, a: Action): DemoState {
     }
     case "createRecord": return { ...s, createdRecords: [...s.createdRecords, a.record] };
     case "createTraveller": return { ...s, createdTravellers: [...s.createdTravellers, a.traveller] };
+    case "createNotice": return { ...s, createdNotices: [...s.createdNotices, a.notice] };
+    case "createAnnouncement": return { ...s, createdAnnouncements: [...s.createdAnnouncements, a.announcement] };
+    case "dismiss": return { ...s, dismissed: { ...s.dismissed, [a.id]: true } };
+    case "restore": { const rest = { ...s.dismissed }; delete rest[a.id]; return { ...s, dismissed: rest }; }
     case "shareCreated": {
       if (a.kind === "record") {
         return { ...s, createdRecords: s.createdRecords.map((r) => (r.id === a.id ? { ...r, share: a.scope } : r)) };
@@ -230,7 +410,7 @@ function reducer(s: DemoState, a: Action): DemoState {
     case "requestAccess":
       if (s.accessRequests.some((r) => r.travellerId === a.travellerId && r.by === s.role)) return s;
       return { ...s, accessRequests: [...s.accessRequests, { travellerId: a.travellerId, by: s.role }] };
-    case "reset": return { ...initial, signedIn: s.signedIn, role: s.role, world: s.world, narration: s.narration };
+    case "reset": return { ...initial, signedIn: s.signedIn, role: s.role, world: s.world, lab: s.lab };
   }
 }
 
@@ -333,8 +513,63 @@ export function queueItems(s: DemoState): QueueItem[] {
         preview: `${personName[v.by]}'s own document, shared with the whole agency today.`,
         action: "Publish to the whole agency",
       })),
+    ...s.createdNotices
+      .filter((n) => n.scope === "agency" && n.by === "user")
+      .map((n): QueueItem => ({
+        id: `ntc-${n.id}`, kind: "notice", by: personName[n.by], text: `${n.productName} — notice`,
+        preview: `${n.severity} · ${n.text} Written by ${personName[n.by]} today, shared with the whole agency.`,
+        action: "Publish to the whole agency",
+      })),
+    ...s.createdAnnouncements
+      .filter((a) => a.audience === "agency" && a.by === "user")
+      .map((a): QueueItem => ({
+        id: `ann-${a.id}`, kind: "announcement", by: personName[a.by], text: a.title,
+        preview: `${a.body} Links ${a.links.length} ${a.links.length === 1 ? "record" : "records"}.`,
+        action: "Publish to the whole agency",
+      })),
   ];
   return [...shared, ...publishQueue];
+}
+
+/* ── who a notice or an announcement has reached ───────────────────────────────
+   Its author always. The team (the Paris desk: the user, not the owner) at once. The
+   whole agency at once when the owner writes it, or when she releases a user's. */
+function reaches(s: DemoState, by: Persona, scope: ShareScope, queueId: string): boolean {
+  if (by === s.role) return true;
+  if (scope === "team") return s.role === "user";
+  if (scope === "agency") return by === "owner" || s.released[queueId]?.outcome === "published";
+  return false;
+}
+
+/** Still in the owner's queue, as its author sees it. */
+function waitingRelease(s: DemoState, by: Persona, scope: ShareScope, queueId: string) {
+  return scope === "agency" && by === "user" && !s.released[queueId];
+}
+
+export type AnnouncementView = Announcement & { waiting: boolean };
+
+/** Newest first: what was published this session, then the seeded ones. */
+export function announcementsFor(s: DemoState): AnnouncementView[] {
+  const made = s.createdAnnouncements
+    .filter((a) => reaches(s, a.by, a.audience, `ann-${a.id}`) && s.released[`ann-${a.id}`]?.outcome !== "returned")
+    .map((a): AnnouncementView => ({
+      id: a.id, title: a.title, body: a.body, by: a.by, when: "Today", audience: a.audience, links: a.links,
+      waiting: waitingRelease(s, a.by, a.audience, `ann-${a.id}`),
+    }))
+    .reverse();
+  return [...made, ...announcements.map((a) => ({ ...a, waiting: false }))];
+}
+
+/** Notices written on a record this session that have reached this reader, shaped like the seed's. */
+export function createdNoticesOn(s: DemoState, productId: string): (Notice & { waiting: boolean })[] {
+  return s.createdNotices
+    .filter((n) => n.productId === productId && reaches(s, n.by, n.scope, `ntc-${n.id}`))
+    .map((n) => ({
+      id: n.id, productId: n.productId, productName: n.productName, text: n.text, severity: n.severity,
+      scope: n.scope === "private" ? "personal" : n.scope, owner: personInitials[n.by],
+      openedAt: "Today", ageDays: 0,
+      waiting: waitingRelease(s, n.by, n.scope, `ntc-${n.id}`),
+    }));
 }
 
 /* ── notifications that exist because someone did something this session ───── */
@@ -372,11 +607,12 @@ function liveNotifications(s: DemoState): Notification[] {
     /* Everything in the queue was shared by R. Devane, the seeded items included, so a
        return always has her to go back to. Only what was shared this session raises
        the owner's "waiting" notification; the seeded items are her morning already. */
-    const live = item.id.startsWith("rec-") || item.id.startsWith("trv-") || item.id.startsWith("shared-doc-");
+    const live = ["rec-", "trv-", "shared-doc-", "ntc-", "ann-"].some((p) => item.id.startsWith(p));
     if (!decided && live) {
+      const what = { record: "a new record", document: "a document", traveller: "a traveller profile", notice: "a notice", announcement: "an announcement" } as Record<string, string>;
       out.push({
         id: `live-queue-${item.id}`, roles: ["owner"], tag: "Knowledge", severity: "Info",
-        headline: `${item.by} shared ${item.kind === "record" ? "a new record" : item.kind === "document" ? "a document" : "a traveller profile"} with the whole agency`,
+        headline: `${item.by} shared ${what[item.kind] ?? "something"} with the whole agency`,
         detail: item.text, subject: null, generatedBy: "Shared with the whole agency", when: "Just now",
         action: { label: "Open the publish queue", href: "/admin/publish" }, defaultState: "new",
       });
@@ -386,6 +622,49 @@ function liveNotifications(s: DemoState): Notification[] {
         headline: `${people.owner} returned “${item.text}”`,
         detail: decided.note ? `Her note: “${decided.note}”` : "Returned without a note. It stays shared with the people you chose.",
         subject: null, generatedBy: "Publish queue", when: "Just now", defaultState: "new",
+      });
+    }
+  }
+
+  /* What the owner published directly reaches the desk as it goes out. */
+  for (const a of s.createdAnnouncements) {
+    if (a.by !== "owner") continue;
+    out.push({
+      id: `live-ann-${a.id}`, roles: ["user"], tag: "Knowledge", severity: "Info",
+      headline: `${personName.owner} announced “${a.title}”`,
+      detail: `${a.body.split(". ")[0].replace(/\.$/, "")}. Answers may cite it, with its date.`,
+      subject: null, generatedBy: "Announcement", when: "Just now",
+      action: { label: "Read the announcement", href: `/knowledge?source=Announcements&doc=${a.id}` }, defaultState: "new",
+    });
+  }
+  for (const n of s.createdNotices) {
+    if (n.by !== "owner" || n.scope === "private") continue;
+    out.push({
+      id: `live-ntc-${n.id}`, roles: ["user"], tag: "Records", severity: n.severity,
+      headline: `${n.severity} notice on ${n.productName}`,
+      detail: n.text, subject: { label: n.productName, href: `/records/${n.productId}` },
+      generatedBy: "Notice", when: "Just now",
+      action: { label: "Open the record", href: `/records/${n.productId}` }, defaultState: "new",
+    });
+  }
+
+  /* A supplier answered: what the reply was read to say waits for the advisor. It is a
+     candidate until she accepts it, as a record is until someone confirms it. */
+  for (const l of s.tripLines) {
+    const trip = allTrips(s).find((t) => t.id === l.tripId);
+    for (const r of l.requests) {
+      if (!r.reply || !trip || r.sentOn < "2026-08-28") continue;
+      const { read } = r.reply;
+      const said = read.status === "held" ? `held until ${read.until ? shortDate(read.until) : "further notice"}` : read.status === "confirmed" ? `confirmed${read.ref ? `, ref ${read.ref}` : ""}` : "declined";
+      const who = l.supplier?.name ?? l.what.split(",")[0];
+      out.push({
+        id: `live-reply-${r.id}`, roles: [r.by], tag: "Traveller", severity: read.status === "declined" ? "Important" : "Info",
+        headline: `${who} replied: ${said}`,
+        detail: `${l.what}, ${trip.title}. ${read.note ?? "Read from the reply."} It stays as it was until you accept what they said.`,
+        subject: { label: trip.title, href: `/itineraries/${trip.id}?line=${l.id}` },
+        generatedBy: "Supplier reply", when: r.reply.at,
+        action: { label: "Open the line", href: `/itineraries/${trip.id}?line=${l.id}` },
+        defaultState: r.reply.accepted ? "actioned" : "new",
       });
     }
   }

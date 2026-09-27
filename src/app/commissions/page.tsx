@@ -22,11 +22,13 @@
 import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useDemo, canViewCommissions } from "@/lib/store";
-import { commissions, personName, roleLabel, type Commission } from "@/data/seed";
+import { useDemo, canViewCommissions, allTrips } from "@/lib/store";
+import { inCommissions } from "@/lib/trip-checks";
+import { commissions, personName, roleLabel, productById, type Commission } from "@/data/seed";
+import { termsFor } from "@/data/trip-lines";
 import { Page, PageHeader, SplitPage } from "@/components/layouts";
 import {
-  Chip, Section, Segmented, MoneyValue, SourceTag, SeverityBanner, NarrationNote, DataList,
+  Chip, Section, Segmented, MoneyValue, SourceTag, SeverityBanner, DataList,
 } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -135,7 +137,18 @@ function Ledger() {
 
   const header = (
     <>
-      <PageHeader title="Commissions">
+      <PageHeader
+        title="Commissions"
+        actions={
+          <Segmented
+            value={filter}
+            onChange={(v) => { setFilter(v); setSelected(null); }}
+            options={views}
+            label="Commission state"
+            className="flex-wrap"
+          />
+        }
+      >
         {/* The one figure the briefing widget does not carry: what is unrecovered. */}
         <p className="mt-[var(--space-2)] type-meta tnum">
           <span className="type-figure text-label">{eur(outstanding)}</span> outstanding across{" "}
@@ -143,10 +156,6 @@ function Ledger() {
         </p>
       </PageHeader>
 
-      <NarrationNote>
-        The briefing widget arrives here with its filter already applied. The widget is a
-        saved view onto this ledger, not a page of its own.
-      </NarrationNote>
     </>
   );
 
@@ -159,15 +168,9 @@ function Ledger() {
       panel={active ? <DetailPanel c={active} /> : null}
     >
       <Section>
-        {/* Both controls are filters, so both sit at control-sm. */}
+        {/* Search narrows the list, so it sits with it; the state is the view and sits on
+            the title row (the title-row rule, layouts.tsx). */}
         <div className="flex flex-wrap items-center gap-[var(--space-2)]">
-          <Segmented
-            value={filter}
-            onChange={(v) => { setFilter(v); setSelected(null); }}
-            options={views}
-            label="Commission state"
-            className="flex-wrap"
-          />
           <div className="relative min-w-0 flex-1 sm:max-w-[280px]">
             <Search
               className="pointer-events-none absolute left-[10px] top-1/2 size-[var(--icon-md)] -translate-y-1/2 text-label-tertiary"
@@ -237,7 +240,41 @@ function Ledger() {
           {rows.length} of {commissions.length} records · overdue first, oldest first
         </p>
       </Section>
+
+      {/* The builder (the lab): a line confirmed under a programme projects its commission
+          here, worked from the programme's terms. Nobody types it twice. The seeded
+          bookings above arrived from the booking system; these are this session's. */}
+      {s.lab && <ProjectedFromTrips />}
     </SplitPage>
+  );
+}
+
+function ProjectedFromTrips() {
+  const { s } = useDemo();
+  const rows = s.tripLines
+    .filter(inCommissions)
+    .map((l) => {
+      const rate = termsFor(l.productId!, l.program!)?.rate ?? 0;
+      return { l, trip: allTrips(s).find((t) => t.id === l.tripId), name: productById(l.productId!)?.name ?? l.what, rate, amount: Math.round(l.sell! * rate) };
+    });
+  if (!rows.length) return null;
+  return (
+    <Section title="Projected from trips" chips={<span className="type-meta tnum">{rows.length} this session</span>}>
+      <ul className="divide-y divide-hairline">
+        {rows.map(({ l, trip, name, rate, amount }) => (
+          <li key={l.id} className="flex flex-wrap items-center justify-between gap-[var(--space-3)] py-[var(--space-3)]">
+            <span className="min-w-0">
+              <Link href={`/itineraries/${l.tripId}?line=${l.id}`} className="type-data-strong underline decoration-hairline underline-offset-4 hover:decoration-ink">{name}</Link>
+              <span className="block type-meta">{trip?.traveller} · {l.program} {Math.round(rate * 100)}% · ref {l.confirmation?.ref} · confirmed {l.confirmation?.at}</span>
+            </span>
+            <span className="flex items-center gap-[var(--space-2)]">
+              <span className="type-data tnum">EUR {amount.toLocaleString("en-GB")}</span>
+              <Chip tone="neutral">projected</Chip>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Section>
   );
 }
 

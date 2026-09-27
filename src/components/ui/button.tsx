@@ -4,15 +4,25 @@ import { Slot } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
-/* ── Button — the action ladder made visible (VIS-041) ───────────────────────
-   default   the ONE primary action per surface: an ink pill. The only pill that acts.
-   secondary a grey fill, radius-2, under the content it extends.
-   outline   a hairline box on raised paper — a secondary that must sit on a fill.
-   ghost     no surface at rest; fill on hover. For icon buttons in chrome.
-   link      a text action: underlined, in the title row.
-   destructive the one filled action that removes something; claret, radius-2, never a pill.
+/* ── Button — what a control is, said by its shape (VIS-042) ──────────────────
+   A rectangle DOES. A pill CHOOSES (Segmented, Tabs, FilterChip) or STATES (Chip).
+   An underline GOES somewhere. Nothing crosses: a pill never acts, a rectangle never
+   chooses, an underline never acts. Fill says how much an action matters.
 
-   Sizes: md 40 (the row module) and sm 32; icon variants are square.
+   default     the ONE primary action per surface (and per sheet, VIS-081): ink fill,
+               radius-2. At the end of the tool that owns it.
+   secondary   a grey fill, radius-2, under the content it extends.
+   tertiary    a quiet action: no fill at rest, the grey fill on hover, radius-2. In
+               the title row or a chapter footer. Verb labels ("Add note", "Upload").
+   destructive the one filled action that removes something: claret, radius-2, only
+               inside the sheet that confirms it.
+   ghost       icon-only chrome (back, close, search): a circle, no fill at rest.
+   link        NAVIGATION ONLY: underlined text that opens another screen or a saved
+               view ("Open the ledger →"). Never an action — an action is a tertiary.
+   outline     retired (VIS-042): a secondary sits on any ground now that surfaces
+               are translucent. Kept only so nothing breaks while callers move.
+
+   Sizes: md 40 (the row module) and sm 32; icon variants are circles.
    States (VIS-060): hover is a fill step, press is scale 0.96 (`.pressable`),
    focus is the double ring (global), disabled is a colour swap.               */
 const buttonVariants = cva(
@@ -21,9 +31,11 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "rounded-full bg-ink text-on-ink hover:bg-ink-hover active:bg-ink-pressed disabled:bg-ink-disabled disabled:text-on-ink-disabled",
+          "rounded-md bg-ink text-on-ink hover:bg-ink-hover active:bg-ink-pressed disabled:bg-ink-disabled disabled:text-on-ink-disabled",
         secondary:
           "rounded-md bg-interactive text-label hover:bg-interactive-hover active:bg-interactive-pressed disabled:bg-disabled disabled:text-label-disabled",
+        tertiary:
+          "rounded-md text-label hover:bg-interactive active:bg-interactive-pressed disabled:text-label-disabled",
         outline:
           "rounded-md border border-hairline bg-raised text-label hover:border-stroke-hover disabled:border-hairline disabled:text-label-disabled",
         ghost:
@@ -34,7 +46,7 @@ const buttonVariants = cva(
           "rounded-md bg-crit text-on-ink hover:brightness-95 disabled:bg-disabled disabled:text-label-disabled",
       },
       size: {
-        default: "h-[var(--control-h-md)] px-[var(--control-px-md)] data-[variant=default]:px-[var(--control-px-pill)]",
+        default: "h-[var(--control-h-md)] px-[var(--control-px-md)]",
         sm: "h-[var(--control-h-sm)] gap-1.5 px-[var(--control-px-sm)]",
         icon: "size-[var(--control-h-md)] rounded-full",
         "icon-sm": "size-[var(--control-h-sm)] rounded-full",
