@@ -10,25 +10,28 @@
  * the store's (`queueItems`): the seeded day plus whatever R. Devane shared agency-wide
  * this session; every decision is the store's too (`released`), so it survives a sign-out.
  *
- * Chapters, in order: Publish queue (one row per item: kind, what it is, who shared it,
- * what the owner reads before releasing it, its state) · Who the whole agency is (the
- * audience a release reaches, quiet).
- *
- * The one primary — "Publish to the whole agency" — sits at the bottom of the tool that
- * follows (Queue), naming the next waiting item it is allowed to publish, and is absent
- * when none remains. Each waiting row keeps a secondary "Publish" so the act is reachable
- * where the item is read, and a text action "Return with a note" that opens a sheet whose
- * filled action is "Return" (a note is required). A forwarded mail is read in its source
- * sheet before it can be published, from the row or the rail; opening that sheet is what
- * unlocks it. Publication state is carried by Chip only.
+ * Triage, as every queue (UX sweep COL-05, FB-06, FB-09, COL-13, VIS-096, 2026-09-28).
+ * Until then the rail's ink button published whatever was "Next", named only in small
+ * grey text, instantly and for good, while returning needed a note. Now:
+ *   list       one row per item, waiting first. Selecting a row opens it; Enter or a
+ *              double-click opens the thing itself (the record, the vault).
+ *   inspector  exactly what will be published: the notice or note as written, the
+ *              document, or the forwarded mail in full (so a mail is read before it can
+ *              go out: opening it is reading it). "Open ↗" goes to the object.
+ *   footer     the consequence first ("Reaches 34 advisors on 4 desks, R. Devane stays
+ *              the author"), then Return with a note, then the ink act at the right:
+ *              "Publish to the whole agency". After either, the selection moves to the
+ *              next waiting item, the count drops, and a toast offers Undo for ten
+ *              seconds. The row then says what happened, with when and by whom.
+ * The rail that repeated the counts is gone; the count is said once, in the title row.
  */
-import React, { useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { adminPolicy, people, type QueueItem, type QueueKind } from "@/data/seed";
-import { useDemo, queueItems } from "@/lib/store";
-import { Page, PageHeader } from "@/components/layouts";
-import {
-  Chip, Section, ConfirmBanner, Rows, Row, RowStack, DataList,
-} from "@/components/bits";
+import { useDemo, queueItems, type DemoState } from "@/lib/store";
+import { PageHeader, SplitPage, useQueryState } from "@/components/layouts";
+import { Chip, Rows, DataList, Done } from "@/components/bits";
+import { notify } from "@/lib/notify";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -48,233 +51,156 @@ const kindLabel: Record<QueueKind, string> = {
   announcement: "Announcement",
 };
 
-export default function AdminPublish() {
-  const { s, d } = useDemo();
-  const items = queueItems(s);
+/** Where the thing being published lives, so it can be opened before it goes out. */
+function hrefFor(s: DemoState, q: QueueItem): string | undefined {
+  if (q.id === "spa-pub" || q.id === "note-pub") return "/records/maison-leandre";
+  if (q.kind === "document" || q.kind === "mail") return "/knowledge";
+  if (q.id.startsWith("rec-")) return `/records/${q.id.slice(4)}`;
+  if (q.id.startsWith("trv-")) return `/travellers/${q.id.slice(4)}`;
+  if (q.id.startsWith("ntc-")) {
+    const n = s.createdNotices.find((x) => `ntc-${x.id}` === q.id);
+    return n ? `/records/${n.productId}` : undefined;
+  }
+  /* An announcement not yet released has no page to open: the inspector shows it whole. */
+  return undefined;
+}
 
-  /** Forwarded mail whose source was opened here. Nothing is published unread. */
-  const [read, setRead] = useState<Record<string, boolean>>({});
-  /** The item whose source sheet is open. */
-  const [sourceOf, setSourceOf] = useState<QueueItem | null>(null);
+const stampTime = (at?: string) => (at ? /\d{1,2}:\d{2}$/.exec(at)?.[0] ?? "today" : "today");
+
+export default function AdminPublish() {
+  return (
+    <Suspense fallback={null}>
+      <PublishQueue />
+    </Suspense>
+  );
+}
+
+function PublishQueue() {
+  const { s, d } = useDemo();
+  const router = useRouter();
+  const items = queueItems(s);
+  const [sel, setSel] = useQueryState("sel");
+
+  /* Undo takes back this one decision, from the state as it is when Undo is pressed,
+     so a later decision in the same ten seconds is not undone with it. */
+  const latest = useRef(s);
+  useEffect(() => { latest.current = s; });
+
   /** The item being returned, and the note that goes back with it. */
   const [returning, setReturning] = useState<QueueItem | null>(null);
   const [note, setNote] = useState("");
-  const [banner, setBanner] = useState<string | null>(null);
 
   const waiting = items.filter((q) => !s.released[q.id]);
-  const publishedCount = items.filter((q) => s.released[q.id]?.outcome === "published").length;
-  const returnedCount = items.filter((q) => s.released[q.id]?.outcome === "returned").length;
-  const mayPublish = (q: QueueItem) => q.kind !== "mail" || !!read[q.id];
-  const next = waiting.find(mayPublish);
+  const ordered = [...waiting, ...items.filter((q) => s.released[q.id])];
+  const active = items.find((q) => q.id === sel) ?? null;
 
-  const publish = (q: QueueItem) => {
-    if (!mayPublish(q) || s.released[q.id]) return;
-    d({ type: "release", id: q.id, outcome: "published" });
-    setBanner(`Published to the whole agency — ${q.by} kept as author.`);
+  const advance = (from: string) => {
+    const next = waiting.find((q) => q.id !== from);
+    setSel(next?.id ?? null);
+  };
+  const undo = (id: string) => () => {
+    const cur = latest.current;
+    const released = { ...cur.released };
+    delete released[id];
+    const decisions = { ...cur.decisions };
+    delete decisions[`publish:${id}`];
+    d({ type: "patch", patch: { released, decisions } });
   };
 
-  const openSource = (q: QueueItem) => {
-    setRead((m) => ({ ...m, [q.id]: true }));
-    setSourceOf(q);
+  const publish = (q: QueueItem) => {
+    if (s.released[q.id]) return;
+    d({ type: "release", id: q.id, outcome: "published" });
+    d({ type: "decide", id: `publish:${q.id}`, what: "Published" });
+    advance(q.id);
+    notify("Published to the whole agency", { detail: `${q.text} · ${q.by} stays the author`, undo: undo(q.id), seconds: 10 });
   };
 
   const commitReturn = () => {
     if (!returning || !note.trim()) return;
-    d({ type: "release", id: returning.id, outcome: "returned", note: note.trim() });
-    setBanner(`Returned to ${returning.by} with your note.`);
+    const q = returning;
+    d({ type: "release", id: q.id, outcome: "returned", note: note.trim() });
+    d({ type: "decide", id: `publish:${q.id}`, what: "Returned" });
     setReturning(null);
     setNote("");
+    advance(q.id);
+    notify(`Returned to ${q.by}`, { detail: q.text, undo: undo(q.id), seconds: 10 });
   };
 
+  /** What happened to an item, with when and by whom. */
+  const outcome = (q: QueueItem) => {
+    const r = s.released[q.id];
+    if (!r) return null;
+    const when = stampTime(s.decisions[`publish:${q.id}`]?.at);
+    return r.outcome === "published" ? `Published · ${when} · ${people.owner}` : `Returned · ${when} · ${people.owner}`;
+  };
+
+  const header = <PageHeader title="Publish queue" count={`${waiting.length} waiting`} />;
+
   return (
-    <Page width="wide">
-      <PageHeader title="Publish queue">
-        <p className="mt-[var(--space-2)] max-w-[62ch] type-data-read text-label-secondary">
-          What an advisor shares with the whole agency waits here. Read it, then publish it with
-          its author kept, or return it with a note.
-        </p>
-      </PageHeader>
-
-      <div className="doc-layout">
-        {/* ── the body: chapters at column width ── */}
-        <div className="min-w-0">
-
-          <div className="space-y-[var(--space-2)] pb-[var(--gap-2)] empty:hidden">
-            <ConfirmBanner show={banner !== null}>{banner}</ConfirmBanner>
+    <SplitPage
+      header={header}
+      panelOpen={Boolean(active)}
+      onClosePanel={() => setSel(null)}
+      panelTitle={active?.text ?? "Item"}
+      openHref={active ? hrefFor(s, active) : undefined}
+      panel={active ? <ItemPanel q={active} outcome={outcome(active)} /> : null}
+      footer={active && !s.released[active.id] ? (
+        <div className="space-y-[var(--space-3)]">
+          <p className="type-meta">
+            Reaches {adminPolicy.governed.advisors} advisors on {adminPolicy.governed.desks} desks. {active.by} stays the author.
+          </p>
+          <div className="flex flex-wrap items-center justify-end gap-[var(--space-2)]">
+            <Button variant="secondary" onClick={() => { setNote(""); setReturning(active); }}>Return…</Button>
+            <Button onClick={() => publish(active)}>Publish to the whole agency</Button>
           </div>
-
-          <Section
-            title="Publish queue"
-            chips={<Chip tone="neutral"><span className="tnum">{waiting.length}</span> waiting</Chip>}
-            footer={
-              <p className="type-meta">
-                Sharing with a colleague or a team takes effect at once; only the whole agency waits
-                for you. Your own agency-wide shares go out directly.
-              </p>
-            }
-          >
-            <Rows>
-              {items.map((q) => {
-                const decided = s.released[q.id];
-                const isMail = q.kind === "mail";
-                return (
-                  <RowStack
-                    key={q.id}
-                    head={
-                      <>
-                        <span className="flex min-w-0 items-center gap-[var(--space-2)]">
-                          <Chip tone="neutral">{kindLabel[q.kind]}</Chip>
-                          <span className="min-w-0 truncate type-data-strong">{q.text}</span>
-                        </span>
-                        {!decided ? (
-                          <Chip tone="neutral">waiting</Chip>
-                        ) : decided.outcome === "published" ? (
-                          <Chip tone="ok">published</Chip>
-                        ) : (
-                          <Chip tone="primary">returned</Chip>
-                        )}
-                      </>
-                    }
-                  >
-                    {q.preview && (
-                      <p className="mt-[var(--space-1)] max-w-[62ch] type-data-read text-label">{q.preview}</p>
-                    )}
-                    {isMail && q.source && (
-                      <p className="mt-[var(--space-1)] max-w-[62ch] type-data-read text-label">
-                        Arrived by mail from <span className="type-code">{q.source.from}</span> ·{" "}
-                        <span className="tnum">{q.source.received}</span>
-                      </p>
-                    )}
-                    <p className="mt-[var(--space-1)]">
-                      Shared by {q.by}
-                      {!decided && isMail && !read[q.id] && " · read the source before publishing"}
-                      {decided?.outcome === "published" && ` · published today by ${people.owner}, author kept`}
-                      {decided?.outcome === "returned" && ` · returned today by ${people.owner}`}
-                    </p>
-                    {decided?.outcome === "returned" && decided.note && (
-                      <p className="mt-[var(--space-1)] max-w-[62ch]">Your note: &ldquo;{decided.note}&rdquo;</p>
-                    )}
-                    {!decided && (
-                      <div className="mt-[var(--space-3)] flex flex-wrap items-center gap-[var(--space-3)]">
-                        {isMail && (
-                          <Button variant="secondary" size="sm" onClick={() => openSource(q)}>Review source</Button>
-                        )}
-                        {mayPublish(q) && (
-                          <Button variant="secondary" size="sm" onClick={() => publish(q)}>Publish</Button>
-                        )}
-                        <Button variant="tertiary" size="sm" onClick={() => { setNote(""); setReturning(q); }}>
-                          Return with a note
-                        </Button>
-                      </div>
-                    )}
-                  </RowStack>
-                );
-              })}
-            </Rows>
-          </Section>
-
-          <Section title="Who the whole agency is" quiet deep>
-            <DataList
-              className="max-w-md"
-              rows={[
-                { label: "Advisors", value: <span className="tnum">{adminPolicy.governed.advisors}</span> },
-                { label: "Desks", value: <span className="tnum">{adminPolicy.governed.desks}</span> },
-              ]}
-            />
-            <p className="mt-[var(--space-3)] type-meta">
-              A published item reaches every one of them, with its author on it.
-            </p>
-          </Section>
         </div>
+      ) : undefined}
+    >
+      {items.length === 0 ? (
+        <p className="type-data text-label-secondary">
+          Nothing waits. What an advisor shares with the whole agency arrives here.
+        </p>
+      ) : (
+        <Rows>
+          {ordered.map((q) => {
+            const on = sel === q.id;
+            const r = s.released[q.id];
+            const href = hrefFor(s, q);
+            return (
+              <li
+                key={q.id}
+                data-state={on ? "selected" : undefined}
+                className="row-select -mx-[var(--space-3)] px-[var(--space-3)]"
+              >
+                <button
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => setSel(q.id)}
+                  onDoubleClick={() => href && router.push(href)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && on && href) { e.preventDefault(); router.push(href); }
+                  }}
+                  className="row-stack block w-full cursor-pointer text-left"
+                >
+                  <span className="row-stack-head">
+                    <span className="flex min-w-0 items-center gap-[var(--space-2)]">
+                      <Chip tone="neutral">{kindLabel[q.kind]}</Chip>
+                      <span className="min-w-0 truncate type-data-strong">{q.text}</span>
+                    </span>
+                    {/* The count says how many wait; a row names only what was decided. */}
+                    {r && <Chip tone="neutral">{r.outcome}</Chip>}
+                  </span>
+                  <span className="row-stack-body block type-meta">
+                    {outcome(q) ?? `Shared with the whole agency by ${q.by}`}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </Rows>
+      )}
 
-        {/* ── the tool that follows: the queue's count, and the one action ── */}
-        <aside className="doc-rail" data-rail-label="Queue">
-          <Section variant="tool" follows title="Queue">
-            <Rows>
-              <Row>
-                <span className="row-primary">Waiting</span>
-                <span className="row-trailing"><Chip tone="neutral" className="tnum">{waiting.length}</Chip></span>
-              </Row>
-              <Row>
-                <span className="row-primary">Published today</span>
-                {/* One shape down the column: a chip on every row, zero included. A bare
-                    "0" beside chipped neighbours is the column-shape defect tier 2 catches. */}
-                <span className="row-trailing">
-                  <Chip tone={publishedCount > 0 ? "ok" : "neutral"} className="tnum">{publishedCount}</Chip>
-                </span>
-              </Row>
-              <Row>
-                <span className="row-primary">Returned today</span>
-                <span className="row-trailing">
-                  <Chip tone={returnedCount > 0 ? "primary" : "neutral"} className="tnum">{returnedCount}</Chip>
-                </span>
-              </Row>
-            </Rows>
-            <div className="mt-[var(--space-4)]">
-              {next ? (
-                <>
-                  <p className="mb-[var(--space-2)] type-meta">
-                    Next: {kindLabel[next.kind]} · {next.text}
-                  </p>
-                  <Button className="w-full" onClick={() => publish(next)}>Publish to the whole agency</Button>
-                  <p className="mt-[var(--space-2)] text-center type-meta">
-                    Published by {people.owner} today. {next.by} stays the author.
-                  </p>
-                </>
-              ) : waiting.length > 0 ? (
-                <p className="type-data-read text-label-secondary">
-                  What waits arrived by mail. Review its source before it can be published.
-                </p>
-              ) : (
-                <p className="type-data-read text-label-secondary">
-                  Nothing waits. What an advisor shares with the whole agency arrives here.
-                </p>
-              )}
-            </div>
-          </Section>
-        </aside>
-      </div>
-
-      {/* Review source — the forwarded mail, as it arrived */}
-      <Sheet open={sourceOf !== null} onOpenChange={(o) => { if (!o) setSourceOf(null); }}>
-        <SheetContent side="right">
-          <SheetHeader>
-            <SheetTitle>Forwarded source</SheetTitle>
-            <SheetDescription>
-              {sourceOf?.source?.subject} — read the mail before it reaches the whole agency.
-            </SheetDescription>
-          </SheetHeader>
-          {sourceOf?.source && (
-            <div className="min-h-0 flex-1 space-y-[var(--space-4)] overflow-y-auto px-[var(--space-6)] py-[var(--space-6)]">
-              <DataList
-                rows={[
-                  { label: "From", value: <span className="type-code">{sourceOf.source.from}</span> },
-                  { label: "Received", value: <span className="tnum">{sourceOf.source.received}</span> },
-                  { label: "Forwarded by", value: sourceOf.source.forwardedBy },
-                  { label: "Arrived at", value: <span className="type-code">{sourceOf.source.via}</span> },
-                ]}
-              />
-              <blockquote className="rounded-lg bg-sunken px-[var(--space-4)] py-[var(--space-3)] type-prose-quote">
-                {sourceOf.source.body}
-              </blockquote>
-              <p className="type-meta">
-                The mail is in the vault as &ldquo;{sourceOf.source.doc}&rdquo;. Publishing it keeps{" "}
-                {sourceOf.by} as its author.
-              </p>
-            </div>
-          )}
-          <SheetFooter className="sm:flex-row sm:justify-end">
-            {sourceOf && !s.released[sourceOf.id] && (
-              <Button onClick={() => { publish(sourceOf); setSourceOf(null); }}>
-                Publish to the whole agency
-              </Button>
-            )}
-            <SheetClose asChild><Button variant="secondary">Close</Button></SheetClose>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
-
-      {/* Return with a note — the item stays where its author shared it */}
+      {/* Return with a note: the item stays where its author shared it */}
       <Sheet open={returning !== null} onOpenChange={(o) => { if (!o) { setReturning(null); setNote(""); } }}>
         <SheetContent side="right">
           <SheetHeader>
@@ -296,11 +222,49 @@ export default function AdminPublish() {
             />
           </div>
           <SheetFooter className="sm:flex-row sm:justify-end">
-            <Button disabled={!note.trim()} onClick={commitReturn}>Return</Button>
             <SheetClose asChild><Button variant="secondary">Cancel</Button></SheetClose>
+            <Button disabled={!note.trim()} onClick={commitReturn}>Return to {returning?.by}</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
-    </Page>
+    </SplitPage>
+  );
+}
+
+/* ── the inspector: exactly what will be published ─────────────────────────────── */
+function ItemPanel({ q, outcome }: { q: QueueItem; outcome: string | null }) {
+  const { s } = useDemo();
+  const returned = s.released[q.id]?.outcome === "returned" ? s.released[q.id]?.note : null;
+  return (
+    <div className="flex flex-col gap-[var(--space-6)]">
+      <DataList
+        rows={[
+          { label: "Kind", value: kindLabel[q.kind] },
+          { label: "Shared by", value: q.by },
+          ...(q.source ? [
+            { label: "From", value: <span className="type-meta tnum text-inherit">{q.source.from}</span> },
+            { label: "Received", value: <span className="tnum">{q.source.received}</span> },
+            { label: "Forwarded by", value: q.source.forwardedBy },
+          ] : []),
+        ]}
+      />
+
+      <div>
+        <div className="type-meta text-label-tertiary">{q.source ? q.source.subject : "What will be published"}</div>
+        <blockquote className="mt-[var(--space-2)] rounded-lg bg-sunken px-[var(--space-4)] py-[var(--space-3)] type-prose italic">
+          {q.source ? q.source.body : q.preview ?? q.text}
+        </blockquote>
+        {q.source && (
+          <p className="mt-[var(--space-2)] type-meta">In the vault as &ldquo;{q.source.doc}&rdquo;.</p>
+        )}
+      </div>
+
+      {outcome && (
+        <div className="space-y-[var(--space-1)]">
+          <Done>{outcome}</Done>
+          {returned && <p className="type-meta">Your note: &ldquo;{returned}&rdquo;</p>}
+        </div>
+      )}
+    </div>
   );
 }

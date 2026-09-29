@@ -16,6 +16,7 @@
 import React, { createContext, useContext, useReducer } from "react";
 import {
   personName, personInitials, publishQueue, leandreFields, travellerCards, notificationsFor, people, announcements,
+  notices as seededNotices, orphanedPayments,
 } from "@/data/seed";
 import type { Persona, World, Notification, QueueItem, ProductCategory, Announcement, Notice } from "@/data/seed";
 import { trips, type Trip } from "@/data/seed";
@@ -165,7 +166,16 @@ export interface DemoState {
   accessRequests: { travellerId: string; by: Persona }[];
   /** Document name → where its owner shared it this session. */
   docShares: Record<string, { scope: ShareScope; by: Persona }>;
+  /** Choices a person made and the product said it recorded (FB-07): kept a warning,
+      said a notice is still true, discarded a suggestion. Who and when, so the record
+      can be shown where the warning was. Keyed by what was decided, e.g.
+      "keep:pref:grandin:hotel-verlaine" or "still-true:gm". */
+  decisions: Record<string, Decision>;
+  /** Payments the owner matched to a booking: payment id → what and why (COL-05). */
+  payments: Record<string, { ref: string; reason: string; by: Persona; at: string }>;
 }
+
+export interface Decision { what: string; by: Persona; at: string }
 
 const initial: DemoState = {
   signedIn: false,
@@ -203,6 +213,8 @@ const initial: DemoState = {
   retired: {},
   accessRequests: [],
   docShares: {},
+  decisions: {},
+  payments: {},
 };
 
 export type Action =
@@ -212,11 +224,17 @@ export type Action =
   | { type: "world"; world: World }
   | { type: "lab"; on?: boolean }
   | { type: "assistant"; open: boolean }
-  | { type: "ask"; q: string; path: string; answer?: AssistantAnswer; title?: string }
-  | { type: "task"; task: TaskId; label: string; path: string; brief?: DraftBrief }
+  /* A turn on the conversation in front (or a new one). `said` is what the person typed
+     or tapped, word for word; `chose` an act they pressed; `q` the intent answered, never
+     shown. `base` is a seeded conversation taking its first new turn this session;
+     `about` and `opening` belong to a conversation an entry point starts (VIS-100). */
+  | { type: "ask"; q: string; path: string; answer?: AssistantAnswer; title?: string; said?: string; chose?: string; about?: string; opening?: AssistantOpening; base?: AssistantThread; open?: boolean }
+  | { type: "task"; task: TaskId; label: string; path: string; brief?: DraftBrief; base?: AssistantThread; open?: boolean }
   | { type: "taskStep"; thread: string; index: number; steps: number }
   | { type: "taskEnd"; thread: string; index: number; status: "done" | "cancelled" }
-  | { type: "thread"; id: string | null }
+  /* The conversation in front. `open: false` changes it without drawing the panel (the
+     Conversations page, which is the assistant at full size). */
+  | { type: "thread"; id: string | null; open?: boolean }
   | { type: "shortlistOff"; trip: string; product: string }
   /* the itinerary builder: a line is added, changed, asked about, answered, accepted */
   | { type: "tripCreate"; trip: Trip }
@@ -253,42 +271,132 @@ export type Action =
   | { type: "retireNotice"; id: string; reason: string }
   | { type: "requestAccess"; travellerId: string }
   | { type: "shareDocument"; name: string; scope: ShareScope }
+  /* a choice, recorded with who and when; and its reversal */
+  | { type: "decide"; id: string; what: string }
+  | { type: "undecide"; id: string }
+  | { type: "matchPaymentTo"; id: string; ref: string; reason: string }
+  | { type: "unmatchPayment"; id: string }
+  /* Undo (FB-09): put back the slices an act changed. The caller captures them before
+     it acts, so any act can offer Undo without an inverse action of its own. */
+  | { type: "patch"; patch: Partial<DemoState> }
   | { type: "reset" };
 
-/* ── the assistant's conversations (the lab) ─────────────────────────────────── */
+/* ── the assistant's conversations (VIS-100, 2026-09-28) ─────────────────────────
+   One set of conversations for the panel and the Conversations page (AI-01): the
+   seeded ones (src/components/assistant.tsx `seededThreads`) join these the first time
+   they take a new turn. A turn keeps what the person said apart from what the
+   assistant understood (AI-04), and an answer keeps its sources and the contract it
+   was checked against (AI-05), so a conversation reread later is word for word. */
 export type TaskId = "match-op1" | "draft-vo" | "shortlist-verlaine" | "ask-ideas" | "draft-trip";
 export interface AssistantTurn {
+  /** The intent answered: the words as read, or an entry point's subject ("why:<id>").
+      Never shown to the person. */
   q: string;
+  /** What the person typed, or the label of what they tapped, word for word. Absent when
+      the assistant spoke first (an entry point) or an act began the turn. */
+  said?: string;
+  /** An act pressed on an earlier answer: shown as "You chose: …", never as a bubble. */
+  chose?: string;
   path: string;
+  /** When it was asked, "09:14". */
+  at?: string;
   task?: { id: TaskId; step: number; status: "running" | "ready" | "done" | "cancelled"; brief?: DraftBrief };
   /** The answer as it was given. A conversation is a record: later changes to the model
       must not rewrite what was said (an answer about a payment that has since been
       matched still reads as it did). */
   answer?: AssistantAnswer;
 }
+/** A source an answer stands on, numbered as the answer cites it. */
+export interface AnswerSource {
+  n: number;
+  label: string;
+  detail: string;
+  kind?: "portal" | "intranet" | "email" | "gdrive" | "manual" | "announcement" | "tripsuite" | "axus";
+  /** The document it was quoted from (seed `sourceDocuments`), opened from the citation. */
+  doc?: string;
+  quote?: string;
+}
+/** The answer contract as it was checked when the answer was given. */
+export interface AnswerContract {
+  status: "met" | "refused" | "disagree" | "stale" | "notice";
+  /** The oldest source's date, and how many sources confirm one another. */
+  oldest?: string;
+  corroborated?: number;
+  /** The checks, each passed or failed: a refusal shows the ones it failed. */
+  checks?: { clause: string; ok: boolean; note: string }[];
+  policy?: string;
+  /** Sources seen and held back from the answer. */
+  held?: { label: string; detail: string; age: string }[];
+}
 export interface AssistantAnswer {
   text: string[];
+  /** The sources each paragraph cites, by number. */
+  cites?: number[][];
   facts?: [string, string][];
-  sources?: string[];
-  actions?: { label: string; href?: string; sheet?: "announcement"; task?: TaskId; brief?: DraftBrief; reply?: string }[];
+  sources?: (string | AnswerSource)[];
+  contract?: AnswerContract;
+  /** How the answer was built, stage by stage. */
+  trace?: { stage: string; detail: string }[];
+  /** What the answer rested on, as it stood then: reread later, a change shows as
+      "Since this was answered: …" (AI-06). */
+  basis?: { key: string; was: string };
+  /** `done` is an act answered in place: the chat records the choice and what it did. */
+  actions?: { label: string; href?: string; sheet?: "announcement" | "resolve"; task?: TaskId; brief?: DraftBrief; reply?: string; done?: string; remove?: string }[];
   /** A draft in conversation: the brief so far, and the question it waits on. */
   draft?: DraftBrief;
   /** Quick replies to the question asked: one group answers on a tap; several are
       chosen, then sent with `submit`. Typing answers too. */
   ask?: { groups: { name: string; options: string[] }[]; submit?: string };
 }
-export interface AssistantThread { id: string; title: string; path: string; when: string; turns: AssistantTurn[] }
+/** What an entry point was pressed on, quoted at the top of the conversation it starts:
+    where and when, and the card itself (its area, label, headline and evidence). */
+export interface AssistantOpening {
+  from: string;
+  at: string;
+  area: string | null;
+  label: string;
+  headline: string;
+  evidence?: string;
+  href?: string;
+}
+export interface AssistantThread {
+  id: string; title: string; path: string; when: string; turns: AssistantTurn[];
+  /** The subject an entry point started it about ("insight:<id>", "record:<id>"): the
+      same entry point reopens it rather than starting another (AI-10). */
+  about?: string;
+  opening?: AssistantOpening;
+  /** Whose conversation it is. A conversation is private to whoever asked. */
+  by?: Persona;
+}
 
-/** A turn goes on the conversation in front, or starts one titled by its first words. */
-function addTurn(s: DemoState, turn: AssistantTurn, title?: string): DemoState {
+const clock = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+
+/** A turn goes on the conversation in front, or starts one titled by its first words. A
+    seeded conversation in front joins the store with its first new turn (`base`). */
+function addTurn(
+  s: DemoState, turn: AssistantTurn,
+  opts: { title?: string; about?: string; opening?: AssistantOpening; base?: AssistantThread; open?: boolean } = {},
+): DemoState {
+  const at = turn.at ?? clock();
+  const stamped = { ...turn, at };
+  /* Asked on the Conversations page, the panel stays away (`open: false`). */
+  const assistantOpen = opts.open ?? true;
   const cur = s.assistantThreads.find((t) => t.id === s.assistantThread);
   if (cur) {
-    return { ...s, assistantOpen: true, assistantThreads: s.assistantThreads.map((t) => (t.id === cur.id ? { ...t, turns: [...t.turns, turn] } : t)) };
+    return { ...s, assistantOpen, assistantThreads: s.assistantThreads.map((t) => (t.id === cur.id ? { ...t, turns: [...t.turns, stamped] } : t)) };
   }
-  const id = `c${s.assistantThreads.length + 1}`;
+  if (opts.base && opts.base.id === s.assistantThread) {
+    return { ...s, assistantOpen, assistantThreads: [{ ...opts.base, turns: [...opts.base.turns, stamped] }, ...s.assistantThreads] };
+  }
+  let n = s.assistantThreads.length + 1;
+  while (s.assistantThreads.some((t) => t.id === `c${n}`)) n++;
+  const id = `c${n}`;
   return {
-    ...s, assistantOpen: true, assistantThread: id,
-    assistantThreads: [{ id, title: title ?? turn.q, path: turn.path, when: "Today", turns: [turn] }, ...s.assistantThreads],
+    ...s, assistantOpen, assistantThread: id,
+    assistantThreads: [{
+      id, title: opts.title ?? turn.said ?? turn.chose ?? turn.q, path: turn.path, when: `Today ${at}`, turns: [stamped],
+      about: opts.about, opening: opts.opening, by: s.role,
+    }, ...s.assistantThreads],
   };
 }
 function mapTurn(s: DemoState, thread: string, index: number, f: (t: AssistantTurn) => AssistantTurn): DemoState {
@@ -307,13 +415,14 @@ function reducer(s: DemoState, a: Action): DemoState {
     case "world": return { ...s, world: a.world };
     case "lab": return { ...s, lab: a.on ?? !s.lab };
     case "assistant": return { ...s, assistantOpen: a.open };
-    case "ask": return addTurn(s, { q: a.q, path: a.path, answer: a.answer }, a.title);
-    case "task": return addTurn(s, { q: a.label, path: a.path, task: { id: a.task, step: 0, status: "running", brief: a.brief } });
+    case "ask": return addTurn(s, { q: a.q, said: a.said, chose: a.chose, path: a.path, answer: a.answer }, { title: a.title, about: a.about, opening: a.opening, base: a.base, open: a.open });
+    /* A task is begun by an act, so it is recorded as the choice, not as words said. */
+    case "task": return addTurn(s, { q: a.label, chose: a.label, path: a.path, task: { id: a.task, step: 0, status: "running", brief: a.brief } }, { title: a.label, base: a.base, open: a.open });
     case "taskStep": return mapTurn(s, a.thread, a.index, (t) => t.task ? {
       ...t, task: { ...t.task, step: t.task.step + 1, status: t.task.step + 1 >= a.steps ? "ready" : "running" },
     } : t);
     case "taskEnd": return mapTurn(s, a.thread, a.index, (t) => t.task ? { ...t, task: { ...t.task, status: a.status } } : t);
-    case "thread": return { ...s, assistantOpen: true, assistantThread: a.id };
+    case "thread": return { ...s, assistantOpen: a.open ?? true, assistantThread: a.id };
     case "shortlistOff": return {
       ...s, shortlistOff: { ...s.shortlistOff, [a.trip]: [...(s.shortlistOff[a.trip] ?? []), a.product] },
       /* the shortlist is the trip's ideas: taking a property off takes its idea away */
@@ -410,6 +519,19 @@ function reducer(s: DemoState, a: Action): DemoState {
     case "requestAccess":
       if (s.accessRequests.some((r) => r.travellerId === a.travellerId && r.by === s.role)) return s;
       return { ...s, accessRequests: [...s.accessRequests, { travellerId: a.travellerId, by: s.role }] };
+    case "decide": return { ...s, decisions: { ...s.decisions, [a.id]: { what: a.what, by: s.role, at: stamp() } } };
+    case "undecide": { const next = { ...s.decisions }; delete next[a.id]; return { ...s, decisions: next }; }
+    case "matchPaymentTo": return {
+      ...s,
+      payments: { ...s.payments, [a.id]: { ref: a.ref, reason: a.reason, by: s.role, at: stamp() } },
+      paymentMatched: s.paymentMatched || a.id === "op1",
+    };
+    case "unmatchPayment": {
+      const next = { ...s.payments };
+      delete next[a.id];
+      return { ...s, payments: next, paymentMatched: a.id === "op1" ? false : s.paymentMatched };
+    }
+    case "patch": return { ...s, ...a.patch };
     case "reset": return { ...initial, signedIn: s.signedIn, role: s.role, world: s.world, lab: s.lab };
   }
 }
@@ -685,7 +807,110 @@ function liveNotifications(s: DemoState): Notification[] {
   return out;
 }
 
-/** Everything in this person's inbox: the seeded day, and what happened since. */
+/** Everything in this person's inbox: the seeded day, and what happened since. Money
+    items are absent, not masked, without the entitlement, so the badge, the Briefing and
+    the inbox count the same things. */
 export function inboxFor(s: DemoState): Notification[] {
-  return [...liveNotifications(s).filter((n) => n.roles.includes(s.role)), ...notificationsFor(s.role)];
+  const money = canViewCommissions(s);
+  return [...liveNotifications(s).filter((n) => n.roles.includes(s.role)), ...notificationsFor(s.role)]
+    .filter((n) => money || !(n.tag === "Commissions" || /commission/i.test(n.headline)));
+}
+
+/* ── a notification closes when its subject is dealt with (FB-03, VIS-097) ──────
+   An item in the inbox is about something: a rate, a commission, a record waiting to
+   be confirmed. When the act on that subject happens anywhere in the product, the
+   item is resolved there too, and says how. Nobody clears the same work twice, and
+   the badge never counts finished work. A person still resolved it (DEC-03): the
+   resolution names the act, and the act carries who and when. Opening an item marks
+   it seen (the Notifications page does that); Mark actioned and Defer remain for what
+   has no act of its own. */
+export interface InboxState { state: NoticeState; resolved?: string }
+
+/** Whether a product is still on a trip: shortlisted and not taken off, or a live line. */
+export function onTrip(s: DemoState, tripId: string, productId: string): boolean {
+  const trip = allTrips(s).find((t) => t.id === tripId);
+  const listed = Boolean(trip?.shortlist?.includes(productId)) && !(s.shortlistOff[tripId] ?? []).includes(productId);
+  const lined = s.tripLines.some((l) => l.tripId === tripId && l.productId === productId && l.status !== "cancelled" && l.status !== "declined");
+  return listed || lined;
+}
+
+function resolvedBySubject(s: DemoState, id: string): string | null {
+  switch (id) {
+    case "n-conflict": return s.conflictResolved ? `Resolved on the record${s.conflictChoice ? ` · ${s.conflictChoice}` : ""}` : null;
+    case "n-overdue": return s.reminder === "sent" ? `Reminder sent by ${personName[s.reminderBy ?? s.role]}` : null;
+    case "n-candidate": return s.candidateConfirmed ? "Record confirmed" : null;
+    case "n-duplicate": return s.decisions["review:leandre-dup"] ? `Decided · ${s.decisions["review:leandre-dup"].what}` : null;
+    case "n-payment": return orphanedPayments.every((p) => s.payments[p.id]) ? "Both payments matched" : null;
+    case "n-verlaine": return allTrips(s).some((t) => onTrip(s, t.id, "hotel-verlaine")) ? null : "Taken off the trip";
+    /* L. Grandin's taste conflict with Verlaine: closed by taking it off, or by keeping it. */
+    case "n-pref": return !onTrip(s, "paris-anniversary", "hotel-verlaine")
+      ? "Taken off the trip"
+      : s.decisions["keep:pref:grandin:hotel-verlaine"] ? "Kept despite the preference" : null;
+    case "n-publish": return publishQueue.every((q) => s.released[q.id]) ? "Every item published or returned" : null;
+    case "n-notice-stale": return ["spa", "gm"].every((n) => s.retired[n] || s.decisions[`still-true:${n}`]) ? "Both notices reviewed" : null;
+    default: return null;
+  }
+}
+
+export function inboxState(s: DemoState, n: Notification): InboxState {
+  const resolved = resolvedBySubject(s, n.id);
+  if (resolved) return { state: "actioned", resolved };
+  return { state: s.notices[n.id] ?? n.defaultState };
+}
+
+const SEVERITY_ORDER: Record<Notification["severity"], number> = { Critical: 0, Important: 1, Info: 2 };
+
+/** What waits on this person, most severe first, then in the inbox's own order (FB-04).
+    The Briefing's insight card and the Notifications inbox rank by this one order. */
+export function needsYou(s: DemoState): Notification[] {
+  return inboxFor(s)
+    .map((n, i) => ({ n, i, st: inboxState(s, n).state }))
+    .filter((x) => x.st === "new" || x.st === "seen")
+    .sort((a, b) => SEVERITY_ORDER[a.n.severity] - SEVERITY_ORDER[b.n.severity] || a.i - b.i)
+    .map((x) => x.n);
+}
+
+/** Unseen items waiting on this person: the dock's count, and whether one is Critical. */
+export function unseenCount(s: DemoState): { count: number; critical: boolean } {
+  const unseen = inboxFor(s).filter((n) => inboxState(s, n).state === "new");
+  return { count: unseen.length, critical: unseen.some((n) => n.severity === "Critical") };
+}
+
+/* ── who sees which trips and travellers: one rule (COL-04, VIS-098) ─────────────
+   A traveller, and every trip of theirs, belongs to the advisor who holds them. The
+   owner sees a traveller, and their trips, only once the advisor has shared that
+   traveller with her; otherwise they are absent, not locked, everywhere: Itineraries,
+   Travellers, the Briefing, search. */
+export function sharedWithOwner(s: DemoState, travellerName: string): boolean {
+  if (travellerCards.some((t) => t.name === travellerName && t.shared === people.owner)) return true;
+  if (travellerName === "S. Marchetti") return s.shareTier !== "private";
+  return s.createdTravellers.some((t) => t.name === travellerName && (t.by === "owner" || t.share !== "private"));
+}
+
+export function tripsFor(s: DemoState): Trip[] {
+  const trips = allTrips(s);
+  /* A traveller shared at name and contact only (Collaborator Basic) shares no trips. */
+  const basic = (name: string) => name === "S. Marchetti" && s.shareTier === "basic";
+  return s.role === "user" ? trips : trips.filter((t) => sharedWithOwner(s, t.traveller) && !basic(t.traveller));
+}
+
+/* ── one notice gate (COL-03, FB-01, VIS-099) ───────────────────────────────────
+   A notice on a property decides what may be done with it, the same way on every
+   surface: the record, the trip, the add sheet, the traveller page.
+     Critical   a blocker: the property cannot be added to a trip or asked for, and
+                where it already sits on a trip the one act is to take it off. Nobody
+                is asked to acknowledge it: the product offers no way past it.
+     Important  a warning on the property, beside it wherever it is chosen.
+     Info       context: a neutral line on the record.
+   A retired notice gates nothing. */
+export type NoticeGate = { level: "block" | "warn" | "info"; notice: Notice } | null;
+
+export function noticeGate(s: DemoState, productId: string): NoticeGate {
+  const live: Notice[] = [
+    ...seededNotices.filter((n) => n.productId === productId && n.scope !== "personal"),
+    ...createdNoticesOn(s, productId).filter((n) => !n.waiting),
+  ].filter((n) => !s.retired[n.id] && !(n.id === "spa" && s.spaNoticeClosed));
+  const worst = [...live].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity])[0];
+  if (!worst) return null;
+  return { level: worst.severity === "Critical" ? "block" : worst.severity === "Important" ? "warn" : "info", notice: worst };
 }

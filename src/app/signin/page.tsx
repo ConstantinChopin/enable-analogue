@@ -171,7 +171,7 @@ export default function SignInPage() {
             <ChevronDown className="size-[var(--icon-sm)] transition-transform group-open:rotate-180" aria-hidden />
           </summary>
           <div className="mt-[var(--space-3)]">
-            <div className="mb-[var(--space-2)] type-micro-caps text-label-tertiary">Build vintage</div>
+            <div className="mb-[var(--space-2)] type-meta text-label-tertiary">Build vintage</div>
             <Segmented
               value={s.world}
               onChange={(w) => d({ type: "world", world: w })}

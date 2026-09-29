@@ -17,6 +17,12 @@
  * is a secondary: it leaves the page. The taxonomy budget is empty, so nothing here
  * carries state colour; the connection health chip is words on a hairline.
  *
+ * 2026-09-28 (UX sweep FB-06, FB-08; VIS-097). The copy says what is true and what a
+ * person can do, without the product's case for itself. The money switch is a choice
+ * the owner makes about someone else, so it is recorded in the store with who and when
+ * (`decide`) and confirmed in place, under the row, with the time. The notification
+ * switches stay drawn, not wired: nothing reads them yet, and the badge says so.
+ *
  * Local components (not promoted to bits): SettingRow.
  */
 import { useState, type ReactNode } from "react";
@@ -26,7 +32,7 @@ import {
   personName, personEmail, roleLabel, connectionHealth, connectionsFor, people,
 } from "@/data/seed";
 import { Page, PageHeader } from "@/components/layouts";
-import { Chip, DataList, Section, SchematicBadge, Rows } from "@/components/bits";
+import { Chip, DataList, Done, Section, SchematicBadge, Rows } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ArrowRight } from "lucide-react";
@@ -35,13 +41,13 @@ const NOTIFICATION_PREFS: { id: string; label: string; detail: string; on: boole
   {
     id: "critical",
     label: "Critical notices",
-    detail: "A property advisory that blocks output reaches you immediately.",
+    detail: "A notice that closes a property to bookings reaches you at once.",
     on: true,
   },
   {
     id: "commissions",
     label: "Commission ageing",
-    detail: "A commission that passes its due date raises one item, not a daily reminder.",
+    detail: "A commission that passes its due date raises one item.",
     on: true,
     money: true,
   },
@@ -60,7 +66,7 @@ const NOTIFICATION_PREFS: { id: string; label: string; detail: string; on: boole
   {
     id: "digest",
     label: "Daily digest by email",
-    detail: "Off by default. The briefing is the digest, and it does not need a copy.",
+    detail: "The Briefing, by email, each morning.",
     on: false,
   },
 ];
@@ -96,6 +102,9 @@ export default function SettingsPage() {
   const ownAttention = ownSources.filter((c) => c.state !== "ok").length;
   const one = ownSources.length === 1;
 
+  /* The last time the owner moved the money switch, as the store recorded it. */
+  const moneyChanged = s.decisions["commission-access:user"];
+
   const healthWord = owner
     ? connectionHealth.needAttention > 0 ? connectionHealth.label : "all connected"
     : ownAttention > 0 ? `${ownAttention} need attention` : "all connected";
@@ -113,8 +122,7 @@ export default function SettingsPage() {
           ]}
         />
         <p className="mt-[var(--space-3)] type-meta">
-          Name, role and address come from the agency directory. Changing them is an
-          administrator&rsquo;s act, not a personal one.
+          Name, role and address come from the agency directory. An administrator changes them.
         </p>
       </Section>
 
@@ -139,8 +147,7 @@ export default function SettingsPage() {
           ))}
         </Rows>
         <p className="mt-[var(--space-3)] type-meta">
-          These switches decide what raises an item. Nothing here clears an item — an item is
-          actioned or deferred in triage, deliberately.
+          These decide what raises an item in Notifications. They do not clear the items already there.
         </p>
       </Section>
 
@@ -157,11 +164,19 @@ export default function SettingsPage() {
                 <Switch
                   id="money-user"
                   checked={s.commissionAccess}
-                  onCheckedChange={(on) => d({ type: "commissionAccess", on })}
+                  onCheckedChange={(on) => {
+                    d({ type: "commissionAccess", on });
+                    d({ type: "decide", id: "commission-access:user", what: on ? "on" : "off" });
+                  }}
                 />
               }
             />
           </Rows>
+          {moneyChanged && (
+            <Done className="mt-[var(--space-2)]">
+              {s.commissionAccess ? "Turned on" : "Turned off"} by {personName[moneyChanged.by]}, {moneyChanged.at}
+            </Done>
+          )}
           <p className="mt-[var(--space-3)] type-meta">
             When off, commission figures are absent for her across the product, not masked.
           </p>
@@ -171,13 +186,13 @@ export default function SettingsPage() {
       {/* Both types connect sources, so both reach them from here. */}
       <Section title="Connections" quiet deep chips={<Chip tone="neutral">{healthWord}</Chip>}>
         {owner ? (
-          <p className="type-data-read text-label-secondary">
-            <span className="tnum">{connectionHealth.sources}</span> agency sources feed this
-            workspace. Each one carries its last success, and a failed source degrades answers
-            visibly. What they index arrives closed; connecting a source shares nothing.
+          <p className="type-data text-label-secondary">
+            <span className="tnum">{connectionHealth.sources}</span> agency sources feed the
+            assistant&rsquo;s answers. What they index arrives closed to the administrators;
+            connecting a source shares nothing.
           </p>
         ) : (
-          <p className="type-data-read text-label-secondary">
+          <p className="type-data text-label-secondary">
             <span className="tnum">{ownSources.length}</span> {one ? "source" : "sources"} of your
             own {one ? "feeds" : "feed"} your answers. What {one ? "it indexes" : "they index"} is
             private to you; connecting a source shares nothing.

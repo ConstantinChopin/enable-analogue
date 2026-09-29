@@ -15,7 +15,7 @@
  *
  * Everything here is fictional: suppliers, references, replies and prices.
  */
-import { productById, trips, personName, type Persona, type Trip } from "@/data/seed";
+import { productById, trips, personName, programmes, programmeLinks, type Persona, type Trip } from "@/data/seed";
 
 export type LineKind = "stay" | "transfer" | "dining" | "experience" | "note";
 export type LineStatus = "idea" | "requested" | "held" | "confirmed" | "declined" | "cancelled";
@@ -153,36 +153,22 @@ export function statusWord(l: TripLine, today: string): string {
 }
 
 /* ── programme terms: what a property gives under each programme it sits in ──────
-   The same object the record will show (a property's terms change with the programme,
-   Constantin 2026-09-24). A line chooses one; its commission is worked from it. */
+   The same object the record shows (a property's terms change with the programme,
+   Constantin 2026-09-24): read from the programme links in the seed, so a line and the
+   record can never disagree (2026-09-28). A line chooses one; its commission is worked
+   from it. */
 export interface ProgrammeTerms { rate: number; amenities: string[]; conditions: string }
 
-const TERMS: Record<string, Record<string, ProgrammeTerms>> = {
-  "maison-leandre": {
-    Atelier: { rate: 0.12, amenities: ["Daily breakfast for two", "EUR 100 property credit", "Upgrade on arrival, when available"], conditions: "Booked on the Atelier rate. Commission paid within 45 days of departure." },
-    Meridian: { rate: 0.1, amenities: ["Daily breakfast for two", "Early check-in, when available"], conditions: "Booked on the Meridian rate. Commission paid after departure." },
-  },
-  "hotel-verlaine": {
-    Meridian: { rate: 0.1, amenities: ["Breakfast for two", "A welcome amenity"], conditions: "Booked on the Meridian rate." },
-  },
-  "palacio-amoreiras": {
-    Atelier: { rate: 0.12, amenities: ["Breakfast for two", "EUR 100 spa credit"], conditions: "Booked on the Atelier rate." },
-  },
-  "ryokan-suikawa": {
-    Meridian: { rate: 0.11, amenities: ["Kaiseki dinner on the first night", "Late checkout, when available"], conditions: "Booked on the Meridian rate." },
-  },
-  "villa-ortensia": {
-    Meridian: { rate: 0.11, amenities: ["Breakfast", "Boat transfer from Positano"], conditions: "Booked on the Meridian rate. A 3% bonus adds to it for bookings made by 05 Sep." },
-  },
-};
-
 export function termsFor(productId: string, program: string): ProgrammeTerms | null {
-  const own = TERMS[productId]?.[program];
-  if (own) return own;
-  const p = productById(productId);
-  if (!p || !p.programs.includes(program)) return null;
-  const rate = Number(p.rate.replace("%", "")) / 100;
-  return { rate: Number.isFinite(rate) ? rate : 0, amenities: ["Breakfast for two"], conditions: `Booked on the ${program} rate.` };
+  const link = programmeLinks.find((l) => l.productId === productId && l.programme === program);
+  if (!link) return null;
+  const rate = Number(link.rate.replace("%", "")) / 100;
+  const prog = programmes[link.programme];
+  return {
+    rate: Number.isFinite(rate) ? rate : 0,
+    amenities: link.clientAmenities.map((a) => a.benefit),
+    conditions: `Booked on the ${prog.name} rate${link.code ? ` (${link.code})` : ""}. Commission paid ${prog.paid}.`,
+  };
 }
 
 /* ── who is asked ────────────────────────────────────────────────────────────── */
@@ -197,15 +183,21 @@ export function supplierOf(l: Pick<TripLine, "supplier" | "productId">): { name:
 
 /* ── the traveller's preferences a line is checked against ──────────────────────
    Each has the record tags it argues with. S. Marchetti's come from her profile; the
-   others are seeded here until their profiles are built. */
-export const preferencesOf: Record<string, { text: string; avoid?: string[]; source: string }[]> = {
+   others are seeded here until their profiles are built. `prefers` is the preference in
+   the words the conflict sentence uses, and `sources` how many sources hold it
+   ("L. Grandin prefers classic interiors (3 sources); Hôtel Verlaine is contemporary",
+   FB-02, 2026-09-28). L. Grandin's list is her profile's five (the traveller page reads it). */
+export interface Preference { text: string; avoid?: string[]; source: string; sources?: number; prefers?: string }
+export const preferencesOf: Record<string, Preference[]> = {
   "L. Grandin": [
-    { text: "Classic interiors, never contemporary", avoid: ["contemporary design"], source: "call notes, 14 Jul" },
+    { text: "Classic interiors, never contemporary", avoid: ["contemporary design"], source: "call notes, 14 Jul", sources: 3, prefers: "classic interiors" },
     { text: "A quiet room, away from the street", source: "email, 02 Aug" },
     { text: "No shellfish", source: "TripSuite" },
+    { text: "Dinner no earlier than 20:00", source: "email, 02 Aug" },
+    { text: "Walks rather than guided tours", source: "call notes, 14 Jul" },
   ],
   "S. Marchetti": [
-    { text: "Prefers classic interiors", avoid: ["contemporary design"], source: "email extract, 12 May" },
+    { text: "Prefers classic interiors", avoid: ["contemporary design"], source: "email extract, 12 May", sources: 3, prefers: "classic interiors" },
     { text: "Kaiseki over French dining", source: "call transcript, Jan" },
   ],
   "A. Whitfield": [{ text: "Hates waiting at airports", source: "call notes, 30 Jul" }],

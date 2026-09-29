@@ -8,43 +8,52 @@
  * leads the caption, because it is the one taxonomy this surface is allowed
  * (contract: "sharing state"). The table is the alternate view, on the ledger.
  *
- * Chapters, in order: the count line · the list (grid or table). Beside it, the
- * inspector: identity, the one primary, then the profile's figures and its
- * sharing state.
+ * 2026-09-28 (UX sweep NAV-01, NAV-03, COL-02, COL-06, COL-07, COL-10, COL-11, COL-13,
+ * COL-04; VIS-095, VIS-096, VIS-098, VIS-101):
+ *   title row   the name, one count, "New traveller". Nothing that changes the view.
+ *   toolbar     sharing, search, what is shown and its true order, and Grid or Table,
+ *               all in the URL with the selection. The create never moves: the view
+ *               toggle is in the toolbar, not beside it.
+ *   the list    a click selects and opens the inspector; Enter or a double-click opens
+ *               the profile ("Open ↗" does the same).
+ *   inspector   what the card cannot show: what argues with their trips, each trip and
+ *               how ready it is, who can see the profile, the last contact. Its footer
+ *               is the one act this surface is about: who can see the profile.
+ *   sharing     one sheet (VIS-101). A traveller is shared with a person, so the choices
+ *               are Only me · M. Keller, the full profile · M. Keller, name and contact
+ *               only, and the list says the same words ("J. Dubois · full profile").
+ *   New         a second traveller of the same name warns (Open the one you have, or
+ *               Create anyway), it does not refuse; Cancel, then the act at the right.
  *
- * The one primary: "Open full profile" (contract: open a traveller). It sits at
- * the top of the inspector, the tool that follows the selection; with nothing
- * selected the page has no filled button. The one secondary: "New traveller"
- * (U24), for both types, opening a sheet whose own filled action is "Create
- * traveller" — after a check for a traveller with that name or email.
- *
- * Who sees what (docs/rebuild/05-two-roles.md, "Everything created starts private"
- * and "One sharing rule, for everything"). The seeded travellers are R. Devane's.
- * The owner reaches one only when it is shared with her: the personal layer is the
- * advisor's, inside an agency or not. A traveller someone added by hand is private
- * to its maker until she shares it — with her team at once, with the whole agency
- * once the owner releases it (the owner's own agency-wide shares go out directly).
- *
- * The owner's empty page is the scope-isolation proof: an unshared profile is absent
- * from the list, never a locked row — and so there is nothing to ask for. Asking for
- * access lives on a profile she reached by name from elsewhere in the product.
+ * Who sees what (docs/rebuild/05-two-roles.md, VIS-098). The seeded travellers are
+ * R. Devane's. The owner reaches one only once it is shared with her (the store's
+ * `sharedWithOwner`); otherwise it is absent, not locked, and nothing here counts it. A
+ * traveller someone added by hand is private to its maker until she shares it, with
+ * the Paris desk at once, with the whole agency once the owner releases it.
  */
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useDemo, type CreatedTraveller, type DemoState } from "@/lib/store";
-import { travellerCards, traveller, people, personName, type Persona } from "@/data/seed";
-import { PageHeader, SplitPage, ViewToggle } from "@/components/layouts";
-import { Chip, DataList, EmptyState, ConfirmBanner, SeverityBanner, SourceTag } from "@/components/bits";
+import { useDemo, sharedWithOwner, type CreatedTraveller, type DemoState, type ShareScope } from "@/lib/store";
+import { travellerCards, people, personName, type Persona, type TravellerCard } from "@/data/seed";
+import { PageHeader, SplitPage, ViewToggle, ListToolbar, ListSearch, useQueryState } from "@/components/layouts";
+import {
+  Chip, DataList, EmptyState, FilterChip, SourceTag, Blocker, Warning, SchematicAction,
+} from "@/components/bits";
+import { ShareSheet } from "@/components/share-sheet";
+import { notify } from "@/lib/notify";
+import {
+  travellerShareOf, travellerShareWords, travellerShareOptions, describeTravellerShare, createdShareWords,
+  tripsOfTraveller, readinessOf, attentionFor, takeOff, tasteKey, type TravellerTier,
+} from "@/lib/trip-checks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowRight, Clock, Lock, Share2, Users } from "lucide-react";
+import { Clock, Lock, Share2, Users } from "lucide-react";
 
 /* ── initials: first token, last token ──────────────────────────────────────── */
 function initialsOf(name: string) {
@@ -73,31 +82,8 @@ function reachOfCreated(t: CreatedTraveller, s: Pick<DemoState, "role" | "releas
   return null;
 }
 
-/* ── the sharing state, in words, for one row ── */
-type Sharing = { tone: "neutral" | "primary"; icon: React.ElementType; text: string };
-
-function sharingOfCreated(t: CreatedTraveller, s: Pick<DemoState, "role" | "released">): Sharing {
-  const mine = t.by === s.role;
-  const decided = s.released[`trv-${t.id}`];
-  if (!mine) {
-    if (t.share === "agency" && t.by === "user" && !decided) {
-      return { tone: "neutral", icon: Clock, text: `added by hand · ${personName[t.by]} · waiting for your release` };
-    }
-    return {
-      tone: "primary", icon: Share2,
-      text: `added by hand · shared by ${personName[t.by]} · ${t.share === "team" ? "your team" : "the whole agency"}`,
-    };
-  }
-  if (t.share === "private") return { tone: "neutral", icon: Lock, text: "added by hand · private to you" };
-  if (t.share === "team") return { tone: "primary", icon: Share2, text: "added by hand · your team" };
-  if (t.by === "owner" || decided?.outcome === "published") {
-    return { tone: "primary", icon: Share2, text: "added by hand · the whole agency" };
-  }
-  if (decided?.outcome === "returned") {
-    return { tone: "neutral", icon: Lock, text: `added by hand · returned by ${people.owner}` };
-  }
-  return { tone: "neutral", icon: Clock, text: `added by hand · waiting for ${people.owner}` };
-}
+/* ── the sharing state, in the sheet's words, for one row ── */
+type Sharing = { tone: "neutral" | "primary"; icon: React.ElementType; text: string; shared: boolean };
 
 function SharingChip({ sharing }: { sharing: Sharing }) {
   const Icon = sharing.icon;
@@ -117,15 +103,16 @@ interface Item {
   departsInDays: number | null;
   preferences: number | null;
   profiles: number | null;
-  /** Collaborator Basic: name and contact only; the rest is not rendered. */
+  /** Shared at name and contact only: the rest is not rendered. */
   basic: boolean;
   sharing: Sharing;
+  card?: TravellerCard;
   created?: CreatedTraveller;
 }
 
 /* ── the identity plate: initials on sunken paper; inverse when selected ────── */
 function Initials({ name, size = "md", selected }: { name: string; size?: "sm" | "md" | "lg"; selected?: boolean }) {
-  const dims = { sm: "size-8 type-micro", md: "size-12 type-data-strong", lg: "size-16 type-figure" }[size];
+  const dims = { sm: "size-8 type-meta", md: "size-12 type-data-strong", lg: "size-16 type-figure" }[size];
   return (
     <span
       aria-hidden
@@ -153,93 +140,105 @@ function idFor(name: string, taken: Set<string>) {
 
 /* ── page ───────────────────────────────────────────────────────────────────── */
 export default function TravellersPage() {
+  return (
+    <Suspense fallback={null}>
+      <Travellers />
+    </Suspense>
+  );
+}
+
+function Travellers() {
   const { s, d } = useDemo();
-  /* The seeded travellers are R. Devane's. The owner reaches one only through a
-     share — the personal layer is the advisor's, inside an agency or not. */
+  const router = useRouter();
+  /* The seeded travellers are R. Devane's. The owner reaches one only through a share. */
   const viaShare = s.role === "owner";
 
-  const [view, setView] = useState<"grid" | "table">("grid");
-  const [selected, setSelected] = useState<string | null>(null);
+  const [view, setView] = useQueryState("view", "grid");
+  const [sharingQ, setSharingQ] = useQueryState("sharing", "all");
+  const [q, setQ] = useQueryState("q");
+  const [selected, setSelected] = useQueryState("traveller");
   const [newOpen, setNewOpen] = useState(false);
-  const [justCreated, setJustCreated] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
-  const rows = useMemo<Item[]>(() => {
-    /* The seeded cards: all of them for their advisor; for the owner, only what has
-       been shared with her. S. Marchetti follows the live tier from her profile. */
+  const all = useMemo<Item[]>(() => {
+    /* The seeded cards: all of them for their advisor; for the owner, only what has been
+       shared with her (VIS-098), by the store's one rule. */
     const cards = travellerCards
-      .filter((c) => {
-        if (!viaShare) return true;
-        if (c.id === traveller.id) return s.shareTier !== "private";
-        return c.shared === people.owner;
-      })
+      .filter((c) => !viaShare || sharedWithOwner(s, c.name))
       .map((c): Item => {
-        const tier = c.id === traveller.id ? s.shareTier : c.shared ? "full" : "private";
-        const who = c.id === traveller.id ? people.owner : c.shared;
-        const basic = viaShare && c.id === traveller.id && s.shareTier === "basic";
-        const sharing: Sharing =
-          tier === "private"
-            ? { tone: "neutral", icon: Lock, text: "private to you" }
-            : viaShare
-              ? { tone: "primary", icon: Share2, text: `${tier === "full" ? "Collaborator Full" : "Collaborator Basic"} · shared by ${people.advisor}` }
-              : { tone: "primary", icon: Share2, text: `${tier === "full" ? "Collaborator Full" : "Collaborator Basic"}${who ? ` · ${who}` : ""}` };
+        const sh = travellerShareOf(s, c);
         return {
           id: c.id, name: c.name, status: c.relationshipStatus, nextTrip: c.nextTrip,
           departsInDays: c.departsInDays, preferences: c.preferences, profiles: c.profiles,
-          basic, sharing,
+          basic: viaShare && sh.tier === "basic", card: c,
+          sharing: {
+            tone: sh.tier === "private" ? "neutral" : "primary", icon: sh.tier === "private" ? Lock : Share2,
+            text: travellerShareWords(sh, s.role), shared: sh.tier !== "private",
+          },
         };
       });
 
     /* Added by hand this session: the maker's own, and what reaches this person. */
     const created = s.createdTravellers
       .filter((t) => reachOfCreated(t, s) !== null)
-      .map((t): Item => ({
-        id: t.id, name: t.name, status: t.by === s.role ? "Added by hand" : `Added by hand by ${personName[t.by]}`,
-        nextTrip: null, departsInDays: null, preferences: null, profiles: null,
-        basic: false, sharing: sharingOfCreated(t, s), created: t,
-      }));
+      .map((t): Item => {
+        const w = createdShareWords(t, s);
+        return {
+          id: t.id, name: t.name, status: t.by === s.role ? "Added by hand today" : `Added by hand by ${personName[t.by]}`,
+          nextTrip: null, departsInDays: null, preferences: null, profiles: null, basic: false, created: t,
+          sharing: { tone: w.shared && !w.waiting ? "primary" : "neutral", icon: w.waiting ? Clock : w.shared ? Share2 : Lock, text: w.text, shared: w.shared },
+        };
+      });
 
     return [...created, ...cards];
   }, [viaShare, s]);
 
-  const active = selected ? rows.find((c) => c.id === selected) : undefined;
-  const handMade = rows.filter((r) => r.created).length;
-  const ownCount = s.createdTravellers.filter((t) => t.by === s.role).length;
+  const hasCreated = all.some((r) => r.created?.by === s.role);
+  const rows = useMemo(() => all
+    .filter((r) => !q || norm(r.name).includes(norm(q)))
+    .filter((r) => sharingQ === "all" || (sharingQ === "shared" ? r.sharing.shared : !r.sharing.shared))
+    /* The stated order is the true one: what you added today first, then the soonest
+       departure; nobody travelling last, by name. */
+    .sort((a, b) =>
+      Number(b.created?.by === s.role) - Number(a.created?.by === s.role)
+      || (a.departsInDays ?? Number.MAX_SAFE_INTEGER) - (b.departsInDays ?? Number.MAX_SAFE_INTEGER)
+      || a.name.localeCompare(b.name)),
+  [all, q, sharingQ, s.role]);
+
+  const active = selected ? all.find((c) => c.id === selected) : undefined;
+  const open = (id: string) => router.push(`/travellers/${id}`);
+  const filtered = rows.length !== all.length;
+  const tableView = view === "table";
 
   function create(t: CreatedTraveller) {
+    const before = s.createdTravellers;
     d({ type: "createTraveller", traveller: t });
     setNewOpen(false);
-    setJustCreated(t.id);
     setSelected(t.id);
+    notify(`${t.name} added · only you can see them`, {
+      detail: "Share the profile when someone else should.",
+      undo: () => { d({ type: "patch", patch: { createdTravellers: before } }); setSelected(null); },
+    });
   }
-  const created = justCreated ? s.createdTravellers.find((t) => t.id === justCreated) : undefined;
+
+  /* The inspector's one act: who can see this profile (VIS-101). Live where the store
+     keeps the share (S. Marchetti, a traveller added by hand); drawn for the others. */
+  const footer = !active || viaShare ? undefined
+    : active.created ? (active.created.by === s.role
+      ? <Button variant="secondary" className="w-full" onClick={() => setShareOpen(true)}><Share2 aria-hidden /> {active.created.share === "private" ? "Share" : "Change sharing"}</Button>
+      : undefined)
+    : active.card && travellerShareOf(s, active.card).live
+      ? <Button variant="secondary" className="w-full" onClick={() => setShareOpen(true)}><Share2 aria-hidden /> {s.shareTier === "private" ? "Share" : "Change sharing"}</Button>
+      : <SchematicAction className="w-full justify-center"><Share2 className="size-[var(--icon-md)]" aria-hidden /> {active.card?.shared ? "Change sharing" : "Share"}</SchematicAction>;
 
   const header = (
-    <>
-      <PageHeader
-        title={
-          <>
-            Travellers
-            <Chip tone="neutral">
-              {!viaShare ? "your clients" : ownCount > 0 ? "yours, and shared with you" : "shared with you"}
-            </Chip>
-          </>
-        }
-        actions={
-          <>
-            <Button variant="secondary" size="sm" onClick={() => setNewOpen(true)}>
-              New traveller
-            </Button>
-            {rows.length > 0 && <ViewToggle value={view} onChange={setView} />}
-          </>
-        }
-      >
-        <p className="mt-[var(--space-2)] max-w-[62ch] type-data-read text-label-secondary">
-          A profile belongs to the advisor who holds it and is private to her until she shares
-          it. Sharing is explicit, attributed, and revocable.
-        </p>
-      </PageHeader>
-
-    </>
+    <PageHeader
+      title="Travellers"
+      count={viaShare
+        ? `${all.length} shared with you`
+        : `${all.length} ${all.length === 1 ? "traveller" : "travellers"}`}
+      create={<Button variant="secondary" size="sm" onClick={() => setNewOpen(true)}>New traveller</Button>}
+    />
   );
 
   return (
@@ -248,111 +247,139 @@ export default function TravellersPage() {
       panelOpen={!!active}
       onClosePanel={() => setSelected(null)}
       panelTitle={active?.name ?? "Traveller"}
+      openHref={active ? `/travellers/${active.id}` : undefined}
       panel={active ? <TravellerPanel item={active} /> : null}
+      footer={footer}
     >
-      {created && (
-        <div className="mt-[var(--space-3)]">
-          <ConfirmBanner show>
-            {created.name} added by hand · private to you. Nobody else sees this profile until you
-            share it from the profile.
-          </ConfirmBanner>
-        </div>
-      )}
-
-      {rows.length === 0 ? (
+      {all.length === 0 ? (
         <EmptyState
           className="mt-[var(--space-4)]"
           icon={Users}
           title="No travellers shared with you"
-          body={`Traveller profiles belong to the advisors who hold them, and appear here only when one is shared with you. A profile nobody has shared is absent, not locked. A traveller you add yourself is yours from the start.`}
+          body="A traveller appears here once the advisor who holds them shares them with you. One you add yourself is yours from the start."
         />
       ) : (
-        <div className="min-w-0">
-          <p className="mt-[var(--space-3)] type-meta">
-            <span className="tnum">{rows.length}</span>{" "}
-            {rows.length === 1 ? "traveller" : "travellers"}
-            {handMade > 0 && <> · <span className="tnum">{handMade}</span> added by hand</>}
-            {rows.some((r) => r.basic) && " · name and contact only at Collaborator Basic"}
-          </p>
+        <>
+          <ListToolbar
+            filters={viaShare ? undefined : (
+              <>
+                <FilterChip selected={sharingQ === "all"} onClick={() => setSharingQ("all")}>All</FilterChip>
+                <FilterChip selected={sharingQ === "private"} onClick={() => setSharingQ(sharingQ === "private" ? "all" : "private")}>Only you</FilterChip>
+                <FilterChip selected={sharingQ === "shared"} onClick={() => setSharingQ(sharingQ === "shared" ? "all" : "shared")}>Shared</FilterChip>
+              </>
+            )}
+            search={<ListSearch value={q} onChange={(v) => setQ(v)} placeholder="Search travellers" />}
+            result={`${filtered ? `${rows.length} of ${all.length} · ` : ""}${hasCreated ? "added today first, then " : ""}soonest departure first`}
+            view={<ViewToggle value={tableView ? "table" : "grid"} onChange={(v) => setView(v)} />}
+          />
 
-          {view === "grid" ? (
+          {rows.length === 0 ? (
+            <EmptyState
+              className="mt-[var(--space-4)]"
+              title="Nobody under this filter"
+              body="Clear the search or the sharing filter."
+              action={<Button variant="secondary" size="sm" onClick={() => { setQ(null); setSharingQ(null); }}>Show everyone</Button>}
+            />
+          ) : !tableView ? (
             <ul className="mt-[var(--gap-2)] grid grid-cols-1 gap-x-[var(--gap-2)] gap-y-[var(--gap-4)] sm:grid-cols-2 xl:grid-cols-3">
               {rows.map((c) => (
                 <li key={c.id}>
-                  <TravellerCardTile item={c} selected={selected === c.id} onSelect={() => setSelected(c.id)} />
+                  <TravellerCardTile item={c} selected={selected === c.id} onSelect={() => setSelected(c.id)} onOpen={() => open(c.id)} />
                 </li>
               ))}
             </ul>
           ) : (
-            <div className="mt-[var(--gap-2)]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Traveller</TableHead>
-                    <TableHead className="hidden sm:table-cell">Next trip</TableHead>
-                    <TableHead className="hidden md:table-cell">Departs</TableHead>
-                    <TableHead>Sharing</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((c) => {
-                    const on = selected === c.id;
-                    return (
-                      <TableRow
-                        key={c.id}
-                        onClick={() => setSelected(c.id)}
-                        aria-selected={on}
-                        data-state={on ? "selected" : undefined}
-                        className="cursor-pointer"
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-[var(--space-3)]">
-                            <Initials name={c.name} size="sm" selected={on} />
-                            <span className="min-w-0">
-                              <span className={cn("block type-data-strong", on && "underline decoration-ink underline-offset-4")}>{c.name}</span>
-                              <span className="block type-meta">{c.status}</span>
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell text-label-secondary">
-                          {c.basic ? "contact on file" : c.created ? c.created.email : (c.nextTrip ?? "no trip on file")}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell tnum text-label-secondary">
-                          {!c.basic && c.departsInDays !== null ? `in ${c.departsInDays}d` : "—"}
-                        </TableCell>
-                        <TableCell>
-                          {c.basic ? <Chip tone="primary">Collaborator Basic</Chip> : <SharingChip sharing={c.sharing} />}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Traveller</TableHead>
+                  <TableHead className="hidden sm:table-cell">Next trip</TableHead>
+                  <TableHead className="hidden md:table-cell">Departs</TableHead>
+                  <TableHead>Who can see it</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((c) => {
+                  const on = selected === c.id;
+                  return (
+                    <TableRow
+                      key={c.id}
+                      onClick={() => setSelected(c.id)}
+                      onOpen={() => open(c.id)}
+                      aria-selected={on}
+                      data-state={on ? "selected" : undefined}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-[var(--space-3)]">
+                          <Initials name={c.name} size="sm" selected={on} />
+                          <span className="min-w-0">
+                            <span className="block type-data-strong">{c.name}</span>
+                            <span className="block type-meta">{c.status}</span>
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell text-label-secondary">
+                        {c.basic ? "Contact on file" : c.created ? c.created.email : (c.nextTrip ?? "No trip on file")}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell tnum text-label-secondary">
+                        {!c.basic && c.departsInDays !== null ? `in ${c.departsInDays}d` : "—"}
+                      </TableCell>
+                      <TableCell><SharingChip sharing={c.sharing} /></TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           )}
-        </div>
+        </>
       )}
 
       <NewTravellerSheet
         open={newOpen}
         onOpenChange={setNewOpen}
         role={s.role}
-        visible={rows}
+        visible={all}
         taken={new Set([...travellerCards.map((c) => c.id), ...s.createdTravellers.map((t) => t.id)])}
         onCreate={create}
       />
+
+      {/* One sharing sheet (VIS-101). A seeded traveller is shared with a person; one added
+          by hand with an audience, which is what the store keeps for it. */}
+      {active?.card && travellerShareOf(s, active.card).live && (
+        <ShareSheet<TravellerTier>
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          what={active.name}
+          current={s.shareTier}
+          options={travellerShareOptions}
+          describe={(v) => describeTravellerShare(active.name, v)}
+          onShare={(v) => d({ type: "share", tier: v })}
+        />
+      )}
+      {active?.created && active.created.by === s.role && (
+        <ShareSheet<ShareScope>
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          what={active.name}
+          current={active.created.share}
+          onShare={(v) => d({ type: "shareCreated", kind: "traveller", id: active.id, scope: v })}
+        />
+      )}
     </SplitPage>
   );
 }
 
 /* ── the listing card for a person: a plate plus a caption, no container ────────
    The initials disc is the image; it inverts when selected, and the name keeps an
-   underline — selected differs by more than colour (VIS-021).                   */
-function TravellerCardTile({ item: c, selected, onSelect }: { item: Item; selected: boolean; onSelect: () => void }) {
+   underline — selected differs by more than colour (VIS-021). A click selects; Enter
+   on the selected card, or a double-click, opens the profile (VIS-096).          */
+function TravellerCardTile({ item: c, selected, onSelect, onOpen }: { item: Item; selected: boolean; onSelect: () => void; onOpen: () => void }) {
   return (
     <button
       type="button"
       onClick={onSelect}
+      onDoubleClick={onOpen}
+      onKeyDown={(e) => { if (e.key === "Enter" && selected) { e.preventDefault(); onOpen(); } }}
       aria-pressed={selected}
       data-state={selected ? "selected" : undefined}
       /* Named. A screen reader reached six of these and announced "button" six times. */
@@ -385,7 +412,7 @@ function TravellerCardTile({ item: c, selected, onSelect }: { item: Item; select
 
         {/* Sharing leads the marks: it is the subject of this whole surface. */}
         <span className="mt-[var(--space-2)] flex flex-wrap items-center gap-x-[var(--space-3)] gap-y-1">
-          {c.basic ? <Chip tone="primary">Collaborator Basic</Chip> : <SharingChip sharing={c.sharing} />}
+          <SharingChip sharing={c.sharing} />
           {!c.basic && c.preferences !== null && c.profiles !== null && (
             <span className="type-meta">
               <span className="tnum">{c.preferences}</span> {c.preferences === 1 ? "preference" : "preferences"}
@@ -399,95 +426,113 @@ function TravellerCardTile({ item: c, selected, onSelect }: { item: Item; select
   );
 }
 
-/* ── the inspector: the tool that follows the selection ───────────────────────── */
+/* ── the inspector: what the card cannot show (COL-13) ────────────────────────────
+   Not the name, status, next trip or counts again: what argues with their trips (one
+   item per subject, VIS-099), each trip with how ready it is, who can see the profile
+   and the last time you spoke. Opening the profile is the header's "Open ↗".       */
 function TravellerPanel({ item: c }: { item: Item }) {
+  const { s, d } = useDemo();
+  const router = useRouter();
+  const owner = s.role === "owner";
+
+  if (c.basic) {
+    return (
+      <p className="type-data text-label-secondary">
+        Shared with you at name and contact only. Preferences, trips and spend stay with {people.advisor}.
+      </p>
+    );
+  }
+
+  if (c.created) {
+    const maker = personName[c.created.by];
+    return (
+      <div className="space-y-[var(--space-6)]">
+        <DataList
+          rows={[
+            { label: "Email", value: c.created.email },
+            { label: "Added by hand", value: `${maker} · today` },
+            { label: "Who can see it", value: c.sharing.text },
+          ]}
+        />
+        {c.created.note && (
+          <div>
+            <div className="type-meta text-label-tertiary">What {maker} already knows</div>
+            <p className="mt-[var(--space-2)] type-data">{c.created.note}</p>
+            <p className="mt-[var(--space-1)]"><SourceTag kind="manual" label={`note, ${maker} · today`} /></p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const trips = tripsOfTraveller(s, c.id, c.name);
+  const items = attentionFor(s, trips);
+
   return (
     <div className="space-y-[var(--space-6)]">
-      <div className="flex items-center gap-[var(--space-3)]">
-        <Initials name={c.name} size="md" />
-        <div className="min-w-0">
-          <h2 className="truncate type-section">{c.name}</h2>
-          <p className="type-meta">{c.status}</p>
-        </div>
-      </div>
-
-      {/* The one primary: always here, never scrolled to. */}
-      <div>
-        <Button asChild size="sm">
-          <Link href={`/travellers/${c.id}`}>
-            Open full profile <ArrowRight aria-hidden />
-          </Link>
-        </Button>
-      </div>
-
-      {c.basic ? (
-        <p className="type-data-read text-label-secondary">
-          Name and contact only at Collaborator Basic. Preferences, journeys, intelligence and spend
-          fields are absent — not masked. The share is explicit, attributed, and revocable by{" "}
-          {people.advisor}.
-        </p>
-      ) : c.created ? (
-        <>
-          <DataList
-            rows={[
-              { label: "Email", value: c.created.email },
-              { label: "Added by hand by", value: `${personName[c.created.by]} · today` },
-            ]}
-          />
-          {c.created.note && (
-            <div>
-              <div className="type-micro-caps text-label-tertiary">What {personName[c.created.by]} already knows</div>
-              <p className="mt-[var(--space-2)] type-data-read">{c.created.note}</p>
-              <p className="mt-[var(--space-1)]">
-                <SourceTag kind="manual" label={`note, ${personName[c.created.by]} · today`} />
-              </p>
+      {items.map((a) => a.kind === "block" ? (
+        /* In the inspector's narrow column the act sits under the sentence. */
+        <Blocker key={a.line.id} title={`${a.name} is closed to bookings`}>
+          On {a.trip.title}. {a.block!.text}
+          {!owner && (
+            <div className="mt-[var(--space-3)]">
+              <Button variant="secondary" size="sm" onClick={() => takeOff(s, d, a.trip, a.line)}>Take it off the trip</Button>
             </div>
           )}
-          <div>
-            <div className="type-micro-caps text-label-tertiary">Sharing</div>
-            <div className="mt-[var(--space-2)]">
-              <SharingChip sharing={c.sharing} />
-            </div>
-            <p className="mt-[var(--space-2)] type-meta">
-              Sharing lives on the profile itself.
-            </p>
-          </div>
-        </>
+        </Blocker>
       ) : (
-        <>
-          <DataList
-            rows={[
-              { label: "Next trip", value: c.nextTrip, absent: "none on file" },
-              {
-                label: "Departs in",
-                value: c.departsInDays === null ? null : <span className="tnum">{c.departsInDays} days</span>,
-                absent: "not applicable",
-              },
-              { label: "Travel profiles", value: <span className="tnum">{c.profiles}</span> },
-              { label: "Preferences", value: <span className="tnum">{c.preferences}</span> },
-            ]}
-          />
-
-          <div>
-            <div className="type-micro-caps text-label-tertiary">Sharing</div>
-            <div className="mt-[var(--space-2)]">
-              <SharingChip sharing={c.sharing} />
+        <Warning key={a.line.id} title={`Against ${c.name}'s taste`} kept={a.kept}>
+          {a.sentence} On {a.trip.title}.
+          {!owner && (
+            <div className="mt-[var(--space-3)] flex flex-wrap items-center gap-[var(--space-2)]">
+              {s.lab
+                ? <Button size="sm" variant="secondary" onClick={() => router.push(`/itineraries/${a.trip.id}?line=${a.line.id}&act=find:${a.line.id}`)}>Find another</Button>
+                : <SchematicAction>Find another</SchematicAction>}
+              <Button size="sm" variant="secondary" onClick={() => d({ type: "decide", id: tasteKey(a.trip, a.line.productId!), what: "Kept despite the preference" })}>Keep it</Button>
             </div>
-            <p className="mt-[var(--space-2)] type-meta">
-              <span className="tnum">{c.preferences}</span> preferences, each attributed to a source
-              and a date. Sharing and the full journey history live on the profile itself.
-            </p>
-          </div>
-        </>
-      )}
+          )}
+        </Warning>
+      ))}
+
+      <div>
+        <div className="type-meta text-label-tertiary">Trips</div>
+        {trips.length ? (
+          <ul className="mt-[var(--space-2)] divide-y divide-hairline">
+            {trips.map((t) => {
+              const r = readinessOf(s, t);
+              return (
+                <li key={t.id} className="flex flex-col items-start gap-[var(--space-1)] py-[var(--space-2)]">
+                  <Link href={`/itineraries/${t.id}`} className="type-data underline decoration-hairline underline-offset-4 hover:decoration-ink">
+                    {t.title}
+                  </Link>
+                  <span className="row-trailing flex items-center gap-[var(--space-2)]">
+                    <span className="type-meta tnum">{t.dates}</span>
+                    {r ? <Chip tone={r.tone}>{r.text}</Chip> : <Chip tone="neutral">{t.status}</Chip>}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="mt-[var(--space-2)] type-data text-label-secondary">No trip on file.</p>
+        )}
+      </div>
+
+      <DataList
+        rows={[
+          { label: "Who can see it", value: c.sharing.text },
+          { label: "Last contact", value: c.card?.lastContact ?? null },
+        ]}
+      />
     </div>
   );
 }
 
 /* ── New traveller (U24) ────────────────────────────────────────────────────────
    Like raising a ticket: name, email, and whatever she already knows. The check runs
-   against the travellers this person can already reach, by name or email — a match
-   is shown instead of a second profile. It does not reach a profile she cannot see:
+   against the travellers this person can already reach, by name or email. A match warns
+   and does not refuse (COL-11): two people can share a name. "Open" goes to the one on
+   file; "Create anyway" makes the second. It does not reach a profile she cannot see:
    reporting that one exists would disclose it. What she types is her note, attributed
    to her and dated today; it is never presented as the traveller's own statement.  */
 function NewTravellerSheet({
@@ -519,7 +564,7 @@ function NewTravellerSheet({
   }
 
   function submit() {
-    if (!valid || match) return;
+    if (!valid) return;
     const clean = name.trim().replace(/\s+/g, " ");
     onCreate({
       id: idFor(clean, taken),
@@ -537,12 +582,12 @@ function NewTravellerSheet({
       <SheetContent side="right">
         <SheetHeader>
           <SheetTitle>New traveller</SheetTitle>
-          <SheetDescription>Private to you when created. You choose who else sees it.</SheetDescription>
+          <SheetDescription>Only you can see them until you share the profile.</SheetDescription>
         </SheetHeader>
         <form
           id="new-traveller"
           className="space-y-[var(--space-4)] overflow-y-auto px-[var(--space-6)] py-[var(--space-6)]"
-          onSubmit={(e) => { e.preventDefault(); submit(); }}
+          onSubmit={(e) => { e.preventDefault(); if (!match) submit(); }}
         >
           <div className="space-y-[var(--space-2)]">
             <Label htmlFor="nt-name">Name</Label>
@@ -560,30 +605,24 @@ function NewTravellerSheet({
               onChange={(e) => setNote(e.target.value)}
               placeholder="Met at the Lyon fair. Asked about a walking holiday in the Dolomites."
             />
-            <p className="type-meta">
-              Kept as your note, with your name and today&rsquo;s date — not as something the
-              traveller said.
-            </p>
+            <p className="type-meta">Kept as your note, with your name and today&rsquo;s date.</p>
           </div>
 
           {match && (
-            <SeverityBanner severity="Info">
-              <p>
-                <b>{match.name}</b> is already on your list
-                {match.created ? ` · ${match.created.email}` : ` · ${match.status}`}. Open that
-                profile rather than adding a second one.
-              </p>
-              <Button asChild variant="link" size="sm" className="mt-[var(--space-2)]">
-                <Link href={`/travellers/${match.id}`}>Open {match.name}</Link>
-              </Button>
-            </SeverityBanner>
+            <Warning title={`${match.name} is already on your list`}>
+              {match.created ? match.created.email : match.status}. Open that profile, or create a second {match.name}.
+              <div className="mt-[var(--space-3)] flex flex-wrap items-center gap-[var(--space-3)]">
+                <Button asChild variant="link" size="sm"><Link href={`/travellers/${match.id}`}>Open {match.name}</Link></Button>
+                <Button type="button" variant="secondary" size="sm" disabled={!valid} onClick={submit}>Create anyway</Button>
+              </div>
+            </Warning>
           )}
         </form>
-        <SheetFooter>
-          <Button type="submit" form="new-traveller" disabled={!valid || !!match}>
-            Create traveller
-          </Button>
-        </SheetFooter>
+        {/* Cancel, then the act at the right (VIS-101). */}
+        <div className="mt-auto flex items-center justify-end gap-[var(--space-2)] border-t border-hairline px-[var(--space-6)] py-[var(--space-4)]">
+          <Button type="button" variant="secondary" onClick={() => reset(false)}>Cancel</Button>
+          <Button type="submit" form="new-traveller" disabled={!valid || !!match}>Create traveller</Button>
+        </div>
       </SheetContent>
     </Sheet>
   );

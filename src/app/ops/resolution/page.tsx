@@ -1,258 +1,300 @@
 "use client";
 /**
- * Unmatched payments — the ops desk, recomposed as a document. Money that cannot be
- * matched to a booking is visible and ranked, never silently parked. A match is
- * closed by a person, with a reason, and the reason is stored.
+ * Unmatched payments — the owner's third queue. A commission payment that arrived
+ * without a booking reference waits here until a person matches it to a booking, with
+ * a reason, and the reason is kept.
  *
- * Chapters, in order: Open (one row per payment; the row whose sheet is open is
- * selected) · Closed (what the desk has already matched — the floor that keeps an
- * emptying queue from reading as a broken screen) · Amounts are absent here (a quiet
- * note, only for a reader without commission access).
- *
- * The one primary — "Match this payment" — sits at the bottom of the tool that follows
- * (To match), pointed at the first open payment, and opens the match sheet; the sheet
- * requires a candidate and a reason and carries its own commit. Each open row keeps a
- * secondary "Match…" so the act is reachable where the payment is read. Payment state
- * is carried by Chip only: unmatched · matched · logged.
+ * Triage, as every queue (UX sweep COL-05, COL-12, COL-13, FB-06, VIS-096, 2026-09-28):
+ *   list       the payments still to match; selecting one opens it in the inspector.
+ *              Nothing is acted on from a row.
+ *   inspector  the payment (amount, the name it arrived under, when) and its candidates,
+ *              each an open commission with its amount, traveller, due date and the
+ *              difference from this payment, strongest first, so "EUR 862 is exactly
+ *              what ML-1108 owes" is on the screen rather than left to be noticed. A
+ *              reason is required.
+ *   footer     the one act, naming its target: "Match to CD-3301". After it the
+ *              selection moves to the next payment, the count drops, and a toast offers
+ *              Undo for ten seconds (store `matchPaymentTo` / `unmatchPayment`).
+ *   Closed     what was matched this session, then the desk's earlier matches.
+ * The rail that repeated the list and a third count is gone; each thing is said once.
+ * A matched payment marks its commission paid on /commissions (../commissions/ledger.ts).
  */
-import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { Suspense, useState } from "react";
+import Link from "next/link";
 import { useDemo, canViewCommissions } from "@/lib/store";
-import { closedPayments, orphanedPayments, people } from "@/data/seed";
-import { Page, PageHeader } from "@/components/layouts";
-import { Chip, Section, ConfirmBanner, MoneyValue, Rows, Row, RowStack } from "@/components/bits";
-import { Button } from "@/components/ui/button";
+import { closedPayments, commissions, orphanedPayments, personName } from "@/data/seed";
+import { PageHeader, SplitPage, useQueryState } from "@/components/layouts";
+import { Chip, Section, Rows, RowStack, DataList, Done } from "@/components/bits";
+import { notify } from "@/lib/notify";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose,
-} from "@/components/ui/sheet";
+import { eur, matchedCandidate, timeOf } from "@/app/commissions/ledger";
 
-interface MatchDecision {
-  ref: string;
-  reason: string;
+type Payment = (typeof orphanedPayments)[number];
+type Candidate = Payment["candidates"][number];
+
+const commissionOf = (cand: Candidate) => commissions.find((c) => c.id === cand.commission);
+
+/** The difference between what arrived and what the commission owes, in words. */
+function difference(p: Payment, cand: Candidate) {
+  const c = commissionOf(cand);
+  if (!c) return "";
+  const diff = c.amount - p.amount;
+  if (diff === 0) return "the same amount";
+  return diff > 0 ? `${eur(diff)} more than this payment` : `${eur(-diff)} less than this payment`;
 }
 
+const linkCls = "underline decoration-hairline underline-offset-4 hover:decoration-ink";
+
 export default function ResolutionQueue() {
+  return (
+    <Suspense fallback={null}>
+      <Queue />
+    </Suspense>
+  );
+}
+
+function Queue() {
   const { s, d } = useDemo();
   const money = canViewCommissions(s);
+  const [sel, setSel] = useQueryState("sel");
+  /** The candidate and reason being chosen, per payment. */
+  const [forms, setForms] = useState<Record<string, { ref: string; reason: string }>>({});
 
-  const [sheetFor, setSheetFor] = useState<string | null>(null);
-  const [candidate, setCandidate] = useState<string>("");
-  const [reason, setReason] = useState("");
-  const [matches, setMatches] = useState<Record<string, MatchDecision>>({});
-  const [justMatched, setJustMatched] = useState<string | null>(null);
+  const open = orphanedPayments.filter((p) => !matchedCandidate(s, p));
+  const matchedNow = orphanedPayments.filter((p) => matchedCandidate(s, p));
+  const active = orphanedPayments.find((p) => p.id === sel) ?? null;
+  const form = active ? forms[active.id] ?? { ref: "", reason: "" } : { ref: "", reason: "" };
+  const setForm = (patch: Partial<{ ref: string; reason: string }>) =>
+    active && setForms((m) => ({ ...m, [active.id]: { ...form, ...patch } }));
 
-  /* A match made elsewhere (the assistant, on this person's confirmation) is in the store;
-     it counts here too, and survives leaving the page. */
-  const decided: Record<string, MatchDecision> = {
-    ...(s.paymentMatched && !matches.op1
-      ? { op1: { ref: "VO-2214 · booker M. Osei (traveller R. Osei)", reason: "Matched through the assistant on your confirmation: the payment came in under the traveller's name." } }
-      : {}),
-    ...matches,
-  };
-  const open = orphanedPayments.find((p) => p.id === sheetFor);
-  const unmatched = orphanedPayments.filter((p) => !decided[p.id]);
-  const stillOpen = unmatched.length;
-  const next = unmatched[0];
+  const amount = (p: { amount: number }) => (money ? eur(p.amount) : "A payment");
 
-  const startMatch = (id: string) => {
-    setSheetFor(id);
-    setCandidate("");
-    setReason("");
-  };
-
-  const confirmMatch = () => {
-    if (!open || !candidate || !reason.trim()) return;
-    setMatches((m) => ({ ...m, [open.id]: { ref: candidate, reason: reason.trim() } }));
-    setJustMatched(open.id);
-    d({ type: "matchPayment" });
-    setSheetFor(null);
-    setCandidate("");
-    setReason("");
+  const match = () => {
+    if (!active) return;
+    const cand = active.candidates.find((c) => c.ref === form.ref);
+    const c = cand && commissionOf(cand);
+    if (!cand || !c || !form.reason.trim()) return;
+    d({ type: "matchPaymentTo", id: active.id, ref: cand.ref, reason: form.reason.trim() });
+    /* The queue moves on: the next payment still to match, or nothing. */
+    const next = open.find((p) => p.id !== active.id);
+    setSel(next?.id ?? null);
+    const id = active.id;
+    notify(`Matched ${amount(active)} to ${c.bookingRef}`, {
+      detail: `${c.property} shows as paid.`,
+      undo: () => d({ type: "unmatchPayment", id }),
+      seconds: 10,
+    });
   };
 
-  const subject = (p: (typeof orphanedPayments)[number]) =>
-    money ? <><MoneyValue amount={p.amount} currency={p.currency} /> · {p.raw}</> : p.raw;
+  const chosen = active?.candidates.find((c) => c.ref === form.ref);
+  const chosenCommission = chosen && commissionOf(chosen);
+
+  const header = (
+    <PageHeader title="Unmatched payments" count={`${open.length} to match`} />
+  );
+
+  const row = (p: Payment) => {
+    const on = sel === p.id;
+    return (
+      <li
+        key={p.id}
+        data-agent-target={`payment-${p.id}`}
+        data-state={on ? "selected" : undefined}
+        className="row-select -mx-[var(--space-3)] px-[var(--space-3)]"
+      >
+        <button
+          type="button"
+          aria-pressed={on}
+          onClick={() => setSel(on ? null : p.id)}
+          className="row-stack block w-full cursor-pointer text-left"
+        >
+          <span className="row-stack-head">
+            <span className="row-primary min-w-0 truncate">
+              <span className="type-data-strong tnum">{amount(p)}</span>
+              <span className="text-label-secondary"> under {p.raw}</span>
+            </span>
+            <Chip tone="neutral">{p.candidates.length} {p.candidates.length === 1 ? "candidate" : "candidates"}</Chip>
+          </span>
+          <span className="row-stack-body block type-meta">{p.note} · received {p.received.toLowerCase()}</span>
+        </button>
+      </li>
+    );
+  };
 
   return (
-    <Page width="wide">
-      <PageHeader title="Unmatched payments">
-        <p className="mt-[var(--space-2)] max-w-[62ch] type-data-read text-label-secondary">
-          Money that cannot be matched to a booking lands here, and stays until a person closes it
-          with a reason.
-        </p>
-      </PageHeader>
+    <SplitPage
+      header={header}
+      panelOpen={Boolean(active)}
+      onClosePanel={() => setSel(null)}
+      panelTitle={active ? `${amount(active)} under ${active.raw}` : "Payment"}
+      panel={active ? (
+        <PaymentPanel
+          p={active}
+          money={money}
+          form={form}
+          setForm={setForm}
+        />
+      ) : null}
+      footer={active && !matchedCandidate(s, active) ? (
+        <div className="space-y-[var(--space-2)]">
+          <Button className="w-full" disabled={!chosen || !form.reason.trim()} onClick={match}>
+            {chosenCommission ? `Match to ${chosenCommission.bookingRef}` : "Match payment"}
+          </Button>
+          <p className="text-center type-meta">
+            {chosenCommission
+              ? `${chosenCommission.property}'s commission shows as paid. The booking itself is not changed.`
+              : "Choose the booking it belongs to, and say why."}
+          </p>
+        </div>
+      ) : undefined}
+    >
+      <Section title="To match">
+        {open.length > 0 ? (
+          <Rows>{open.map(row)}</Rows>
+        ) : (
+          <p className="type-data text-label-secondary">Every payment is matched.</p>
+        )}
+      </Section>
 
-      <div className="doc-layout">
-        {/* ── the body: chapters at column width ── */}
-        <div className="min-w-0">
+      <Section title="Closed" deep>
+        <Rows>
+          {/* Matched this session, first, in the same shape as the desk's earlier ones. */}
+          {matchedNow.map((p) => {
+            const cand = matchedCandidate(s, p);
+            const c = cand && commissionOf(cand);
+            const rec = s.payments[p.id];
+            return (
+              <RowStack
+                key={p.id}
+                head={
+                  <>
+                    <span className="row-primary min-w-0 truncate">
+                      {money && <span className="type-data-strong tnum">{eur(p.amount)} · </span>}
+                      <span className={money ? undefined : "type-data-strong"}>{c ? `${c.bookingRef} · ${c.property}` : p.raw}</span>
+                    </span>
+                    <span className="type-meta tnum">{rec ? `${personName[rec.by]} · Today ${timeOf(rec.at)}` : "the assistant · Today"}</span>
+                  </>
+                }
+              >
+                {rec?.reason ?? "Matched through the assistant."}
+              </RowStack>
+            );
+          })}
+          {closedPayments.map((p) => (
+            <RowStack
+              key={p.id}
+              head={
+                <>
+                  <span className="row-primary min-w-0 truncate">
+                    {money && <span className="type-data-strong tnum">{p.currency} {p.amount.toLocaleString("en-GB")} · </span>}
+                    <span className={money ? undefined : "type-data-strong"}>{p.ref}</span>
+                  </span>
+                  <span className="type-meta tnum">{p.by} · {p.when}</span>
+                </>
+              }
+            >
+              {p.reason}
+            </RowStack>
+          ))}
+        </Rows>
+      </Section>
+    </SplitPage>
+  );
+}
 
-          <Section title="Open" chips={<Chip tone="neutral"><span className="tnum">{stillOpen}</span> to match</Chip>}>
-            <Rows>
-              {orphanedPayments.map((p) => {
-                const matched = decided[p.id];
-                const selected = sheetFor === p.id;
+/* ── the inspector: the payment, and the bookings it could belong to ──────────── */
+function PaymentPanel({
+  p, money, form, setForm,
+}: {
+  p: Payment;
+  money: boolean;
+  form: { ref: string; reason: string };
+  setForm: (patch: Partial<{ ref: string; reason: string }>) => void;
+}) {
+  const { s } = useDemo();
+  const matched = matchedCandidate(s, p);
+  const record = s.payments[p.id];
+
+  return (
+    <div className="flex flex-col gap-[var(--space-6)]">
+      <DataList
+        rows={[
+          ...(money ? [{ label: "Amount", value: <span className="tnum">{eur(p.amount)}</span> }] : []),
+          { label: "Arrived under", value: p.raw },
+          { label: "Received", value: <span className="tnum">{p.received}</span> },
+          { label: "What is known", value: p.note },
+        ]}
+      />
+
+      {matched ? (
+        <div className="space-y-[var(--space-2)]">
+          <MatchLine p={p} cand={matched} money={money} />
+          {record?.reason && <p className="type-data text-label-secondary">Reason: &ldquo;{record.reason}&rdquo;</p>}
+          <Done>
+            Matched · {record ? `${timeOf(record.at)} · ${personName[record.by]}` : "through the assistant"}
+          </Done>
+        </div>
+      ) : (
+        <>
+          <fieldset>
+            <legend className="type-data-strong">Which booking is it for?</legend>
+            <p className="mt-1 type-meta">Open commissions it could settle, strongest first.</p>
+            <RadioGroup value={form.ref} onValueChange={(v) => setForm({ ref: v })} className="mt-[var(--space-3)] gap-[var(--space-2)]">
+              {p.candidates.map((cand) => {
+                const id = `cand-${p.id}-${cand.commission}`;
                 return (
-                  <li
-                    key={p.id}
-                    data-agent-target={`payment-${p.id}`}
-                    className={cn("row-stack", selected && "border-l-2 border-l-selected pl-[var(--space-3)]")}
+                  <label
+                    key={cand.ref}
+                    htmlFor={id}
+                    className="flex cursor-pointer items-start gap-[var(--space-3)] rounded-lg border border-hairline p-[var(--space-3)] transition-colors duration-200 ease-standard hover:border-stroke-hover has-[[data-state=checked]]:border-selected"
                   >
-                    <div className="row-stack-head">
-                      <span className="row-primary type-data-strong">{subject(p)}</span>
-                      <span className="flex shrink-0 items-center gap-[var(--space-2)]">
-                        {matched ? (
-                          <Chip tone="ok">matched · logged</Chip>
-                        ) : (
-                          <>
-                            <Chip tone="warn">unmatched</Chip>
-                            <Button variant="secondary" size="sm" onClick={() => startMatch(p.id)}>Match…</Button>
-                          </>
-                        )}
-                      </span>
-                    </div>
-                    <div className="row-stack-body type-meta">
-                      {matched
-                        ? <>→ {matched.ref} · reason: &ldquo;{matched.reason}&rdquo; · attributed {people.owner}</>
-                        : <>{p.note} · <span className="tnum">{p.candidates.length}</span> {p.candidates.length === 1 ? "candidate" : "candidates"}</>}
-                    </div>
-                    {justMatched === p.id && (
-                      <div className="mt-[var(--space-2)]">
-                        <ConfirmBanner show>
-                          Matched with a reason — attributed to {people.owner}, logged on the payment.
-                        </ConfirmBanner>
-                      </div>
-                    )}
-                  </li>
+                    <RadioGroupItem value={cand.ref} id={id} className="mt-1" />
+                    <MatchLine p={p} cand={cand} money={money} />
+                  </label>
                 );
               })}
-            </Rows>
-          </Section>
+            </RadioGroup>
+          </fieldset>
+          <div>
+            <Label htmlFor="match-reason">Reason <span className="text-label-secondary">(required)</span></Label>
+            <Input
+              id="match-reason"
+              value={form.reason}
+              onChange={(e) => setForm({ reason: e.target.value })}
+              placeholder="e.g. same amount; the booker confirmed by phone"
+              className="mt-[var(--space-2)]"
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
-          {/* The queue's floor: the state the desk is built to reach has to look like a
-              finished morning rather than a failure to load. */}
-          <Section
-            title="Closed"
-            deep
-            chips={<Chip tone="neutral"><span className="tnum">{closedPayments.length}</span> since yesterday</Chip>}
-          >
-            <Rows>
-              {closedPayments.map((p) => (
-                <RowStack
-                  key={p.id}
-                  head={
-                    <>
-                      <span className="row-primary">
-                        {money && <span className="type-data-strong tnum">{p.currency} {p.amount.toLocaleString("en-GB")} · </span>}
-                        <span className={money ? undefined : "type-data-strong"}>{p.ref}</span>
-                      </span>
-                      <span className="type-meta tnum">{p.by} · {p.when}</span>
-                    </>
-                  }
-                >
-                  {p.reason}
-                </RowStack>
-              ))}
-            </Rows>
-          </Section>
-
-        </div>
-
-        {/* ── the tool that follows: what is still open, and the one action ── */}
-        <aside className="doc-rail" data-rail-label="To match">
-          <Section variant="tool" follows title="To match">
-            {unmatched.length > 0 ? (
-              <Rows>
-                {unmatched.map((p) => (
-                  <Row key={p.id}>
-                    <span className="row-primary">
-                      <span className="block truncate type-data-strong">{subject(p)}</span>
-                      <span className="block truncate type-meta">{p.note}</span>
-                    </span>
-                    <span className="row-trailing">
-                      <Chip tone={p.candidates.some((c) => c.strength === "strong") ? "primary" : "neutral"}>
-                        {p.candidates.some((c) => c.strength === "strong") ? "strong candidate" : "weak candidates"}
-                      </Chip>
-                    </span>
-                  </Row>
-                ))}
-              </Rows>
-            ) : (
-              <p className="type-data-read text-label-secondary">Every payment is matched and logged.</p>
-            )}
-            {next && (
-              <div className="mt-[var(--space-4)]">
-                <Button className="w-full" onClick={() => startMatch(next.id)}>Match this payment</Button>
-                <p className="mt-[var(--space-2)] text-center type-meta">
-                  A booking and a reason, attributed to {people.owner}. Nothing on the booking is edited.
-                </p>
-              </div>
-            )}
-          </Section>
-        </aside>
-      </div>
-
-      {/* Match sheet — a reason is required */}
-      <Sheet open={!!open} onOpenChange={(o) => { if (!o) setSheetFor(null); }}>
-        <SheetContent side="right">
-          {open && (
-            <>
-              <SheetHeader>
-                <SheetTitle>Match payment</SheetTitle>
-                <SheetDescription>
-                  {money && <><MoneyValue amount={open.amount} currency={open.currency} /> · </>}
-                  arrived as {open.raw} — {open.note}.
-                </SheetDescription>
-              </SheetHeader>
-              <div className="min-h-0 flex-1 space-y-[var(--space-4)] overflow-y-auto px-[var(--space-6)] py-[var(--space-6)]">
-                <div>
-                  <div className="mb-[var(--space-2)] type-micro-caps text-label-tertiary">Candidates, strongest first</div>
-                  <RadioGroup value={candidate} onValueChange={setCandidate} className="gap-[var(--space-2)]">
-                    {open.candidates.map((c) => (
-                      <label
-                        key={c.ref}
-                        className="flex cursor-pointer items-start gap-[var(--space-3)] rounded-lg border border-hairline p-[var(--space-3)] transition-colors duration-200 ease-standard hover:border-stroke-hover has-[[data-state=checked]]:border-selected"
-                      >
-                        <RadioGroupItem value={c.ref} className="mt-1" />
-                        <span className="min-w-0">
-                          <span className="block type-code text-label">{c.ref}</span>
-                          <span className="mt-1 block">
-                            <Chip tone={c.strength === "strong" ? "ok" : "neutral"}>{c.strength} candidate</Chip>
-                          </span>
-                        </span>
-                      </label>
-                    ))}
-                  </RadioGroup>
-                  <p className="mt-[var(--space-2)] type-meta">
-                    Ranking suggests which booking this payment belongs to. It never edits anything
-                    on the booking itself.
-                  </p>
-                </div>
-                <div>
-                  <Label htmlFor="match-reason">Reason <span className="text-label-secondary">(required)</span></Label>
-                  <Input
-                    id="match-reason"
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    placeholder="e.g. traveller name on the remittance; booker confirmed by ref"
-                    className="mt-[var(--space-2)]"
-                  />
-                </div>
-              </div>
-              <SheetFooter className="sm:flex-row sm:justify-end">
-                <SheetClose asChild>
-                  <Button variant="secondary">Cancel</Button>
-                </SheetClose>
-                <Button disabled={!candidate || !reason.trim()} onClick={confirmMatch}>
-                  Confirm match (attributed)
-                </Button>
-              </SheetFooter>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
-    </Page>
+/** A candidate booking: which commission, whose, how much and when, and how far off. */
+function MatchLine({ p, cand, money }: { p: Payment; cand: Candidate; money: boolean }) {
+  const c = commissionOf(cand);
+  if (!c) return <span className="type-data">{cand.ref}</span>;
+  return (
+    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <span className="flex flex-wrap items-center justify-between gap-[var(--space-2)]">
+        <span className="type-data-strong">
+          <span className="tnum">{c.bookingRef}</span> · <Link href={`/commissions/${c.id}`} className={linkCls}>{c.property}</Link>
+        </span>
+        <Chip tone="neutral">{cand.strength}</Chip>
+      </span>
+      <span className="type-data text-label-secondary">
+        {c.traveller}
+        {money && <> · <span className="tnum">{eur(c.amount)}</span> due {c.dueDate}</>}
+        {c.overdueDays ? <span className="tnum"> · {c.overdueDays} days overdue</span> : null}
+      </span>
+      <span className={cn("type-meta", difference(p, cand) === "the same amount" && "text-label")}>
+        {money && <>{difference(p, cand).replace(/^./, (x) => x.toUpperCase())} · </>}{cand.why}
+      </span>
+    </span>
   );
 }

@@ -103,7 +103,7 @@ function SelectLabel({
   return (
     <SelectPrimitive.Label
       data-slot="select-label"
-      className={cn("px-2.5 py-2 type-micro-caps text-label-tertiary", className)}
+      className={cn("px-2.5 py-2 type-meta text-label-tertiary", className)}
       {...props}
     />
   )

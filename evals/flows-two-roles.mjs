@@ -54,11 +54,14 @@ try {
     o = await as({ ...asUser, role: "owner" }, "/admin/publish");
     t = await o.text();
     check("record → agency", "queue lists Casa Test as waiting", /Casa Test/.test(t) && /waiting/i.test(t));
-    // She publishes it from the row.
+    // She opens the item, then publishes it from the inspector (VIS-096 triage,
+    // 2026-09-28: a queue acts on the item it shows, never from the row).
     const row = o.page.locator("li, tr").filter({ hasText: "Casa Test" }).first();
-    const publish = row.getByRole("button", { name: /^Publish$/ });
+    await row.click();
+    await o.page.waitForTimeout(400);
+    const publish = o.page.getByRole("button", { name: /^Publish to the whole agency$/ });
     const canPublish = (await publish.count()) > 0;
-    check("record → agency", "row offers Publish", canPublish);
+    check("record → agency", "opened item offers Publish", canPublish);
     let released = null;
     if (canPublish) {
       await publish.click();
@@ -144,7 +147,8 @@ try {
   {
     const u = await as({ ...base, commissionAccess: false }, "/briefing");
     const t = await u.text();
-    check("money switch", "user's brief carries no commission figures", !/EUR 12,532/.test(t) && !/Open the ledger/.test(t), t.slice(0, 100));
+    /* The chapter's link reads "Open Commissions" since 2026-09-28 (NAV-06). */
+    check("money switch", "user's brief carries no commission figures", !/EUR 12,532/.test(t) && !/Open the ledger|Open Commissions/.test(t), t.slice(0, 100));
     await u.ctx.close();
     const o = await as({ ...base, role: "owner", commissionAccess: false }, "/settings");
     const t2 = await o.text();

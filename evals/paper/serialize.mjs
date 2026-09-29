@@ -29,7 +29,7 @@ const SCREENS = [
   { file: "03-briefing", title: "Briefing", role: "user", path: "/briefing" },
   { file: "05-record", title: "Record — agency overlay", role: "user", path: "/records/maison-leandre", prepare: scrollTo(heading("Agency overlay")) },
   { file: "15-traveller", title: "Traveller — preferences", role: "user", path: "/travellers/s-marchetti", prepare: scrollTo(heading(/^Preferences/), 24) },
-  { file: "16-itinerary", title: "Itinerary — day board", role: "user", path: "/itineraries", prepare: scrollTo((page) => page.locator("#opened-trip"), 24) },
+  { file: "16-itinerary", title: "Itinerary — the trip", role: "user", path: "/itineraries/kyoto-kansai" },
   { file: "18-knowledge", title: "Knowledge vault (owner)", role: "owner", path: "/knowledge" },
 ];
 
@@ -85,7 +85,8 @@ function serialize({ PUBLIC, BASE, STUDIO, SANS }) {
   const box = (r) => ({ l: r.left, t: r.top, r: r.right, b: r.bottom });
   const hits = (r, c) => r.right > c.l && r.left < c.r && r.bottom > c.t && r.top < c.b;
 
-  const fam = (f) => /newsreader/i.test(f) ? "Newsreader" : /plex_?\s?mono|mono/i.test(f) ? "IBM Plex Mono" : SANS || "Inter";
+  /* The serif is Source Serif 4 since 2026-09-28 (VIS-092); older captures carry Newsreader. */
+  const fam = (f) => /source_?\s?serif|sourceSerif/i.test(f) ? "Source Serif 4" : /newsreader/i.test(f) ? "Newsreader" : /plex_?\s?mono|mono/i.test(f) ? "IBM Plex Mono" : SANS || "Inter";
   const color = (c) => c.replace(/\s+/g, " ");
   const clear = (c) => !c || c === "transparent" || /rgba\([^)]*,\s*0\)$/.test(c) || /\/\s*0\)$/.test(c);
   const asset = (u) => {
@@ -430,7 +431,7 @@ try {
       await page.evaluate((fam) => {
         for (const el of document.querySelectorAll("body, body *")) {
           const f = getComputedStyle(el).fontFamily;
-          if (!/newsreader|mono/i.test(f)) el.style.setProperty("font-family", `"${fam}", sans-serif`, "important");
+          if (!/source_?\s?serif|sourceSerif|newsreader|mono/i.test(f)) el.style.setProperty("font-family", `"${fam}", sans-serif`, "important");
         }
       }, fam);
       await page.evaluate(async (fam) => { await document.fonts.load(`400 14px "${fam}"`); await document.fonts.load(`600 14px "${fam}"`); await document.fonts.ready; }, fam);

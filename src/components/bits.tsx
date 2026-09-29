@@ -8,7 +8,8 @@ import { cn } from "@/lib/utils";
 import type { Area } from "@/lib/areas";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileText, HardDrive, Mail, Route, Database, Globe, PenLine, Megaphone } from "lucide-react";
+import { notify } from "@/lib/notify";
+import { FileText, HardDrive, Mail, Route, Database, Globe, PenLine, Megaphone, OctagonAlert, TriangleAlert, Check } from "lucide-react";
 
 /* ── Absent ──────────────────────────────────────────────────────────────────
    One vocabulary for empty. Restricted material never reaches the page; every
@@ -18,7 +19,7 @@ export function Absent({ reason, className }: { reason: "not run" | "none on fil
   return (
     <span className={cn("inline-flex items-baseline gap-1.5 text-label-secondary", className)}>
       <span aria-hidden>—</span>
-      <span className="type-micro">{reason}</span>
+      <span className="type-meta">{reason}</span>
     </span>
   );
 }
@@ -113,7 +114,7 @@ export function Chip({ tone = "neutral", className, title, children }: { tone?: 
     <span
       title={title}
       data-slot="chip"
-      className={cn("inline-flex h-[var(--chip-h)] items-center gap-1 whitespace-nowrap rounded-full border px-2.5 type-micro", tones[tone], className)}
+      className={cn("inline-flex h-[var(--chip-h)] items-center gap-1 whitespace-nowrap rounded-full border px-2.5 type-meta", tones[tone], className)}
     >
       {children}
     </span>
@@ -142,7 +143,7 @@ export function FilterChip({
     >
       {children}
       {count !== undefined && (
-        <span className={cn("type-micro tnum", selected ? "text-on-selected/70" : "text-label-tertiary")}>{count}</span>
+        <span className={cn("type-meta tnum", selected ? "text-on-selected" : "text-label-tertiary")}>{count}</span>
       )}
     </button>
   );
@@ -227,7 +228,7 @@ export function EvidenceDot({ kind, label }: { kind: "verified" | "stale" | "dis
 export function LayerBadge({ layer }: { layer: "canonical" | "agency" | "personal" }) {
   const color = { canonical: "bg-ok", agency: "bg-ink", personal: "bg-strong" }[layer];
   return (
-    <span className="inline-flex items-center gap-1.5 type-micro text-label-secondary">
+    <span className="inline-flex items-center gap-1.5 type-meta text-label-secondary">
       <span className={cn("size-1.5 rounded-full", color)} aria-hidden />
       {layer}
     </span>
@@ -236,7 +237,7 @@ export function LayerBadge({ layer }: { layer: "canonical" | "agency" | "persona
 
 /* ── FreshnessDate: a date, never an icon alone ── */
 export function FreshnessDate({ children, stale }: { children: React.ReactNode; stale?: boolean }) {
-  return <span className={cn("type-micro", stale ? "text-warn" : "text-label-secondary")}>{children}</span>;
+  return <span className={cn("type-meta", stale ? "text-warn" : "text-label-secondary")}>{children}</span>;
 }
 
 /* ── SourceTag ── */
@@ -244,7 +245,7 @@ const sourceIcons = { intranet: FileText, gdrive: HardDrive, email: Mail, axus: 
 export function SourceTag({ kind, label }: { kind: keyof typeof sourceIcons; label: string }) {
   const Icon = sourceIcons[kind];
   return (
-    <span className="inline-flex items-center gap-1 type-code text-label-secondary">
+    <span className="inline-flex items-center gap-1 type-meta tnum text-label-secondary">
       <Icon className="size-[var(--icon-sm)]" aria-hidden />
       {label}
     </span>
@@ -266,7 +267,7 @@ export function ConfidenceMeter({ agree, total, label, className }: { agree: num
         <span className="block h-full rounded-full bg-ink" style={{ width: `${(agree / total) * 100}%` }} />
       </span>
       {label !== null && (
-        <span className="type-micro text-label-secondary">
+        <span className="type-meta text-label-secondary">
           {label ?? `${agree} of ${total} sources agree`}
         </span>
       )}
@@ -280,21 +281,108 @@ export function MoneyValue({ amount, currency = "EUR", converted, held }: { amou
   return (
     <span className="tnum">
       {currency} {typeof amount === "number" ? amount.toLocaleString("en-GB") : amount}
-      {converted && <span className="type-micro text-label-secondary"> · {converted.currency} {converted.amount} (conversion dated {converted.date})</span>}
+      {converted && <span className="type-meta text-label-secondary"> · {converted.currency} {converted.amount} (conversion dated {converted.date})</span>}
     </span>
   );
 }
 
-/* ── ConfirmBanner: transient success ── */
-export function ConfirmBanner({ show, children }: { show: boolean; children: React.ReactNode }) {
-  if (!show) return null;
-  return <div className="rounded-lg bg-ok-soft px-[var(--space-4)] py-[var(--space-3)] type-data-read text-ok" role="status">{children}</div>;
+/* ═══ The attention model (VIS-097, 2026-09-28) ═══════════════════════════════
+   Five kinds of message. Each has one trigger, one place, one look, one way out:
+     Blocker       You cannot proceed (closed to bookings; a source answers depend on
+                   is down). On the object, at the moment of choice. Claret, one
+                   sentence, one act. Clears only when its condition does.
+     Warning       You can proceed but should decide, often before a date (a taste
+                   conflict, an incentive closing). Inline on the line or field it is
+                   about, never page-wide. Ochre, a sentence, Fix and Keep; Keep
+                   collapses it to a neutral line with who kept it and when.
+     State         Context with no decision (departs in 12 days, syncing, held, one
+                   source): a neutral <Chip> or grey text. Words, not colour.
+     Confirmation  You acted. Where the result shows, the control is replaced in place
+                   by <Done> ("Sent · 10:14 · R. Devane"). Where it does not (a sheet
+                   closed, the result is elsewhere), a toast just above the dock
+                   (`notify`, src/lib/notify.ts), with Undo when the act can be undone.
+     Notification  Something happened without you, or waits on you: the inbox. It
+                   closes when its subject is dealt with (store `inboxState`).
+   Colour means severity and nothing else: claret only for blocked or at risk now,
+   ochre only for "decide", everything else neutral. Copy says what is true and what
+   you can do; the product's case for itself belongs in the docs, not in a banner.  */
+
+export function Blocker({
+  title, children, action, className,
+}: { title: React.ReactNode; children?: React.ReactNode; action?: React.ReactNode; className?: string }) {
+  return (
+    <div data-attention="blocker" className={cn("flex flex-wrap items-start gap-x-[var(--space-3)] gap-y-[var(--space-2)] rounded-lg bg-crit-soft px-[var(--space-4)] py-[var(--space-3)]", className)}>
+      <OctagonAlert className="mt-0.5 size-[var(--icon-md)] shrink-0 text-crit" aria-hidden />
+      {/* The text keeps a readable measure; at inspector width the act wraps below it. */}
+      <div className="min-w-0 flex-1 basis-56">
+        <p className="type-data-strong text-crit">{title}</p>
+        {children && <div className="mt-0.5 type-data text-label">{children}</div>}
+      </div>
+      {action && <div className="flex shrink-0 items-center gap-[var(--space-2)] self-center">{action}</div>}
+    </div>
+  );
 }
 
-/* ── SeverityBanner — ink on tint, one sentence ── */
+export function Warning({
+  title, children, actions, kept, className,
+}: {
+  title: React.ReactNode;
+  children?: React.ReactNode;
+  /** Fix and Keep: what resolves it. */
+  actions?: React.ReactNode;
+  /** Once someone kept it: "Kept despite the preference · R. Devane, 28 Aug". */
+  kept?: React.ReactNode;
+  className?: string;
+}) {
+  if (kept) {
+    return (
+      <p data-attention="kept" className={cn("flex items-center gap-1.5 type-meta text-label-secondary", className)}>
+        <Check className="size-[var(--icon-sm)] shrink-0" aria-hidden />
+        {kept}
+      </p>
+    );
+  }
+  return (
+    <div data-attention="warning" className={cn("flex flex-wrap items-start gap-x-[var(--space-3)] gap-y-[var(--space-2)] rounded-lg bg-warn-soft px-[var(--space-4)] py-[var(--space-3)]", className)}>
+      <TriangleAlert className="mt-0.5 size-[var(--icon-md)] shrink-0 text-warn" aria-hidden />
+      <div className="min-w-0 flex-1 basis-56">
+        <p className="type-data-strong text-warn">{title}</p>
+        {children && <div className="mt-0.5 type-data text-label">{children}</div>}
+      </div>
+      {actions && <div className="flex shrink-0 items-center gap-[var(--space-2)] self-center">{actions}</div>}
+    </div>
+  );
+}
+
+/* ── Done — a confirmation in place: the act, when, by whom. Neutral. ── */
+export function Done({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <p role="status" className={cn("inline-flex items-center gap-1.5 type-meta text-label-secondary", className)}>
+      <Check className="size-[var(--icon-sm)] shrink-0" aria-hidden />
+      {children}
+    </p>
+  );
+}
+
+/* ── ConfirmBanner — kept for its callers; it now draws a <Done>, neutral and in
+   place. A confirmation is not a green block that never goes away (FB-06). ── */
+export function ConfirmBanner({ show, children }: { show: boolean; children: React.ReactNode }) {
+  if (!show) return null;
+  return <Done className="py-[var(--space-1)]">{children}</Done>;
+}
+
+/* ── SeverityBanner — kept for its callers, drawn by the attention model: Critical is
+   a blocker's look, Important a warning's, Info and ok are neutral. New code uses
+   <Blocker> and <Warning>, which carry a title and their acts. ── */
 export function SeverityBanner({ severity, className, children }: { severity: "Info" | "Important" | "Critical" | "ok"; className?: string; children: React.ReactNode }) {
-  const tones = { Info: "bg-sunken text-label", Important: "bg-warn-soft text-warn", Critical: "bg-crit-soft text-crit", ok: "bg-ok-soft text-ok" } as const;
-  return <div className={cn("rounded-lg px-[var(--space-4)] py-[var(--space-3)] type-data-read", tones[severity], className)}>{children}</div>;
+  const tones = { Info: "bg-sunken text-label", Important: "bg-warn-soft text-label", Critical: "bg-crit-soft text-label", ok: "bg-sunken text-label" } as const;
+  const Icon = severity === "Critical" ? OctagonAlert : severity === "Important" ? TriangleAlert : null;
+  return (
+    <div className={cn("flex items-start gap-[var(--space-3)] rounded-lg px-[var(--space-4)] py-[var(--space-3)] type-data", tones[severity], className)}>
+      {Icon && <Icon className={cn("mt-0.5 size-[var(--icon-md)] shrink-0", severity === "Critical" ? "text-crit" : "text-warn")} aria-hidden />}
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  );
 }
 
 /* ── TrustRow — trust is a row of words (VIS-070) ─────────────────────────────
@@ -308,23 +396,42 @@ export function TrustRow({
       {Icon && <Icon className="size-[var(--icon-lg)] shrink-0 text-label" aria-hidden />}
       <div className="min-w-0 flex-1">
         <div className="type-data-strong">{label}</div>
-        <div className="type-data-read text-label-secondary">{reason}</div>
+        <div className="type-data text-label-secondary">{reason}</div>
       </div>
       {figures && <div className="shrink-0 text-right type-data tnum">{figures}</div>}
     </div>
   );
 }
 
-/* ── SchematicBadge — the controls you can see here are drawn, not wired ── */
-export function SchematicBadge() {
+/* ── Schematic — drawn, not wired (COL-09) ────────────────────────────────────
+   Its own look, so it can never be mistaken for a status: a dashed outline and
+   tertiary ink. `SchematicBadge` marks a region; `SchematicAction` stands in for a
+   control that does nothing in this build: it keeps its place and its label, is
+   announced as unavailable, and says so when pressed. It is never the primary. */
+export function SchematicBadge({ className }: { className?: string }) {
   return (
-    <Chip
-      tone="neutral"
-      className="uppercase tracking-wide"
-      title="Drawn, not wired — these controls do not change anything in this build."
+    <span
+      data-slot="schematic"
+      title="Drawn, not wired: these controls do not change anything in this build."
+      className={cn("inline-flex h-[var(--chip-h)] items-center whitespace-nowrap rounded-full border border-dashed border-strong px-2.5 type-meta text-label-tertiary", className)}
     >
-      schematic
-    </Chip>
+      Schematic
+    </span>
+  );
+}
+
+export function SchematicAction({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <button
+      type="button"
+      data-slot="schematic"
+      aria-disabled="true"
+      title="Not wired in this build"
+      onClick={() => notify("Not wired in this build", { detail: "This control is drawn to show where it goes." })}
+      className={cn("inline-flex h-[var(--control-h-sm)] cursor-help items-center gap-1.5 rounded-md border border-dashed border-strong px-[var(--control-px-sm)] type-data text-label-tertiary", className)}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -337,7 +444,7 @@ export function ProvenancePopover({ source, children }: { source: { what: string
         <button className="pressable -mx-1 cursor-pointer rounded-sm px-1 text-left underline decoration-hairline underline-offset-4 hover:bg-interactive hover:decoration-ink">{children}</button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-80 space-y-2 type-data">
-        <div className="type-micro-caps text-label-tertiary">Field provenance</div>
+        <div className="type-meta text-label-tertiary">Field provenance</div>
         <div><span className="text-label-secondary">What · </span>{source.what}</div>
         <div><span className="text-label-secondary">Where · </span>{source.where}</div>
         <div><span className="text-label-secondary">When · </span>{source.when}</div>
@@ -403,7 +510,7 @@ export function Section({
             "mb-[var(--space-4)]",
           )}
         >
-          <h3 className={cn("flex min-w-0 flex-wrap items-center gap-[var(--space-2)]", quiet ? "type-section-quiet" : "type-section")}>{title}</h3>
+          <h3 className={cn("flex min-w-0 flex-wrap items-center gap-[var(--space-2)]", quiet ? "type-data text-label-secondary" : "type-section")}>{title}</h3>
           {chips}
           {actions && <div className="ml-auto flex items-center gap-[var(--space-2)]">{actions}</div>}
         </header>
@@ -458,7 +565,7 @@ export function Segmented<T extends string>({
           >
             {Icon && <Icon className="size-[var(--icon-md)]" aria-hidden />}
             {o.label}
-            {o.count !== undefined && <span className={cn("type-micro tnum", on ? "text-on-selected/70" : "text-label-tertiary")}>{o.count}</span>}
+            {o.count !== undefined && <span className={cn("type-meta tnum", on ? "text-on-selected" : "text-label-tertiary")}>{o.count}</span>}
           </button>
         );
       })}

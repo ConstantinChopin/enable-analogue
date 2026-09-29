@@ -35,7 +35,7 @@ Evidence classes: **[A]** Airbnb pattern (anatomy file) · **[E]** editorial ref
 **What we'd change if wrong:** if rows overflow at 14 on the ledger, tighten row padding before touching size.
 **Enforced by:** tier 1 `raw-type-utility`; tier 2 rendered size census (every sans size is a role).
 
-## VIS-011 · 2026-09-10 · proposed
+## VIS-011 · 2026-09-10 · superseded by VIS-092
 **Decision:** two leadings per size, chosen by role: `type-data` 14/18 scanned, `type-data-read` 14/20 read.
 **Problem it serves:** paragraphs of machine text (explanations under a figure, a notice body) were set at row leading.
 **Evidence:** [A] description 16/24 vs rows 16/20 (`anatomy/raw/listing-detail-1440-full.json`).
@@ -44,7 +44,7 @@ Evidence classes: **[A]** Airbnb pattern (anatomy file) · **[E]** editorial ref
 **What we'd change if wrong:** collapse to one role if the census shows `data-read` used under 5 times.
 **Enforced by:** tier 1 (role exists; no raw leading utilities).
 
-## VIS-012 · 2026-09-10 · proposed
+## VIS-012 · 2026-09-10 · superseded by VIS-092
 **Decision:** page title 26/30 Newsreader 500 −0.02em; section title 16/20 Inter 590; quiet section 14/18 400 secondary.
 **Problem it serves:** one display size per surface; a section must own its content without a box.
 **Evidence:** [A] H1 26/30, chapter 22/26 500 −2%, quiet sections 16/20 400 (`anatomy/surfaces/listing-detail.md`); [M] the previous 24 serif over 15 sans left the section unable to subordinate a 13 value.
@@ -205,3 +205,75 @@ Evidence classes: **[A]** Airbnb pattern (anatomy file) · **[E]** editorial ref
 **Why this one:** _(draft for Constantin to rewrite)_ One shape per kind of thing, with no exceptions, is a rule a person learns once and an agent can check on every screen; the contrast between the rectangle that acts and the pill that chooses is the one that read clearly on the Travellers toolbar.
 **What we'd change if wrong:** if the ink rectangle loses the primary in a dense toolbar, keep it a rectangle and give it the 40 height where secondaries are 32, rather than returning to the pill.
 **Enforced by:** tier 2 "the primary is a rectangle", "a pill never acts", "an underline never acts", "every control is on the scale", "a row of controls shares a height"; the button primitive (`src/components/ui/button.tsx`) documents the grammar; `/system` renders it.
+
+## VIS-092 · 2026-09-28 · proposed · supersedes VIS-011, VIS-012
+**Decision:** Source Serif 4 replaces Newsreader and sets only the page title (28/34 400) and the lead (18/28 400); prose, quotes and everything else move to Instrument Sans. Eight roles instead of fourteen, on the scale 12 · 14 · 16 · 18 · 28, at two weights, 400 and 500. Emphasis is the ink ladder before weight. Retired: `type-data-read` (now `type-data`, 14/20), `type-micro`, `type-micro-caps` and `type-code` (now `type-meta`), `type-section-quiet` (`type-data` in secondary ink), `type-prose-quote` (`type-prose` in italic). No capitals anywhere in the product.
+**Problem it serves:** Constantin, 2026-09-28: the sans felt generated, the heavy weights were loud, and there were too many text styles; accents should come from small weight changes and opacity.
+**Evidence:** [M] role census on 2026-09-27: 244 uses of the six retired roles across 49 files, and weights 400, 510, 590 and 700 in use; [M] four serifs (Literata, Source Serif 4, Piazzolla, Newsreader) and five sans (Source Sans 3, Fira Sans, Commissioner, Alegreya Sans, Instrument Sans) set on the Briefing's own content, 2026-09-28; [M] after the change: tier 1 0 findings, tier 2 312/312, flows 17/17, tokens-aa 39/39; `/briefing` renders 105 text elements at 400 and 500 only, none in capitals.
+**Alternatives considered:** one serif for everything (rejected by Constantin: the title and lead stay serif, the rest a sans); Literata as the serif; keeping Newsreader; Source Sans 3 as the sans.
+**Why this one:** _(draft for Constantin to rewrite)_ The serif now appears only where the page addresses the person, so it reads as a voice rather than a decoration; Source Serif 4 is the quietest of the candidates beside a neutral sans, and its optical axis carries the title without the 500 it used to need. With the weight ladder cut to one step, the four ink levels that already existed become the hierarchy.
+**What we'd change if wrong:** the serif is one `localFont` in `layout.tsx`; if chapters lose their authority at 500, raise `type-section` to 18/24 before adding weight.
+**Enforced by:** tier 1 `raw-type-utility` (every size is a role); `--font-weight-semibold` and `--font-weight-bold` resolve to 500, so a heavier utility cannot reach the screen; `/system` renders the eight roles and the ink ladder.
+
+## VIS-093 · 2026-09-28 · proposed · amends VIS-021 for rows
+**Decision:** one selectable row for every list and ledger (`.row-select`, and the table primitive). Rest: the text only, with hairlines inset to the text edge. Hover: the faintest fill (`fill-faint`), radius 3. Pressed: a firmer fill; a row does not shrink. Selected: raised paper with the glass edge at elevation 2, the inspector card's own material one step below it. Focus: the double ring on the row's radius, over the lift. The hairlines either side of a lit row fade with it. A row whose selection is driven from inside it (`.row-lift`) lifts without a hover. The 2px ink left edge and the tinted fill are retired from every row, and a cited passage and a quoted source become sunken tiles with the same radius instead of an edge bar.
+**Problem it serves:** Constantin, 2026-09-28: the floating card should set the direction for the rest; rows were rectangles with hard edges, and the selected state (an edge bar on a tint) read as generated.
+**Evidence:** [M] eight hand-written selected treatments on seven surfaces (notifications, ops resolution, Ask, the trip builder twice, and the table primitive used by commissions, itineraries, knowledge, records and travellers), all an edge bar on a tint; [M] after the change: tier 2 312/312 including "selected differs by more than colour" (the lift changes surface and shadow, not text colour), tier 1 0, flows 17/17.
+**Alternatives considered:** keep the edge bar and round the row; invert the selected row (VIS-021's first form, rejected there as reading like a primary action); a stronger hover than the lift.
+**Why this one:** _(draft for Constantin to rewrite)_ The row and the card it opens are the same thing at two distances: selecting a row lifts it onto the paper the inspector floats on, so the link between them is carried by material rather than by a mark. A hover lighter than the lift keeps the order clear: the eye goes to what is chosen, not to where the pointer rests.
+**What we'd change if wrong:** if the lift is too quiet on the glass frame, raise the selected row to the card's elevation 3 before adding any tint or bar.
+**Enforced by:** tier 2 "selected differs by more than colour"; the row states live only in `globals.css` (`.row-select`, `.row-lift`, the `table-row` rules), so a page marks selection with `data-state`, `aria-selected` or `aria-pressed` and draws nothing itself.
+
+## VIS-095 · 2026-09-28 · proposed · reverses the title-row rule of 2026-09-25, amends VIS-042
+**Decision:** the title row acts, the toolbar views. The title row holds the page's name, one count and at most one create action ("New X", secondary). Everything that changes what a list shows (the state switch, filters, search, the result count and its true order, the Grid/Table view) sits in a `ListToolbar` directly above the data. A view toggle is a lens, not an act: icon-only segments in a sunken track, the chosen one raised, never area-filled. Ink means do: opening an item is a link ("Open ↗" in the inspector header) or a gesture on the row, never the ink button. One verb per act: "New X" creates, "Add X to Y" attaches. The dock never moves: every tile is the same circle, the place you are is filled in its area's colour, a hairline separates the area groups, shortcuts stop at 9 and name the platform's modifier. Crumbs link to their levels; Forward went.
+**Problem it serves:** Constantin, 2026-09-28 ("call to action in the same row as view changes"); UX sweep NAV-01, NAV-03 to NAV-07.
+**Evidence:** [M] the sweep's header inventory: seven list pages, seven arrangements; the area-filled "Grid" pill outweighed "New traveller"; the dock's icons moved up to 80px between pages.
+**Alternatives considered:** keep the title-row rule and quieten the view pill only.
+**Why this one:** _(draft for Constantin to rewrite)_ A person reads a page's name and its one create in one place, and everything that narrows the list in another, directly above what it narrows; nothing on the page competes with its act.
+**What we'd change if wrong:** if the toolbar reads as a second header, fold the result count into the footer.
+**Enforced by:** `PageHeader` accepts `title`, `count`, `create`, `actions` only; tier 2 "a row of controls shares a height" on the toolbar.
+
+## VIS-096 · 2026-09-28 · proposed
+**Decision:** one list-and-detail pattern for every collection and queue. Clicking a row selects it and opens the inspector; Enter or a double-click opens the full page. The inspector previews the item in the page's words: header (name, "Open ↗", close), body (what the row cannot show), footer (the item's one next act, pinned). After an act in a queue, the selection moves to the next item. Selection, filters, view and sort live in the URL. A directory never renders one item's body under the list.
+**Problem it serves:** UX sweep COL-01, COL-02, COL-07, NAV-02.
+**Why this one:** _(draft)_ the same gesture has the same outcome everywhere, and Back restores what you were looking at.
+**Enforced by:** `SplitPage` (`openHref`, `footer`), `TableRow` (`onOpen`, keyboard), `useQueryState`.
+
+## VIS-097 · 2026-09-28 · proposed
+**Decision:** the attention model. Five kinds of message: Blocker (cannot proceed; on the object at the moment of choice; claret; clears only with its condition), Warning (decide; inline on what it concerns; ochre; Fix and Keep, Keep recorded with who and when), State (neutral chip or grey words), Confirmation (in place with `Done` where the result shows; a toast with Undo where it does not), Notification (the inbox; resolved automatically when its subject is dealt with; seen when opened). Colour means severity only. Toasts exist only for confirmations away from the act, Undo, and arrivals while you are elsewhere. Copy says what is true and what you can do.
+**Problem it serves:** Constantin, 2026-09-28 ("I don't understand the logic for how and when these toasts / notifications appear"); UX sweep FB-01 to FB-12.
+**Evidence:** [M] no toast system was mounted; six devices, one event in eight renderings under two policies; the badge counted finished work.
+**Why this one:** _(draft)_ each message has one trigger, place, look and way out, so a person can predict where the product will speak and what it wants.
+**Enforced by:** `Blocker`, `Warning`, `Done`, `notify`, store `inboxState` / `needsYou` / `unseenCount`.
+
+## VIS-098 · 2026-09-28 · proposed · settles 06-itinerary-builder §7 against 05-two-roles
+**Decision:** a traveller, and every trip of theirs, belongs to the advisor who holds them. The owner sees them only once the advisor shares that traveller with her; otherwise they are absent, not locked, everywhere, search included.
+**Problem it serves:** UX sweep COL-04 (the owner's Itineraries listed every advisor trip while her Travellers page said they were absent).
+**Enforced by:** store `sharedWithOwner`, `tripsFor`.
+
+## VIS-099 · 2026-09-28 · proposed · settles Journey B U2 against 06-itinerary-builder §4
+**Decision:** one notice gate. A Critical notice blocks: the property cannot be added to a trip or asked for, and where it already sits on a trip the one act is to take it off. Nobody is asked to acknowledge it. Important is a warning beside the property wherever it is chosen; Info is context. One attention item per subject (property on a trip): the most severe wins.
+**Problem it serves:** UX sweep COL-03, FB-01.
+**Enforced by:** store `noticeGate`, `onTrip`.
+
+## VIS-100 · 2026-09-28 · proposed
+**Decision:** one assistant at two sizes. The Conversations page is the assistant at full size; the panel is the same conversation, compact, beside your work. One set of conversations for both. On Conversations the panel does not draw. From an entry point ("Why?", "Ask about this") the agent speaks first, with its mark, quoting what you asked about; a user bubble holds only what the user typed or tapped, and free text is never rewritten. Every answer carries its sources and the answer contract, compact in the panel and full on the page.
+**Problem it serves:** Constantin, 2026-09-28 (the "Why?" message, the panel beside Conversations, the conversation layout); UX sweep AI-01 to AI-12.
+**Enforced by:** `askWhy`, `askAbout`; the shell does not draw the card on `/ask`.
+
+## VIS-101 · 2026-09-28 · proposed
+**Decision:** one sharing sheet. "Who can see this?" with Only me · The Paris desk · The whole agency (a traveller: the people it is shared with), the consequence said before it happens, one commit label, Cancel then the act at the right, and a toast with Undo on commit.
+**Problem it serves:** UX sweep COL-10 (three audience models, six commit labels, trips could not be shared).
+**Enforced by:** `src/components/share-sheet.tsx`.
+
+## VIS-102 · 2026-09-28 · proposed
+**Decision:** a record's commercial terms are shown and organised by partner programme. The data follows the production schema (docs/design/data-model.md): a Partner Program carries when it pays, how to book, what it gives the advisor and where its terms come from; a Linked Product carries one property's terms under one programme: its rate and basis, what guests get, its rate code, when it was verified. The record's Programmes chapter has one column per programme, side by side, each with the same rows in the same order (Commission, Paid, Incentive, Guests get, You get, How to book, Terms). Programme amenities are kept apart from the property's own facilities (DEC-34). Money rows are absent without the entitlement. The trip builder's terms, the records list ("10–12%") and the assistant's answer read the same links.
+**Problem it serves:** Constantin, 2026-09-28: "comissions and amenities need to be showcased and organized based on the partner program the record sits in". The record showed one flat "Commission 10%" beside programme names as chips, and no amenities outside Maison Léandre.
+**Why this one:** _(draft for Constantin to rewrite)_ a commission is only true under the programme that pays it; side by side, an advisor can see which programme to book under before she chooses.
+**Enforced by:** `programmes`, `programmeLinks` (src/data/seed.ts); `termsFor` reads them.
+
+## VIS-103 · 2026-09-28 · proposed · revises VIS-102, an exception to VIS-071
+**Decision:** a record's programmes are trays, not columns. Each programme is a row that says what programmes are compared on (its name and kind, its commission, what guests get, an incentive if one runs) and opens to the rest, in VIS-102's rows and order, with the rate code under How to book. Any number open at once; the first is open on arrival. An open tray lifts, the row's own selected state (VIS-095). Which are open lives in the URL (`?programme=Atelier,Meridian`), and the Summary's rates open the tray they name. A disclosure on desktop, which VIS-071 rules out, because the alternative is side-by-side columns that stop working at three programmes.
+**Problem it serves:** Constantin, 2026-09-28: "you might have different partner programs so they need to be selectable / openable trays to see how the data is grouped per programs". Production has about twenty programmes; a property in four could not be read in columns.
+**Why this one:** _(draft for Constantin to rewrite)_ the closed rows are the comparison, so an advisor can choose which programme to book under from the list and open only the one she needs.
+**Enforced by:** `ProgrammesChapter`, `ProgrammeTray`, `useProgrammeTrays` (src/app/records/[id]/page.tsx).

@@ -5,38 +5,39 @@
  * This is not the briefing. The briefing is the day's shape; this is the stream of
  * items each needing a decision. Every item is bound to its subject and carries its
  * decision, which is the difference between this and the inbox the product replaces.
- * Nothing auto-dismisses (DEC-03): an item is actioned or deferred deliberately.
  *
- * Chapters, in order: the filters (state · tag, one row under the title) · the
- * stream, one chapter titled by the state it shows (Waiting on you · Actioned ·
- * Deferred). The inspector is the tool that follows: the item in full, its
- * evidence, and the ONE primary at its bottom — the item's own action (contract:
- * action a notification). Mark actioned · Defer are secondaries; "Put it back in
- * the open list" is a text action.
+ * 2026-09-28, UX sweep FB-03, NAV-01, NAV-03, NAV-06, COL-02, COL-07, FB-08 (VIS-095 to
+ * VIS-097):
+ *   title row   the name and one count: what the dock's badge counts, "N unseen"
+ *               (store `unseenCount`'s rule, on this page's list), so the two agree.
+ *   toolbar     the state switch (Open · Actioned · Deferred), the tags, then the result
+ *               and its order. State, tag and the selected item live in the URL; the
+ *               Briefing's widgets still arrive with `?tag=` applied.
+ *   rows        each row's state is the store's `inboxState`: an item whose subject was
+ *               dealt with anywhere (a reminder sent, a record confirmed, both payments
+ *               matched) is Actioned on its own, and says how ("Resolved · Reminder sent
+ *               by R. Devane"). Opening an item marks it seen, so the badge drops.
+ *   inspector   the item in full, "Open ↗" to its subject, and its acts pinned in the
+ *               footer: its own action first, then Mark actioned and Defer. Both give a
+ *               toast with Undo and move the selection to the next item; the row no
+ *               longer vanishes without a word.
  *
- * Whose items: `inboxFor(s)` — the seeded day for the signed-in type plus what happened
- * this session (a proposed value, a share waiting in the queue, a return, an access
- * request). A live item is an item like any other: its action is the panel's primary.
- * Tags are the ones present — the user's Records · Commissions · Traveller; the owner's
- * add Ingestion · Connections · Knowledge. A user without the money entitlement has no
- * Commissions items at all (absent, not masked).
- *
- * Colour means severity here and nothing else (contract taxonomies: ["severity"]).
- * The severity chip is the only chroma on a row; triage state is a neutral chip
- * whose word does the work. A selected row carries a 2px ink left edge and a fill.
- *
- * Local components (not promoted to bits): SeverityChip, StateMark.
+ * Whose items: `inboxFor(s)`, the seeded day for the signed-in type plus what happened
+ * this session. A user without the money entitlement has no Commissions items at all
+ * (absent, not masked). Colour means severity here and nothing else, and only while an
+ * item is open: an actioned item's severity is a word.
  */
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useDemo, inboxFor, canViewCommissions, type NoticeState } from "@/lib/store";
+import { useDemo, inboxFor, inboxState, canViewCommissions, type NoticeState } from "@/lib/store";
 import type { Notification, NotifTag } from "@/data/seed";
-import { PageHeader, SplitPage } from "@/components/layouts";
-import { Chip, DataList, EmptyState, Section, Segmented, SchematicBadge, Rows } from "@/components/bits";
+import { PageHeader, SplitPage, ListToolbar, useQueryState } from "@/components/layouts";
+import { Chip, DataList, EmptyState, Segmented, SchematicAction, Rows, Done } from "@/components/bits";
+import { notify } from "@/lib/notify";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Check, Clock } from "lucide-react";
+import { Check, Clock } from "lucide-react";
 
 const TAG_ORDER: NotifTag[] = ["Records", "Commissions", "Ingestion", "Traveller", "Connections", "Knowledge"];
 
@@ -57,25 +58,20 @@ const STATE_FILTERS: { value: StateFilter; label: string }[] = [
   { value: "actioned", label: "Actioned" },
   { value: "deferred", label: "Deferred" },
 ];
-/** The chapter's title, by the state it shows. */
-const STATE_TITLE: Record<StateFilter, string> = {
-  open: "Waiting on you",
-  actioned: "Actioned",
-  deferred: "Deferred",
-};
+const isStateFilter = (v: string): v is StateFilter => STATE_FILTERS.some((f) => f.value === v);
 
 const inStateFilter = (state: NoticeState, f: StateFilter) =>
   f === "open" ? state === "new" || state === "seen" : state === f;
 
-/* ── severity: the one thing colour means here, always with its word ─────────── */
-function SeverityChip({ severity }: { severity: Notification["severity"] }) {
+/* ── severity: the one thing colour means here, always with its word, and only while
+   the item is open (an actioned item is no longer at risk) ─────────────────────── */
+function SeverityChip({ severity, open }: { severity: Notification["severity"]; open: boolean }) {
   const tone = { Critical: "crit", Important: "warn", Info: "neutral" } as const;
-  return <Chip tone={tone[severity]}>{severity}</Chip>;
+  return <Chip tone={open ? tone[severity] : "neutral"}>{severity}</Chip>;
 }
 
-/* Four states, one shape, no chroma: severity owns the colour budget on this
-   surface, so triage state is carried by the word. "new" takes the ink outline so
-   the item that has not been looked at yet still stands forward of the rest. */
+/* Triage state is a word in a neutral chip; "new" takes the ink outline so the item
+   not yet looked at stands forward of the rest. */
 function StateMark({ state }: { state: NoticeState }) {
   if (state === "new") return <Chip tone="primary">new</Chip>;
   return <Chip tone="neutral">{state}</Chip>;
@@ -91,16 +87,17 @@ export default function NotificationsPage() {
 }
 
 function Triage() {
-  const { s } = useDemo();
-  const search = useSearchParams();
+  const { s, d } = useDemo();
+  const router = useRouter();
+  const pathname = usePathname();
+  const latest = useRef(s);
+  useEffect(() => { latest.current = s; });
 
-  /* Briefing widgets are saved views (§8): ?tag=Records arrives already applied. */
-  const tagParam = search?.get("tag") ?? null;
-  const [tag, setTag] = useState<NotifTag | "all">(() =>
-    tagParam && (TAG_ORDER as string[]).includes(tagParam) ? (tagParam as NotifTag) : "all",
-  );
-  const [stateFilter, setStateFilter] = useState<StateFilter>("open");
-  const [selected, setSelected] = useState<string | null>(null);
+  const [stateParam, setStateParam] = useQueryState("state", "open");
+  const stateFilter: StateFilter = isStateFilter(stateParam) ? stateParam : "open";
+  const [tagParam, setTagParam] = useQueryState("tag", "all");
+  const tag: NotifTag | "all" = (TAG_ORDER as string[]).includes(tagParam) ? (tagParam as NotifTag) : "all";
+  const [sel, setSel] = useQueryState("sel");
 
   /* The money gate applies to the stream as it does everywhere else: a user the owner
      has not entitled has no commission items, rather than items with figures hidden.
@@ -112,12 +109,11 @@ function Triage() {
     // inboxFor reads the session's mutations; `s` is a new object on every one of them.
     [s, money],
   );
-  const stateOf = (n: Notification): NoticeState => s.notices[n.id] ?? n.defaultState;
+  const stateOf = (n: Notification) => inboxState(s, n);
 
   const byState = useMemo(
-    () => mine.filter((n) => inStateFilter(stateOf(n), stateFilter)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mine, stateFilter, s.notices],
+    () => mine.filter((n) => inStateFilter(inboxState(s, n).state, stateFilter)),
+    [mine, stateFilter, s],
   );
 
   const tagCounts = useMemo(() => {
@@ -135,135 +131,132 @@ function Triage() {
     );
   }, [byState, tag]);
 
-  // An item filtered out of the stream takes its panel with it — derived, never synced.
-  const active = selected ? rows.find((n) => n.id === selected) : undefined;
+  // An item filtered out of the stream takes its panel with it: derived, never synced.
+  const active = sel ? rows.find((n) => n.id === sel) : undefined;
 
-  const openCount = mine.filter((n) => inStateFilter(stateOf(n), "open")).length;
+  /* Opening an item marks it seen (FB-03): the badge counts only what nobody has looked at. */
+  useEffect(() => {
+    if (active && inboxState(s, active).state === "new") d({ type: "notice", id: active.id, state: "seen" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active?.id]);
+
+  const unseen = mine.filter((n) => stateOf(n).state === "new").length;
   const tagsPresent = TAG_ORDER.filter((t) => mine.some((n) => n.tag === t));
 
-  const header = (
-    <>
-      <PageHeader
-        title={
-          <>
-            Notifications
-            {openCount > 0 && (
-              <Chip tone="neutral"><span className="tnum">{openCount}</span> open</Chip>
-            )}
-          </>
-        }
-        /* What you are looking at sits on the title's line (the title-row rule,
-           layouts.tsx): the triage state is the view, not a filter. */
-        actions={
-          <Segmented
-            value={stateFilter}
-            onChange={setStateFilter}
-            options={STATE_FILTERS}
-            label="Triage state"
-          />
-        }
-      >
-        <p className="mt-[var(--space-2)] max-w-[62ch] type-data-read text-label-secondary">
-          What changed, and what the system noticed. Each item carries its subject and its decision.
-        </p>
+  /** Record a triage decision, move on to the next item, and offer Undo. */
+  const triage = (n: Notification, next: NoticeState, message: string) => {
+    const before = s.notices[n.id];
+    d({ type: "notice", id: n.id, state: next });
+    const rest = rows.filter((x) => x.id !== n.id);
+    const i = rows.findIndex((x) => x.id === n.id);
+    setSel((rest[i] ?? rest[i - 1])?.id ?? null);
+    notify(message, {
+      detail: n.headline,
+      undo: () => {
+        const notices = { ...latest.current.notices };
+        if (before === undefined) delete notices[n.id]; else notices[n.id] = before;
+        d({ type: "patch", patch: { notices } });
+      },
+    });
+  };
 
-        {/* The tags narrow the list, so they sit below the title row. Clicking the
-            live tag clears it. */}
-        <div className="mt-[var(--space-4)] flex flex-wrap items-center gap-x-[var(--space-4)] gap-y-[var(--space-2)]">
-          <Segmented<NotifTag | "all">
-            value={tag}
-            onChange={(v) => setTag(v === tag ? "all" : v)}
-            options={[
-              { value: "all" as const, label: "All", count: byState.length },
-              ...tagsPresent.map((t) => ({ value: t, label: t, count: tagCounts[t] })),
-            ]}
-            label="Tag"
-            className="max-w-full flex-wrap"
-          />
-        </div>
-      </PageHeader>
-
-    </>
-  );
+  const header = <PageHeader title="Notifications" count={unseen > 0 ? `${unseen} unseen` : "all seen"} />;
 
   return (
     <SplitPage
       header={header}
       panelOpen={!!active}
-      onClosePanel={() => setSelected(null)}
+      onClosePanel={() => setSel(null)}
       /* The panel is titled with what the item is about, not which tag it filed under. */
       panelTitle={active ? (active.subject?.label ?? active.headline) : "Item"}
-      panel={active ? <ItemPanel n={active} state={stateOf(active)} /> : null}
+      openHref={active?.subject?.href}
+      panel={active ? <ItemPanel n={active} /> : null}
+      footer={active && !stateOf(active).resolved ? <ItemActs n={active} onTriage={triage} /> : undefined}
     >
+      <ListToolbar
+        state={
+          <Segmented
+            value={stateFilter}
+            onChange={(v) => setStateParam(v)}
+            options={STATE_FILTERS}
+            label="Triage state"
+          />
+        }
+        /* Each tag carries its count in its own label, so the count keeps the label's
+           contrast when the tag is selected (the separate count at 70% was illegible). */
+        filters={
+          <Segmented<NotifTag | "all">
+            value={tag}
+            onChange={(v) => setTagParam(v === tag ? "all" : v)}
+            options={[
+              { value: "all" as const, label: `All ${byState.length}` },
+              ...tagsPresent.map((t) => ({ value: t, label: `${t} ${tagCounts[t]}` })),
+            ]}
+            label="Tag"
+            className="max-w-full flex-wrap"
+          />
+        }
+        result={rows.length > 0 ? <>{rows.length} shown · most severe first, then newest</> : undefined}
+      />
+
       <div className="min-w-0">
         {mine.length === 0 ? (
-          <EmptyState
-            title="Nothing waiting."
-            body="No item has asked for a decision today. The system is not inventing work to look busy."
-          />
+          <EmptyState title="Nothing is waiting on you." body="New items appear here as they arrive." />
         ) : rows.length === 0 ? (
           <EmptyState
-            title="Nothing waiting under this filter."
-            body="Items are still here under another tag or state."
+            title="Nothing here."
+            body="Other items are under another tag or state."
             action={
-              <Button variant="secondary" size="sm" onClick={() => { setTag("all"); setStateFilter("open"); }}>
+              <Button variant="secondary" size="sm" onClick={() => router.replace(pathname, { scroll: false })}>
                 Show everything open
               </Button>
             }
           />
         ) : (
-          <Section
-            title={STATE_TITLE[stateFilter]}
-            footer={
-              <p className="type-meta">
-                <span className="tnum">{rows.length}</span> shown · <span className="tnum">{openCount}</span> open
-                across every tag
-              </p>
-            }
-          >
-            <Rows>
-              {rows.map((n) => {
-                const st = stateOf(n);
-                const isNew = st === "new";
-                const isSel = selected === n.id;
-                return (
-                  /* Selected is more than a colour: a 2px ink left edge, a fill, and the
-                     row's own word. The edge sits in the gutter so the text keeps the
-                     column's left edge whether or not the row is selected. */
-                  <li
-                    key={n.id}
-                    data-state={isSel ? "selected" : undefined}
-                    className={cn(
-                      "-mx-[var(--space-3)] border-l-2 pl-[calc(var(--space-3)-2px)] pr-[var(--space-3)] transition-colors duration-200 ease-standard",
-                      isSel ? "border-l-selected bg-interactive/40" : "border-l-transparent hover:bg-interactive/60",
-                    )}
+          <Rows>
+            {rows.map((n) => {
+              const { state: st, resolved } = stateOf(n);
+              const isNew = st === "new";
+              const isSel = sel === n.id;
+              const open = st === "new" || st === "seen";
+              return (
+                /* The selectable row (VIS-093): selected lifts onto raised paper, the
+                   inspector's material. Enter on the selected row opens its subject. */
+                <li
+                  key={n.id}
+                  data-state={isSel ? "selected" : undefined}
+                  className="row-select -mx-[var(--space-3)] px-[var(--space-3)]"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSel(n.id)}
+                    onDoubleClick={() => n.subject && router.push(n.subject.href)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && isSel && n.subject) { e.preventDefault(); router.push(n.subject.href); }
+                    }}
+                    aria-pressed={isSel}
+                    aria-label={`${n.severity}: ${n.headline}`}
+                    className="row-stack block w-full cursor-pointer text-left"
                   >
-                    <button
-                      type="button"
-                      onClick={() => setSelected(n.id)}
-                      aria-pressed={isSel}
-                      aria-label={`${n.severity}: ${n.headline}`}
-                      className="row-stack block w-full cursor-pointer text-left"
-                    >
-                      <span className="row-stack-head">
-                        <span className={cn("row-primary", isNew ? "type-data-strong" : "type-data")}>
-                          {n.headline}
-                        </span>
-                        <span className="flex shrink-0 items-center gap-[var(--space-2)]">
-                          <SeverityChip severity={n.severity} />
-                          <StateMark state={st} />
-                        </span>
+                    <span className="row-stack-head">
+                      <span className={cn("row-primary", isNew ? "type-data-strong" : "type-data")}>
+                        {n.headline}
                       </span>
-                      <span className="row-stack-body type-meta">
-                        {n.subject && <>{n.subject.label} · </>}
-                        {n.tag} · {n.when}
+                      <span className="flex shrink-0 items-center gap-[var(--space-2)]">
+                        <SeverityChip severity={n.severity} open={open} />
+                        <StateMark state={st} />
                       </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </Rows>
-          </Section>
+                    </span>
+                    <span className="row-stack-body block type-meta">
+                      {resolved
+                        ? <>Resolved · {resolved}</>
+                        : <>{n.subject && <>{n.subject.label} · </>}{n.tag} · {n.when}</>}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </Rows>
         )}
       </div>
     </SplitPage>
@@ -271,30 +264,33 @@ function Triage() {
 }
 
 /* ── the item, in full ──────────────────────────────────────────────────────── */
-function ItemPanel({ n, state }: { n: Notification; state: NoticeState }) {
-  const { d } = useDemo();
-  const set = (next: NoticeState) => d({ type: "notice", id: n.id, state: next });
+function ItemPanel({ n }: { n: Notification }) {
+  const { s } = useDemo();
+  const { state, resolved } = inboxState(s, n);
+  const open = state === "new" || state === "seen";
 
   return (
     <div className="space-y-[var(--space-6)]">
       <div className="flex flex-wrap items-center gap-[var(--space-2)]">
-        <SeverityChip severity={n.severity} />
+        <SeverityChip severity={n.severity} open={open} />
         <Chip tone="neutral">{n.tag}</Chip>
         <span className="ml-auto"><StateMark state={state} /></span>
       </div>
 
       <div>
         <h2 className="type-section">{n.headline}</h2>
-        <p className="mt-[var(--space-2)] type-data-read text-label-secondary">{n.detail}</p>
+        <p className="mt-[var(--space-2)] type-data text-label-secondary">{n.detail}</p>
       </div>
+
+      {resolved && <Done>Resolved · {resolved}</Done>}
 
       <DataList
         rows={[
           ...(n.evidence ? [{ label: "Evidence", value: n.evidence }] : []),
-          { label: "Generated by", value: n.generatedBy },
+          { label: "From", value: n.generatedBy },
           { label: "When", value: n.when },
           {
-            label: "Subject",
+            label: "About",
             value: n.subject ? (
               <Link
                 href={n.subject.href}
@@ -307,52 +303,44 @@ function ItemPanel({ n, state }: { n: Notification; state: NoticeState }) {
           },
         ]}
       />
+    </div>
+  );
+}
 
-      {/* The one primary is the item's own action: heavy work opens the real surface.
-          An action this build only draws is a grey button with the schematic mark.
-          Recording the decision is secondary; undoing it is a text action. */}
-      <div className="space-y-[var(--space-2)] border-t border-hairline pt-[var(--space-4)]">
-        {n.action &&
-          (n.action.href ? (
-            <Button asChild className="w-full">
-              <Link href={n.action.href}>
-                {n.action.label} <ArrowRight aria-hidden />
-              </Link>
-            </Button>
-          ) : (
-            <div className="flex items-center gap-[var(--space-2)]">
-              <Button variant="secondary" className="flex-1">{n.action.label}</Button>
-              <SchematicBadge />
-            </div>
-          ))}
+/* ── the inspector's footer: the item's own act, then the triage acts ─────────────
+   The item's own action is the primary: it goes where the work is done. An action this
+   build only draws is a schematic control, never the primary. A resolved item has
+   nothing left to do, so its footer is the resolution. */
+function ItemActs({ n, onTriage }: { n: Notification; onTriage: (n: Notification, next: NoticeState, message: string) => void }) {
+  const { s } = useDemo();
+  const { state, resolved } = inboxState(s, n);
+  if (resolved) return null;
+  const open = state === "new" || state === "seen";
 
-        <div className="flex gap-[var(--space-2)]">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="flex-1"
-            disabled={state === "actioned"}
-            onClick={() => set("actioned")}
-          >
+  return (
+    <div className="space-y-[var(--space-2)]">
+      {open && n.action && (n.action.href ? (
+        <Button asChild className="w-full">
+          <Link href={n.action.href}>{n.action.label}</Link>
+        </Button>
+      ) : (
+        <SchematicAction className="w-full justify-center">{n.action.label}</SchematicAction>
+      ))}
+      <div className="flex flex-wrap gap-[var(--space-2)]">
+        {state !== "actioned" && (
+          <Button variant="secondary" size="sm" className="flex-1" onClick={() => onTriage(n, "actioned", "Marked actioned")}>
             <Check aria-hidden /> Mark actioned
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="flex-1"
-            disabled={state === "deferred"}
-            onClick={() => set("deferred")}
-          >
+        )}
+        {state !== "deferred" && (
+          <Button variant="secondary" size="sm" className="flex-1" onClick={() => onTriage(n, "deferred", "Deferred")}>
             <Clock aria-hidden /> Defer
           </Button>
-        </div>
-
-        {(state === "actioned" || state === "deferred") && (
-          <div className="flex justify-center pt-[var(--space-2)]">
-            <Button variant="tertiary" size="sm" onClick={() => set("seen")}>
-              Put it back in the open list
-            </Button>
-          </div>
+        )}
+        {!open && (
+          <Button variant="secondary" size="sm" className="flex-1" onClick={() => onTriage(n, "seen", "Back in the open list")}>
+            Put it back in the open list
+          </Button>
         )}
       </div>
     </div>

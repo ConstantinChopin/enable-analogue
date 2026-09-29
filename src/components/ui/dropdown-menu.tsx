@@ -184,7 +184,7 @@ function DropdownMenuShortcut({
     <span
       data-slot="dropdown-menu-shortcut"
       className={cn(
-        "ml-auto type-micro tracking-widest text-label-tertiary",
+        "ml-auto type-meta tracking-widest text-label-tertiary",
         className
       )}
       {...props}

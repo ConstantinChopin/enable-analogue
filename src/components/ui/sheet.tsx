@@ -133,7 +133,7 @@ function SheetDescription({
   return (
     <SheetPrimitive.Description
       data-slot="sheet-description"
-      className={cn("type-data-read text-label-secondary", className)}
+      className={cn("type-data text-label-secondary", className)}
       {...props}
     />
   )

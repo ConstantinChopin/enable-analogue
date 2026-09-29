@@ -3,67 +3,83 @@
  * Commission detail — recomposed as a document (docs/rebuild/04-recomposition-brief.md).
  *
  * Job (Journey C, docs/journeys/journey-c-working-day.md): read the timeline projected →
- * due → paid with each value's source and date, see a discrepancy flagged rather than
- * absorbed, and chase — the product drafts the reminder, the advisor edits a line and
- * sends, and then the product stops. Nothing sends itself (SIG-35).
+ * due → paid with each value's source and date, see a discrepancy and decide it, and
+ * chase what is late. The product drafts the reminder, the person edits and sends it,
+ * and nothing sends itself (SIG-35).
  *
- * Chapters, in order: the credit-not-refund banner (if this record carries one) ·
- * Timeline (rows of stage · value · source and date) · Chase log · Projected against
- * actual (if this record carries a discrepancy) · Sibling booking (the worked example
- * only) · Credit, not refund (the worked example only, quiet).
+ * One anatomy for every commission (UX sweep COL-08, COL-12, FB-12, 2026-09-28). Until
+ * then only Villa Ortensia could be chased, and Palácio's discrepancy was decided on
+ * Villa Ortensia's page. Now:
+ *   header     the property, its state, and every object named as a link: the property's
+ *              record and the traveller (where this reader may open them, VIS-098). A
+ *              neutral freshness line says where the actuals come from and when they
+ *              were last synced; nothing is amber unless a figure shown is stale.
+ *   Timeline   projected (what the terms said) · due · paid (what arrived). A discrepant
+ *              commission projects its expected figure, so the timeline and "Projected
+ *              against actual" agree (Palácio showed 1,008 beside 1,120).
+ *   Chase log  every reminder, seeded or sent this session, with who and when.
+ *   Projected against actual (a discrepancy only): the two figures, and a Warning whose
+ *              acts are Draft a dispute and Accept with reason (VIS-097: decide, ochre).
+ *              Accepting collapses it to a kept line with who and when.
+ *   Reminder   the rail, on every overdue or chased commission: Draft a reminder → read
+ *              and edit → Send, then a Done in place ("Sent · 10:14 · R. Devane"). Villa
+ *              Ortensia's reminder is the store's (`reminder`, the assistant drafts it);
+ *              every commission records its send as the decision "reminder:<id>".
+ *              `?draft=1` (the ledger's "Draft a reminder") opens the draft on arrival.
  *
- * The one primary lives in the Reminder — the tool that follows you down the page:
- * "Draft a reminder", and once a draft exists, "Send". It is the only filled button
- * because the send-gate is the surface's whole argument: every path ends at a review
- * step. "Discard" is secondary; "Open that record" is a text action in its chapter's
- * title row; accept-with-reason and the dispute draft open sheets, each with its own
- * filled action inside its own layer.
+ * Two roles (docs/rebuild/05-two-roles.md, journey O16): the owner can chase any agency
+ * booking by the same clicks. Her reminder goes out in her name and sits in the same
+ * chase log; when the booking is the advisor's, the Reminder says so once, before the send.
  *
- * Two roles (docs/rebuild/05-two-roles.md, journey O16): the owner can chase a late
- * commission on any agency booking, not only her own, by the same clicks. Her reminder is
- * signed and sent in her name, and sits in the same chase log as the advisor's; the log
- * and the sent state name whoever sent it (`reminderBy`). When the owner is about to chase
- * a booking that is the advisor's, the Reminder says so once, quietly, before the send.
- *
- * Demo (J1, checkpoint 2): /commissions/vo → Draft a reminder → edit a line → Send;
- * the title flips to "chased" and the chase log records it.
- *
- * Local components (this file only): TimelineRow — a field-row of stage · value ·
- * provenance; ProjectedAgainstActual — the two-row expected/actual block, used by both
- * discrepancy chapters; SheetBody — 24 inside, rows stacked, the helper the record uses.
+ * A payment the owner matched to this booking (/ops/resolution) makes it paid here, with
+ * the payment and who matched it (COL-12, ./ledger.ts).
  */
-import { use, useState, type ReactNode } from "react";
+import { Suspense, use, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useDemo, canViewCommissions } from "@/lib/store";
-import { commissions, commissionEdgeCases, people, personName, roleLabel, type Persona } from "@/data/seed";
-import { Page, PageHeader } from "@/components/layouts";
 import {
-  Chip, Section, SeverityBanner, ConfirmBanner, MoneyValue, SourceTag,
-  FreshnessDate, StatusDot, SchematicBadge, Rows, RowStack,
+  commissions, commissionEdgeCases, connections, people, personName, type Commission, type Persona,
+} from "@/data/seed";
+import { Page, PageHeader, ActionBar } from "@/components/layouts";
+import {
+  Chip, Section, SourceTag, StatusDot, SchematicBadge, Rows, RowStack, Done, Warning,
 } from "@/components/bits";
+import { notify } from "@/lib/notify";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose,
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose,
 } from "@/components/ui/sheet";
-import { ArrowRight } from "lucide-react";
-
-const eur = (n: number) => `EUR ${n.toLocaleString("en-GB")}`;
+import {
+  eur, liveState, isLate, reminderSent, settlementFor, travellerHref, sentLine, timeOf,
+} from "../ledger";
 
 /* The seed's bookings are the Paris desk's, held by the advisor who signs in. */
 const bookingAdvisor = people.advisor;
 
-/** The drafted chase, signed by whoever is signed in: it goes out in her name. */
-const seededDraft = (role: Persona) => `Subject: Commission on booking VO-2214 — Villa Ortensia
+/** Where the actuals come from, and when they were last read. */
+const tripsuite = connections.find((x) => x.name === "TripSuite");
 
-Dear Villa Ortensia accounts team,
+/** The drafted chase, signed by whoever is signed in: it goes out in her name. A second
+    reminder on an already-chased commission says so. */
+function draftFor(c: Commission, role: Persona, followUp: boolean) {
+  const opening = followUp
+    ? `We wrote on 14 Aug about the ${eur(c.amount)} in commission on booking ${c.bookingRef}, due on ${c.dueDate}, and have not had a reply. It remains open.`
+    : `Our records show ${eur(c.amount)} in commission on booking ${c.bookingRef} fell due on ${c.dueDate} and remains open.`;
+  return `Subject: Commission on booking ${c.bookingRef}, ${c.property}
 
-Our records show EUR 1,240 in commission on booking VO-2214 fell due on 18 July and remains open. Could you confirm when payment was issued, or advise if anything is missing on our side? Rate terms and the booking reference are attached.
+Dear ${c.property} accounts team,
+
+${opening} Could you confirm when payment was issued, or tell us if anything is missing on our side? The booking reference and the rate terms are attached.
 
 With thanks,
 ${personName[role]} · Enable, ${role === "owner" ? "agency owner" : "Paris desk"}`;
+}
+
+const linkCls = "underline decoration-hairline underline-offset-4 hover:decoration-ink";
 
 /* ── a timeline row: stage · value · provenance on the record's shared track ── */
 function TimelineRow({
@@ -80,58 +96,33 @@ function TimelineRow({
   );
 }
 
-/* ── expected against actual: two rows, both values with their provenance ── */
-function ProjectedAgainstActual({ expected, actual }: { expected: number; actual: number }) {
-  return (
-    <div className="divide-y divide-hairline">
-      <TimelineRow
-        stage="Expected"
-        provenance={<SourceTag kind="portal" label="projection · partner terms" />}
-      >
-        <span className="type-data-strong"><MoneyValue amount={expected} /></span>
-      </TimelineRow>
-      <TimelineRow
-        stage="Actual"
-        provenance={<SourceTag kind="tripsuite" label="TripSuite remittance · read-only" />}
-      >
-        <span className="type-data-strong"><MoneyValue amount={actual} /></span>
-        <Chip tone="warn" className="ml-[var(--space-2)] tnum">{eur(expected - actual)} under</Chip>
-      </TimelineRow>
-    </div>
-  );
-}
-
 /* ── the sheet body: 24 inside, rows stacked ── */
 function SheetBody({ children }: { children: ReactNode }) {
-  return <div className="space-y-[var(--space-6)] overflow-y-auto px-[var(--space-6)] py-[var(--space-6)]">{children}</div>;
+  return <div className="min-h-0 flex-1 space-y-[var(--space-6)] overflow-y-auto px-[var(--space-6)] py-[var(--space-6)]">{children}</div>;
 }
 
 export default function CommissionDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { s, d } = useDemo();
+  return (
+    <Suspense fallback={null}>
+      <CommissionBody id={id} />
+    </Suspense>
+  );
+}
+
+function CommissionBody({ id }: { id: string }) {
+  const { s } = useDemo();
   const money = canViewCommissions(s);
   const c = commissions.find((x) => x.id === id);
-  /** The worked example: the overdue Villa Ortensia commission carries the reminder gate. */
-  const rich = id === "vo";
-
-  /** The draft as edited; null until a line is changed, so it signs for whoever is in. */
-  const [editedDraft, setEditedDraft] = useState<string | null>(null);
-  const [acceptOpen, setAcceptOpen] = useState(false);
-  const [disputeOpen, setDisputeOpen] = useState(false);
-  const [acceptReason, setAcceptReason] = useState("");
-  const [acceptedWithReason, setAcceptedWithReason] = useState<string | null>(null);
 
   if (!money) {
     return (
       <Page width="wide">
-        <PageHeader title="Commission record" />
+        <PageHeader title="Commission" />
         <Section>
-          <p className="max-w-[60ch] type-data-read">
-            Signed in as {personName[s.role]} ({roleLabel[s.role]}), commission records are absent
-            by policy. Financial scope stays with the owning advisor.
-          </p>
-          <p className="mt-[var(--space-2)] max-w-[60ch] type-meta">
-            The record is not fetched and then hidden. There is nothing on this page to read past.
+          <p className="max-w-[60ch] type-data">
+            Commission figures are not open to you in this agency. {people.owner} can open them in
+            Settings.
           </p>
         </Section>
       </Page>
@@ -143,245 +134,257 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
       <Page width="wide">
         <PageHeader title="Not on file" />
         <Section>
-          <p className="type-data-read text-label-secondary">No commission record with this reference.</p>
-          <Button asChild variant="secondary" size="sm" className="mt-[var(--space-3)]">
-            <Link href="/commissions">Back to the ledger <ArrowRight aria-hidden /></Link>
+          <p className="type-data text-label-secondary">No commission has this reference.</p>
+          <Button asChild variant="link" size="sm" className="mt-[var(--space-3)]">
+            <Link href="/commissions">Back to Commissions</Link>
           </Button>
         </Section>
       </Page>
     );
   }
 
-  const chased = rich && s.reminder === "sent";
-  const sibling = commissionEdgeCases.discrepancy;
-  const incentiveNote = c.projected.incentive;
-  const late = c.state === "overdue" || c.state === "chased";
-  /** Who the reminder is from: whoever sent it, or whoever is drafting it. */
-  const sender = personName[s.reminderBy ?? s.role];
-  /** The owner chasing a booking the advisor holds: said once, quietly, before the send. */
+  return <CommissionPage c={c} />;
+}
+
+function CommissionPage({ c }: { c: Commission }) {
+  const { s, d } = useDemo();
+  const search = useSearchParams();
+
+  const st = liveState(s, c);
+  const late = isLate(st);
+  const settled = settlementFor(s, c);
+  const sent = reminderSent(s, c);
+  const traveller = travellerHref(s, c.traveller);
+  const expected = c.discrepancy?.expected ?? c.amount;
+  const actual = c.discrepancy?.actual ?? c.amount;
+  /** Villa Ortensia's draft is the store's (the assistant can put it there); every other
+      commission drafts locally until it is sent. */
+  const storeDraft = c.id === "vo";
+  /* Arriving from the ledger's "Draft a reminder" (`?draft=1`): the draft is open. */
+  const wantsDraft = search?.get("draft") === "1";
+  const [localDraft, setLocalDraft] = useState(() => wantsDraft && !storeDraft);
+  const drafting = !sent && (storeDraft ? s.reminder === "draft" : localDraft);
+  const followUp = c.state === "chased";
+  /** The draft as edited; null until a line is changed, so it signs for whoever is in. */
+  const [editedDraft, setEditedDraft] = useState<string | null>(null);
+  const draftText = editedDraft ?? draftFor(c, s.role, followUp);
+
+  const [acceptOpen, setAcceptOpen] = useState(false);
+  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [acceptReason, setAcceptReason] = useState("");
+  const decided = s.decisions[`discrepancy:${c.id}`];
+
+  const startDraft = () => {
+    if (storeDraft) d({ type: "reminder", state: "draft" });
+    else setLocalDraft(true);
+  };
+  const discard = () => {
+    setEditedDraft(null);
+    if (storeDraft) d({ type: "reminder", state: "idle" });
+    else setLocalDraft(false);
+  };
+  const send = () => {
+    d({ type: "decide", id: `reminder:${c.id}`, what: "Reminder sent" });
+    if (storeDraft) d({ type: "reminder", state: "sent" });
+    setLocalDraft(false);
+  };
+
+  useEffect(() => {
+    if (wantsDraft && storeDraft && late && !sent && s.reminder === "idle") d({ type: "reminder", state: "draft" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantsDraft]);
+
+  /** The owner chasing a booking the advisor holds: said once, before the send. */
   const onBehalfNote = personName[s.role] !== bookingAdvisor ? (
     <p className="mt-[var(--space-2)] type-meta">
-      This booking is {bookingAdvisor}&rsquo;s; the reminder goes out in your name and appears in
-      her chase log.
+      This booking is {bookingAdvisor}&rsquo;s. The reminder goes out in your name and shows in her
+      chase log.
     </p>
   ) : null;
-  const draftText = editedDraft ?? seededDraft(s.role);
+
+  const acceptDiscrepancy = () => {
+    const reason = acceptReason.trim();
+    if (!reason || !c.discrepancy) return;
+    d({ type: "decide", id: `discrepancy:${c.id}`, what: `Accepted: ${reason}` });
+    setAcceptOpen(false);
+    setAcceptReason("");
+    notify(`Accepted ${eur(c.discrepancy.expected - c.discrepancy.actual)} under projection`, {
+      detail: c.property,
+      undo: () => d({ type: "undecide", id: `discrepancy:${c.id}` }),
+    });
+  };
+
+  /* The rail's one act, repeated in the ActionBar under 1024. */
+  const primary = !late || sent
+    ? null
+    : drafting
+      ? <Button onClick={send}>Send</Button>
+      : <Button onClick={startDraft}>{followUp ? "Draft a follow-up" : "Draft a reminder"}</Button>;
+
+  const chase: { what: string; who: string; when: string; note?: string }[] = [
+    ...(sent ? [{ what: "Reminder sent", who: personName[sent.by], when: sent.at ? `${sent.at.slice(0, 6)}, ${timeOf(sent.at)}` : "today" }] : []),
+    ...(c.state === "chased" ? [{ what: "Reminder sent", who: bookingAdvisor, when: "14 Aug", note: "no reply yet" }] : []),
+  ];
 
   return (
     <Page width="wide">
-      <PageHeader
-        title={
-          <>
-            {c.property}
-            {c.state === "overdue" && !chased && <Chip tone="crit" className="tnum">overdue {c.overdueDays}d</Chip>}
-            {c.state === "overdue" && chased && <Chip tone="primary">chased</Chip>}
-            {c.state === "chased" && <Chip tone="primary" className="tnum">chased · {c.overdueDays}d open</Chip>}
-            {c.state === "due" && <Chip tone="neutral">due {c.dueDate}</Chip>}
-            {c.state === "paid" && <Chip tone="ok">paid {c.paidDate}</Chip>}
-          </>
-        }
-      >
-        <p className="mt-[var(--space-2)] type-meta">
-          booking <span className="type-code">{c.bookingRef}</span>
-          {c.traveller && <> · {c.traveller}</>}
-          {" · "}
-          <FreshnessDate>actuals synced 12:04 · TripSuite figures up to 48h behind</FreshnessDate>
+      <PageHeader title={c.property}>
+        <p className="mt-[var(--space-2)] flex flex-wrap items-center gap-x-[var(--space-2)] gap-y-1 type-meta">
+          {st === "overdue" ? <Chip tone="warn">overdue</Chip> : <Chip tone="neutral">{st}</Chip>}
+          <span>
+            Booking <span className="tnum">{c.bookingRef}</span>
+            {c.traveller && (
+              <> for {traveller ? <Link href={traveller} className={linkCls}>{c.traveller}</Link> : c.traveller}</>
+            )}
+            {c.productId && (
+              <> · <Link href={`/records/${c.productId}`} className={linkCls}>{c.property} record</Link></>
+            )}
+            {tripsuite && <> · actuals from TripSuite, last synced {tripsuite.lastSuccess}</>}
+          </span>
         </p>
       </PageHeader>
 
-      <div className={rich ? "doc-layout" : "min-w-0"}>
+      <div className={late ? "doc-layout" : "min-w-0"}>
         {/* ── the body: chapters at column width ── */}
         <div className="min-w-0">
-          {c.creditNotRefund && (
-            <div className="pb-[var(--gap-2)]">
-              <SeverityBanner severity="Critical">
-                <b>Resolved as credit, not refund.</b> {commissionEdgeCases.creditNotRefund.note} The
-                loss is a known decision, not a silent write-off.
-              </SeverityBanner>
-            </div>
-          )}
-
           <Section title="Timeline">
-            <p className="-mt-[var(--space-2)] mb-[var(--space-2)] type-data-read text-label-secondary">
-              Projected, due, paid — each value with where it came from and when.
-            </p>
             <div className="divide-y divide-hairline">
               <TimelineRow
-                stage={<StatusDot tone="ok">Projected</StatusDot>}
+                stage={<StatusDot tone="primary">Projected</StatusDot>}
                 provenance={<SourceTag kind="portal" label={c.projected.source} />}
               >
-                <span className="type-data-strong"><MoneyValue amount={c.amount} currency={c.currency} /></span>
+                <span className="type-data-strong tnum">{eur(expected)}</span>
                 <span className="text-label-secondary"> · rate {c.projected.rate}</span>
-                {incentiveNote && <Chip tone="primary" className="ml-[var(--space-2)] tnum">{incentiveNote}</Chip>}
+                {c.projected.incentive && <Chip tone="neutral" className="ml-[var(--space-2)]">{c.projected.incentive}</Chip>}
               </TimelineRow>
 
               <TimelineRow
-                stage={<StatusDot tone={late ? "crit" : c.state === "paid" ? "ok" : "muted"}>Due</StatusDot>}
-                provenance={<SourceTag kind="portal" label={`terms with the projection · ${c.projected.source}`} />}
+                stage={<StatusDot tone={st === "due" ? "muted" : "primary"}>Due</StatusDot>}
+                provenance={<SourceTag kind="portal" label={`terms · ${c.projected.source}`} />}
               >
                 <span className="tnum">{c.dueDate}</span>
-                {late && <Chip tone="crit" className="ml-[var(--space-2)] tnum">{c.overdueDays}d overdue</Chip>}
+                {late && c.overdueDays ? <span className="text-label-secondary tnum"> · {c.overdueDays} days overdue</span> : null}
               </TimelineRow>
 
               <TimelineRow
-                stage={<StatusDot tone={c.state === "paid" ? "ok" : "muted"}>Paid</StatusDot>}
+                stage={<StatusDot tone={st === "paid" ? "primary" : "muted"}>Paid</StatusDot>}
                 provenance={
-                  <>
-                    <SourceTag kind="tripsuite" label="TripSuite · read-only" />
-                    <FreshnessDate>{c.state === "paid" ? c.paidDate : "synced 12:04 · nothing received"}</FreshnessDate>
-                  </>
+                  settled
+                    ? <span className="type-meta">matched by {personName[settled.by]}{settled.at ? `, ${settled.at}` : ""}</span>
+                    : <SourceTag kind="tripsuite" label="TripSuite · read-only" />
                 }
               >
-                {c.state === "paid" ? (
+                {settled ? (
                   <>
-                    <span className="type-data-strong"><MoneyValue amount={c.amount} currency={c.currency} /></span>
-                    <span className="text-label-secondary"> · {c.paidDate}</span>
+                    <span className="type-data-strong tnum">{eur(settled.payment.amount)}</span>
+                    <span className="text-label-secondary"> · arrived under {settled.payment.raw}; {settled.reason}</span>
+                  </>
+                ) : st === "paid" ? (
+                  <>
+                    <span className="type-data-strong tnum">{eur(actual)}</span>
+                    <span className="text-label-secondary tnum"> · {c.paidDate}</span>
                   </>
                 ) : (
-                  <span className="text-label-secondary">
-                    unpaid — actuals arrive read-only from TripSuite
-                  </span>
+                  <span className="text-label-secondary">Nothing received yet</span>
                 )}
               </TimelineRow>
             </div>
           </Section>
 
-          <Section title="Chase log" deep>
-            {chased ? (
-              <Rows>
-                <RowStack
-                  head={
-                    <>
-                      <span className="min-w-0 truncate type-data-strong">Reminder sent</span>
-                      <Chip tone="primary">chased</Chip>
-                    </>
-                  }
-                >
-                  Sent by {sender} today · logged on the timeline
-                </RowStack>
-              </Rows>
-            ) : c.state === "chased" ? (
-              <Rows>
-                <RowStack
-                  head={
-                    <>
-                      <span className="min-w-0 truncate type-data-strong">Reminder sent</span>
-                      <Chip tone="neutral">no reply yet</Chip>
-                    </>
-                  }
-                >
-                  Sent by {bookingAdvisor} · 14 Aug
-                </RowStack>
-              </Rows>
-            ) : (
-              <p className="max-w-[60ch] type-data-read text-label-secondary">
-                None yet.
-                {rich && " A reminder drafted here is logged when it is sent, with your name and the date."}
-              </p>
-            )}
-          </Section>
-
-          {c.discrepancy && (
-            <Section title="Projected against actual" deep chips={<Chip tone="warn">actual under projection</Chip>}>
-              <ProjectedAgainstActual expected={c.discrepancy.expected} actual={c.discrepancy.actual} />
-              <p className="mt-[var(--space-3)] type-meta">
-                Possible causes: {c.discrepancy.causes.join(" · ")}. Flagged, never silently absorbed.
-              </p>
-            </Section>
-          )}
-
-          {rich && (
-            <Section
-              title={`Sibling booking — ${sibling.property}`}
-              deep
-              chips={<Chip tone="warn">actual under projection</Chip>}
-              actions={
-                <Button asChild variant="link" size="sm">
-                  <Link href="/commissions/pa">Open that record <ArrowRight aria-hidden /></Link>
-                </Button>
-              }
-            >
-              <p className="-mt-[var(--space-2)] mb-[var(--space-2)] type-data-read text-label-secondary">
-                A separate booking on this desk — {sibling.note}.
-              </p>
-              <ProjectedAgainstActual expected={sibling.expected} actual={sibling.actual} />
-              <p className="mt-[var(--space-3)] type-meta">
-                Possible causes: {sibling.causes.join(" · ")}. Flagged, never silently absorbed.
-              </p>
-              {acceptedWithReason ? (
-                <div className="mt-[var(--space-3)]">
-                  <ConfirmBanner show>Accepted with reason — logged, attributed to {personName[s.role]}.</ConfirmBanner>
-                </div>
+          {(late || chase.length > 0) && (
+            <Section title="Chase log" deep>
+              {chase.length > 0 ? (
+                <Rows>
+                  {chase.map((e, i) => (
+                    <RowStack
+                      key={i}
+                      head={
+                        <>
+                          <span className="min-w-0 truncate type-data-strong">{e.what}</span>
+                          <span className="type-meta tnum">{e.when}</span>
+                        </>
+                      }
+                    >
+                      By {e.who}{e.note ? ` · ${e.note}` : ""}
+                    </RowStack>
+                  ))}
+                </Rows>
               ) : (
-                <div className="mt-[var(--space-3)] flex flex-wrap items-center gap-[var(--space-2)]">
-                  <Button variant="secondary" size="sm" onClick={() => setAcceptOpen(true)}>Accept with reason</Button>
-                  <Button variant="secondary" size="sm" onClick={() => setDisputeOpen(true)}>Open dispute draft</Button>
-                </div>
+                <p className="type-data text-label-secondary">No reminder sent yet.</p>
               )}
             </Section>
           )}
 
-          {rich && (
-            <Section title="Credit, not refund" quiet deep>
-              <SeverityBanner severity="Critical">
-                <b>{commissionEdgeCases.creditNotRefund.property}:</b>{" "}
-                {commissionEdgeCases.creditNotRefund.note} The loss is a known decision, not a silent
-                write-off.
-              </SeverityBanner>
+          {c.discrepancy && (
+            <Section title="Projected against actual" deep anchor="difference">
+              <div className="divide-y divide-hairline">
+                <TimelineRow stage="Expected" provenance={<SourceTag kind="portal" label={`projection · ${c.projected.source}`} />}>
+                  <span className="type-data-strong tnum">{eur(c.discrepancy.expected)}</span>
+                </TimelineRow>
+                <TimelineRow stage="Received" provenance={<SourceTag kind="tripsuite" label="TripSuite remittance · read-only" />}>
+                  <span className="type-data-strong tnum">{eur(c.discrepancy.actual)}</span>
+                </TimelineRow>
+              </div>
+              <Warning
+                className="mt-[var(--space-4)]"
+                title={`${eur(c.discrepancy.expected - c.discrepancy.actual)} under projection`}
+                kept={decided ? `${decided.what} · ${personName[decided.by]}, ${decided.at}` : undefined}
+                actions={
+                  <>
+                    <Button variant="secondary" size="sm" onClick={() => setDisputeOpen(true)}>Draft a dispute</Button>
+                    <Button variant="secondary" size="sm" onClick={() => setAcceptOpen(true)}>Accept with reason</Button>
+                  </>
+                }
+              >
+                Possible causes: {c.discrepancy.causes.join("; ")}.
+              </Warning>
+            </Section>
+          )}
+
+          {c.creditNotRefund && (
+            <Section title="Cancellation" deep>
+              <p className="max-w-[62ch] type-data">{commissionEdgeCases.creditNotRefund.note}</p>
+              <p className="mt-[var(--space-2)] max-w-[62ch] type-data text-label-secondary">
+                The cancellation was sent {commissionEdgeCases.unconfirmedCancellation.sentHoursAgo} hours ago
+                and the property has not acknowledged it yet.
+              </p>
             </Section>
           )}
         </div>
 
-        {/* ── the tool that follows you: the reminder, and the one action ── */}
-        {rich && (
-          <aside className="doc-rail" data-rail-label="Reminder" data-agent-target="reminder-vo">
+        {/* ── the tool that follows you: the reminder, on every late commission ── */}
+        {late && (
+          <aside className="doc-rail" data-rail-label="Reminder" data-agent-target={`reminder-${c.id}`}>
             <Section variant="tool" follows title="Reminder">
-              {s.reminder === "idle" && (
+              {sent ? (
                 <>
-                  <p className="-mt-[var(--space-2)] type-data-read text-label-secondary">
-                    The product drafts the chase with the booking reference and the rate terms
-                    attached. It waits. Nothing sends without your review.
-                  </p>
-                  {onBehalfNote}
-                  <div className="mt-[var(--space-4)]">
-                    <Button className="w-full" onClick={() => d({ type: "reminder", state: "draft" })}>
-                      Draft a reminder
-                    </Button>
-                  </div>
+                  <Done>{sentLine(sent)}</Done>
+                  <p className="mt-[var(--space-2)] type-meta">A reply will show in the chase log.</p>
                 </>
-              )}
-
-              {s.reminder === "draft" && (
+              ) : drafting ? (
                 <>
-                  <Label htmlFor="reminder-draft">Drafted for your review — edit freely</Label>
+                  <Label htmlFor="reminder-draft">Reminder to the {c.property} accounts team</Label>
                   <Textarea
                     id="reminder-draft"
                     value={draftText}
                     onChange={(e) => setEditedDraft(e.target.value)}
-                    className="mt-[var(--space-2)]"
+                    className="mt-[var(--space-2)] min-h-56"
                   />
                   {onBehalfNote}
-                  <div className="mt-[var(--space-4)] flex flex-wrap items-center gap-[var(--space-2)]">
-                    <Button onClick={() => d({ type: "reminder", state: "sent" })}>Send</Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => { setEditedDraft(null); d({ type: "reminder", state: "idle" }); }}
-                    >
-                      Discard
-                    </Button>
+                  <div className="mt-[var(--space-4)] flex flex-wrap items-center justify-end gap-[var(--space-2)]">
+                    <Button variant="secondary" onClick={discard}>Discard</Button>
+                    {primary}
                   </div>
-                  <p className="mt-[var(--space-2)] type-meta">
-                    Sends once, on this click only. There is no auto-send.
-                  </p>
                 </>
-              )}
-
-              {s.reminder === "sent" && (
+              ) : (
                 <>
-                  <ConfirmBanner show>Sent. Commission → chased; chase logged.</ConfirmBanner>
-                  <p className="mt-[var(--space-3)] type-meta">
-                    Sent by {sender} today. The reply, when it comes, lands on the chase log.
+                  <p className="-mt-[var(--space-2)] type-data text-label-secondary">
+                    {followUp
+                      ? `A reminder went on 14 Aug with no reply. Draft a follow-up to read and send.`
+                      : "Draft a reminder with the booking reference and the rate terms, then read it and send it."}
                   </p>
+                  {onBehalfNote}
+                  <div className="mt-[var(--space-4)] [&>button]:w-full">{primary}</div>
                 </>
               )}
             </Section>
@@ -389,66 +392,64 @@ export default function CommissionDetail({ params }: { params: Promise<{ id: str
         )}
       </div>
 
+      {primary && <ActionBar>{primary}</ActionBar>}
+
       {/* ── accept with reason ── */}
-      <Sheet open={acceptOpen} onOpenChange={setAcceptOpen}>
-        <SheetContent side="right">
-          <SheetHeader>
-            <SheetTitle>Accept discrepancy</SheetTitle>
-            <SheetDescription>
-              <span className="tnum">{eur(sibling.expected - sibling.actual)}</span> under projection on{" "}
-              {sibling.property}. Accepting records the delta as a known decision, with your reason on
-              the timeline.
-            </SheetDescription>
-          </SheetHeader>
-          <SheetBody>
-            <div>
-              <Label htmlFor="accept-reason">
-                Why? <span className="text-label-secondary">(required)</span>
-              </Label>
-              <Input
-                id="accept-reason"
-                value={acceptReason}
-                onChange={(e) => setAcceptReason(e.target.value)}
-                placeholder="e.g. currency variance — conversion dated 14 Jul"
-                className="mt-[var(--space-2)]"
-              />
-            </div>
-            <div className="flex flex-wrap items-center gap-[var(--space-2)]">
-              <Button
-                disabled={!acceptReason.trim()}
-                onClick={() => { setAcceptedWithReason(acceptReason.trim()); setAcceptOpen(false); }}
-              >
-                Accept with reason (logged)
-              </Button>
+      {c.discrepancy && (
+        <Sheet open={acceptOpen} onOpenChange={setAcceptOpen}>
+          <SheetContent side="right">
+            <SheetHeader>
+              <SheetTitle>Accept the difference</SheetTitle>
+              <SheetDescription>
+                <span className="tnum">{eur(c.discrepancy.expected - c.discrepancy.actual)}</span> under projection on{" "}
+                {c.property}. Your reason goes on the commission with your name and the date.
+              </SheetDescription>
+            </SheetHeader>
+            <SheetBody>
+              <div>
+                <Label htmlFor="accept-reason">
+                  Reason <span className="text-label-secondary">(required)</span>
+                </Label>
+                <Input
+                  id="accept-reason"
+                  value={acceptReason}
+                  onChange={(e) => setAcceptReason(e.target.value)}
+                  placeholder="e.g. currency variance, conversion dated 14 Jul"
+                  className="mt-[var(--space-2)]"
+                />
+              </div>
+            </SheetBody>
+            <SheetFooter className="sm:flex-row sm:justify-end">
               <SheetClose asChild><Button variant="secondary">Cancel</Button></SheetClose>
-            </div>
-          </SheetBody>
-        </SheetContent>
-      </Sheet>
+              <Button disabled={!acceptReason.trim()} onClick={acceptDiscrepancy}>Accept the difference</Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* ── dispute draft (schematic) ── */}
-      <Sheet open={disputeOpen} onOpenChange={setDisputeOpen}>
-        <SheetContent side="right">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-[var(--space-2)]">
-              Dispute draft <SchematicBadge />
-            </SheetTitle>
-            <SheetDescription>
-              Drafted from both values and their provenances. It waits for your review — nothing sends
-              without it.
-            </SheetDescription>
-          </SheetHeader>
-          <SheetBody>
-            <p className="whitespace-pre-wrap type-data-read">
-              {`Re: commission remittance — ${sibling.property}\n\nProjected ${eur(sibling.expected)} (partner terms) against ${eur(sibling.actual)} received. Possible causes on our side: ${sibling.causes.join("; ")}. Could you share the remittance breakdown?`}
-            </p>
-            <p className="border-t border-hairline pt-[var(--space-4)] type-meta">
-              Draft only in this build — the send step keeps the same review gate.
-            </p>
-            <SheetClose asChild><Button variant="secondary">Close</Button></SheetClose>
-          </SheetBody>
-        </SheetContent>
-      </Sheet>
+      {c.discrepancy && (
+        <Sheet open={disputeOpen} onOpenChange={setDisputeOpen}>
+          <SheetContent side="right">
+            <SheetHeader>
+              <SheetTitle className="flex items-center gap-[var(--space-2)]">
+                Dispute draft <SchematicBadge />
+              </SheetTitle>
+              <SheetDescription>
+                Drafted from both figures and where each came from. Sending is not wired in this build.
+              </SheetDescription>
+            </SheetHeader>
+            <SheetBody>
+              <p className="whitespace-pre-wrap type-data">
+                {`Re: commission remittance, ${c.property} (${c.bookingRef})\n\nWe projected ${eur(c.discrepancy.expected)} under the partner terms and received ${eur(c.discrepancy.actual)}. Possible causes on our side: ${c.discrepancy.causes.join("; ")}. Could you share the remittance breakdown?`}
+              </p>
+            </SheetBody>
+            <SheetFooter className="sm:flex-row sm:justify-end">
+              <SheetClose asChild><Button variant="secondary">Close</Button></SheetClose>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+      )}
     </Page>
   );
 }

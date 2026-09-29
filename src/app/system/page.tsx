@@ -4,14 +4,22 @@
  * so a person can see the system and the harness can check that each state renders
  * (docs/rebuild/registry.md). Not a product surface: no contract, no dock tile,
  * reachable by URL for anyone signed in.
+ *
+ * 2026-09-28 (UX sweep FB-12; VIS-095 to VIS-097). The page proves the foundations the
+ * sweep built: the title row and the list toolbar (with the quiet Grid/Table view), the
+ * attention model (Blocker, Warning and its kept line, Done, the toast) and the
+ * schematic control. A specimen is static, so nothing on it announces itself: the
+ * Alert specimen is a note, not an alert.
  */
 import React, { useState } from "react";
-import { Page, PageHeader } from "@/components/layouts";
+import { ListSearch, ListToolbar, Page, PageHeader, ViewToggle } from "@/components/layouts";
 import {
   Section, Chip, FilterChip, Segmented, Rows, Row, RowStack, DataList, TrustRow,
   StatusDot, EvidenceDot, LayerBadge, FreshnessDate, SourceTag, ConfidenceMeter,
   MoneyValue, SeverityBanner, ConfirmBanner, Absent, EmptyState,
+  Blocker, Warning, Done, SchematicAction, SchematicBadge,
 } from "@/components/bits";
+import { notify } from "@/lib/notify";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,7 +45,7 @@ function Swatch({ name, cls }: { name: string; cls: string }) {
   return (
     <div className="flex items-center gap-[var(--space-3)]">
       <span className={`size-9 shrink-0 rounded-md border border-hairline ${cls}`} aria-hidden />
-      <span className="type-code text-label-secondary">{name}</span>
+      <span className="type-meta tnum text-label-secondary">{name}</span>
     </div>
   );
 }
@@ -45,7 +53,7 @@ function Swatch({ name, cls }: { name: string; cls: string }) {
 function Specimen({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-[var(--space-2)]">
-      <div className="type-micro-caps text-label-tertiary">{label}</div>
+      <div className="type-meta text-label-tertiary">{label}</div>
       <div className="flex flex-wrap items-center gap-[var(--space-2)]">{children}</div>
     </div>
   );
@@ -56,6 +64,10 @@ export default function SystemPage() {
   const [chip, setChip] = useState<string[]>(["Hotel"]);
   const [sheet, setSheet] = useState(false);
   const [dialog, setDialog] = useState(false);
+  const [cat, setCat] = useState<"Hotel" | "Cruise" | "DMC">("Hotel");
+  const [view, setView] = useState<"grid" | "table">("grid");
+  const [q, setQ] = useState("");
+  const [kept, setKept] = useState(false);
   const toggle = (c: string) => setChip((v) => (v.includes(c) ? v.filter((x) => x !== c) : [...v, c]));
 
   return (
@@ -67,20 +79,25 @@ export default function SystemPage() {
 
         <Section title="Type" quiet>
           <div className="space-y-[var(--space-3)]">
-            <div className="type-title-page">Maison Léandre — the page&apos;s name, once</div>
-            <div className="type-prose-lead">A. Whitfield leaves for Lisbon in 3 days, with a transfer unconfirmed. (prose-lead 18/28)</div>
-            <div className="type-prose">Answers, explanations and the brief are set in the person&apos;s voice at 16/24. (prose)</div>
-            <div className="type-prose-quote">“Rate confirmed on the 21 June note.” (prose-quote 15/24)</div>
-            <div className="type-section">A chapter title (section 16/20 590)</div>
-            <div className="type-section-quiet">A note&apos;s title (section-quiet 14/18 secondary)</div>
-            <div className="type-figure">EUR 12,532 (figure 18/24 tnum)</div>
-            <div className="type-data">The data body, 14/18 400, in Instrument Sans.</div>
-            <div className="type-data-read max-w-[60ch]">A paragraph of machine text at 14/20, read rather than scanned, with room between the lines because someone reads it rather than scans it.</div>
-            <div className="type-data-strong">The subject of a row (data-strong 14/18 590)</div>
-            <div className="type-meta">Attribution, dates, secondary facts (meta 12/16 secondary)</div>
-            <div className="type-micro">chips, counts (micro 11/14 510)</div>
-            <div className="type-micro-caps text-label-tertiary">a field label (micro-caps 10/12 700)</div>
-            <div className="type-code">partner_portal · rate_note_21jun (code 11/14)</div>
+            <div className="type-title-page">Maison Léandre — the page&apos;s name, once (title 28/34 400, Source Serif 4)</div>
+            <div className="type-prose-lead">A. Whitfield leaves for Lisbon in 3 days, with a transfer unconfirmed. (prose-lead 18/28, Source Serif 4)</div>
+            <div className="type-prose">Answers and explanations are set in Instrument Sans at 16/24. (prose)</div>
+            <div className="type-prose italic">“Rate confirmed on the 21 June note.” (prose, italic, for a quoted source)</div>
+            <div className="type-section">A chapter title (section 16/22 500)</div>
+            <div className="type-data text-label-secondary">A note&apos;s title (data in secondary ink)</div>
+            <div className="type-figure">EUR 12,532 (figure 18/24 400 tnum)</div>
+            <div className="type-data max-w-[60ch]">The data body, 14/20 400: a row&apos;s value, and a paragraph of machine text, which gets the same room between lines whether it is scanned or read.</div>
+            <div className="type-data-strong">The subject of a row (data-strong 14/20 500, the one step of weight)</div>
+            <div className="type-meta">Attribution, dates, secondary facts, chips and counts (meta 12/16, secondary ink)</div>
+            <div className="type-meta text-label-tertiary">A field label, in sentence case (meta, tertiary ink)</div>
+            <div className="type-meta tnum">partner_portal · rate_note_21jun (meta with tabular figures, for a machine string)</div>
+            <div className="flex flex-wrap items-baseline gap-x-[var(--space-4)] gap-y-[var(--space-1)] type-data">
+              <span className="text-label">Villa Ortensia</span>
+              <span className="text-label-secondary">Meridian · VO-2214</span>
+              <span className="text-label-tertiary">Opened 12 Jun</span>
+              <span className="text-label-quaternary">Paid 28 Jul</span>
+              <span className="type-meta text-label-tertiary">(emphasis is the ink ladder: label, secondary, tertiary, quaternary)</span>
+            </div>
           </div>
         </Section>
 
@@ -104,7 +121,7 @@ export default function SystemPage() {
               <Button>Primary</Button>
               <Button variant="secondary">Secondary</Button>
               <Button variant="tertiary">Tertiary</Button>
-              <Button variant="destructive">Remove</Button>
+              <Button variant="destructive">Retire notice</Button>
             </Specimen>
             <Specimen label="does · sm">
               <Button size="sm">Primary</Button>
@@ -206,13 +223,66 @@ export default function SystemPage() {
           </div>
         </Section>
 
+        {/* VIS-095: the title row acts (name, one count, one create); the toolbar views,
+            directly above the data, in one order. The view is a quiet icon toggle. */}
+        <Section title="The title row and the list toolbar" quiet>
+          <div className="rounded-lg border border-hairline p-[var(--space-6)]">
+            <PageHeader
+              title="Records"
+              count="312 records"
+              create={<Button variant="secondary" size="sm">New record</Button>}
+            />
+            <ListToolbar
+              state={<Segmented label="Category" value={cat} onChange={setCat} options={[{ value: "Hotel", label: "Hotel" }, { value: "Cruise", label: "Cruise" }, { value: "DMC", label: "DMC" }]} />}
+              filters={<><FilterChip selected>Europe</FilterChip><FilterChip>Tier</FilterChip></>}
+              search={<ListSearch value={q} onChange={setQ} placeholder="Search records" />}
+              result="17 of 209 hotels · needs attention first, then A to Z"
+              view={<ViewToggle value={view} onChange={setView} />}
+              className="mb-0"
+            />
+          </div>
+        </Section>
+
+        {/* VIS-097: five kinds of message, each with one trigger, place, look and way out. */}
+        <Section title="Attention" quiet>
+          <div className="max-w-3xl space-y-[var(--space-3)]">
+            <Specimen label="blocker · cannot proceed · claret, one act">
+              <Blocker className="w-full" title="Closed to bookings" action={<Button variant="secondary" size="sm">Take it off Paris, thirtieth anniversary</Button>}>
+                Water damage on floors 2–3. Do not confirm bookings until the property confirms reopening.
+              </Blocker>
+            </Specimen>
+            <Specimen label="warning · decide · ochre, fix and keep; kept collapses to a recorded line">
+              {kept ? (
+                <Warning title="" kept="Kept despite the preference · R. Devane, 28 Aug 10:14" />
+              ) : (
+                <Warning
+                  className="w-full"
+                  title="L. Grandin prefers classic interiors (3 sources); Hôtel Verlaine is contemporary."
+                  actions={<><Button variant="secondary" size="sm">Swap it</Button><Button variant="tertiary" size="sm" onClick={() => setKept(true)}>Keep</Button></>}
+                />
+              )}
+            </Specimen>
+            <Specimen label="done · a confirmation in place, with the time">
+              <Done>Saved 10:14 · only you</Done>
+            </Specimen>
+            <Specimen label="toast · a result away from the act, or Undo">
+              <Button variant="secondary" size="sm" onClick={() => notify("Shared with the Paris desk", { detail: "Peru — just-back notes", undo: () => {} })}>Show the toast</Button>
+            </Specimen>
+            <Specimen label="schematic · drawn, not wired; never the primary">
+              <SchematicAction>Open document</SchematicAction>
+              <SchematicBadge />
+            </Specimen>
+          </div>
+        </Section>
+
         <Section title="Banners and trust" quiet>
           <div className="max-w-3xl space-y-[var(--space-3)]">
-            <SeverityBanner severity="Info">Info — sunken paper, the label voice.</SeverityBanner>
+            <SeverityBanner severity="Info">Info: sunken paper, the label voice. Kept for its callers; new code uses Blocker and Warning.</SeverityBanner>
             <SeverityBanner severity="Important"><b>Spa closed to 15 Sep.</b> Opened 12 Jun · agency scope · MK</SeverityBanner>
-            <SeverityBanner severity="Critical"><b>Critical.</b> Water damage on floors 2–3 — do not confirm bookings until the property confirms reopening.</SeverityBanner>
-            <ConfirmBanner show>Note saved — private to R. Devane · attributed and dated.</ConfirmBanner>
-            <Alert><ShieldCheck /><AlertTitle>Permissions filter every surface</AlertTitle><AlertDescription>Including citations. Restricted material never reaches the page.</AlertDescription></Alert>
+            <SeverityBanner severity="Critical"><b>Critical.</b> Water damage on floors 2–3. Do not confirm bookings until the property confirms reopening.</SeverityBanner>
+            <ConfirmBanner show>Note saved 10:14 · only you</ConfirmBanner>
+            {/* A specimen is static: it is a note, not an alert, so it does not announce itself (FB-12). */}
+            <Alert role="note"><ShieldCheck /><AlertTitle>Permissions filter every surface</AlertTitle><AlertDescription>Including citations. Restricted material never reaches the page.</AlertDescription></Alert>
             <TrustRow icon={ShieldCheck} label="Verified against source" reason="3 of 4 sources agree; the fourth is a superseded rate." figures={<><div>12%</div><div className="type-meta">signed terms</div></>} />
           </div>
         </Section>
@@ -220,17 +290,17 @@ export default function SystemPage() {
         <Section title="Lists and the ledger" quiet>
           <div className="grid gap-[var(--gap-3)] lg:grid-cols-2">
             <div>
-              <div className="mb-[var(--space-2)] type-micro-caps text-label-tertiary">rows</div>
+              <div className="mb-[var(--space-2)] type-meta text-label-tertiary">rows</div>
               <Rows>
                 <Row><span className="row-primary type-data-strong">Aurelia</span><span className="row-meta type-meta tnum">EUR 2,240</span><span className="row-trailing"><Chip tone="primary">chased · 54d</Chip></span></Row>
                 <Row><span className="row-primary type-data-strong">Cap d&apos;Estel</span><span className="row-meta type-meta tnum">EUR 690</span><span className="row-trailing"><Chip tone="crit">overdue 28d</Chip></span></Row>
                 <RowStack head={<><span className="row-primary type-data-strong">Hôtel Verlaine</span><Chip tone="crit">Critical</Chip></>}>Water damage on floors 2–3 — do not confirm bookings until the property confirms reopening.</RowStack>
               </Rows>
-              <div className="mt-[var(--space-6)] mb-[var(--space-2)] type-micro-caps text-label-tertiary">data list</div>
+              <div className="mt-[var(--space-6)] mb-[var(--space-2)] type-meta text-label-tertiary">data list</div>
               <DataList rows={[{ label: "Rooms", value: <span className="tnum">42</span> }, { label: "Rep firm", value: "Corvin & Wells" }, { label: "Quality score", value: null, absent: "not run" }]} />
             </div>
             <div>
-              <div className="mb-[var(--space-2)] type-micro-caps text-label-tertiary">table · one selected row</div>
+              <div className="mb-[var(--space-2)] type-meta text-label-tertiary">table · one selected row</div>
               <Table>
                 <TableHeader><TableRow><TableHead>Property</TableHead><TableHead>Amount</TableHead><TableHead>State</TableHead></TableRow></TableHeader>
                 <TableBody>
@@ -249,7 +319,7 @@ export default function SystemPage() {
             <Button variant="secondary" onClick={() => setDialog(true)}>Open a dialog</Button>
             <Popover>
               <PopoverTrigger asChild><Button variant="secondary">Open a popover</Button></PopoverTrigger>
-              <PopoverContent align="start"><div className="type-micro-caps text-label-tertiary">Field provenance</div><p className="mt-1 type-data">Partner portal · row 41, column C · 12 Mar</p></PopoverContent>
+              <PopoverContent align="start"><div className="type-meta text-label-tertiary">Field provenance</div><p className="mt-1 type-data">Partner portal · row 41, column C · 12 Mar</p></PopoverContent>
             </Popover>
             <Tooltip><TooltipTrigger asChild><Button variant="secondary">Hover for a tooltip</Button></TooltipTrigger><TooltipContent>Synced 12:04</TooltipContent></Tooltip>
             <Avatar><AvatarFallback>RD</AvatarFallback></Avatar>
@@ -261,16 +331,16 @@ export default function SystemPage() {
               <SheetHeader><SheetTitle>A sheet</SheetTitle><SheetDescription>Radius-7, elevation 4, and the page&apos;s own rows.</SheetDescription></SheetHeader>
               <div className="px-[var(--space-6)] py-[var(--space-6)]">
                 <Rows>
-                  <Row><span className="row-primary">Daily breakfast for two</span><span className="row-trailing type-code text-label-secondary">daily_breakfast_two</span></Row>
-                  <Row><span className="row-primary">EUR 100 property credit</span><span className="row-trailing type-code text-label-secondary">property_credit</span></Row>
+                  <Row><span className="row-primary">Daily breakfast for two</span><span className="row-trailing type-meta tnum text-label-secondary">daily_breakfast_two</span></Row>
+                  <Row><span className="row-primary">EUR 100 property credit</span><span className="row-trailing type-meta tnum text-label-secondary">property_credit</span></Row>
                 </Rows>
               </div>
             </SheetContent>
           </Sheet>
           <Dialog open={dialog} onOpenChange={setDialog}>
             <DialogContent>
-              <DialogHeader><DialogTitle>A dialog</DialogTitle><DialogDescription>Closing this does not unblock the property.</DialogDescription></DialogHeader>
-              <DialogFooter><Button variant="secondary" onClick={() => setDialog(false)}>Close</Button><Button onClick={() => setDialog(false)}>Acknowledge</Button></DialogFooter>
+              <DialogHeader><DialogTitle>A dialog</DialogTitle><DialogDescription>A question that must be answered before going on. Cancel, then the act, at the right.</DialogDescription></DialogHeader>
+              <DialogFooter><Button variant="secondary" onClick={() => setDialog(false)}>Cancel</Button><Button onClick={() => setDialog(false)}>Confirm</Button></DialogFooter>
             </DialogContent>
           </Dialog>
         </Section>

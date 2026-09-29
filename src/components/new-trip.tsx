@@ -10,6 +10,11 @@
  * Two doors, one sheet: "New trip" on the trip list, "Start a trip" on a traveller. And
  * a third way through it: "Let Enable draft it" hands what is filled in to the assistant,
  * which asks only for the rest and assembles the draft (src/lib/draft-trip.ts).
+ *
+ * 2026-09-28 (UX sweep COL-04, COL-10; VIS-098, VIS-101): the owner is offered only the
+ * travellers she added herself, never an advisor's (they are absent to her, not locked),
+ * so the button is hers only when she has one. The footer reads Cancel, then the act at
+ * the right. "Private to you until you share it" is now true: the trip page shares it.
  */
 import React, { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -24,10 +29,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Plus } from "lucide-react";
 
-/** Everyone a trip can be for: the seeded travellers, and those added by hand. */
+/** Everyone this person can start a trip for: the advisor's own travellers (the seeded
+    ones are hers), and those she added by hand. The owner has only her own (VIS-098). */
 function travellersOf(s: DemoState) {
   return [
-    ...travellerCards.map((t) => ({ id: t.id, name: t.name })),
+    ...(s.role === "user" ? travellerCards.map((t) => ({ id: t.id, name: t.name })) : []),
     ...s.createdTravellers.filter((t) => t.by === s.role).map((t) => ({ id: t.id, name: t.name })),
   ];
 }
@@ -115,11 +121,11 @@ export function NewTripSheet({ open, onOpenChange, travellerId }: {
             Private to you until you share it.
           </p>
         </div>
-        <div className="flex items-center gap-[var(--space-2)] border-t border-hairline px-[var(--space-6)] py-[var(--space-4)]">
-          <Button size="sm" onClick={create} disabled={!ready}>Create the trip</Button>
+        <div className="flex items-center justify-end gap-[var(--space-2)] border-t border-hairline px-[var(--space-6)] py-[var(--space-4)]">
+          <Button variant="secondary" onClick={() => onOpenChange(false)}>Cancel</Button>
           {/* the other door: the assistant drafts it, asking only for what is not filled in */}
           {s.lab && (
-            <Button size="sm" variant="secondary" onClick={() => {
+            <Button variant="secondary" onClick={() => {
               onOpenChange(false);
               startDraftWith(d, s, pathname, {
                 who: person, where: places[0],
@@ -129,18 +135,19 @@ export function NewTripSheet({ open, onOpenChange, travellerId }: {
               Let Enable draft it
             </Button>
           )}
-          <Button size="sm" variant="tertiary" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={create} disabled={!ready}>Create the trip</Button>
         </div>
       </SheetContent>
     </Sheet>
   );
 }
 
-/** "Start a trip" on a traveller, or "New trip" on the list: the same sheet. Lab only. */
+/** "Start a trip" on a traveller, or "New trip" on the list: the same sheet. Lab only, and
+    only for someone with a traveller to start one for. */
 export function NewTripButton({ travellerId, label = "New trip" }: { travellerId?: string; label?: string }) {
   const { s } = useDemo();
   const [open, setOpen] = useState(false);
-  if (!s.lab) return null;
+  if (!s.lab || travellersOf(s).length === 0) return null;
   return (
     <>
       <Button variant="secondary" size="sm" onClick={() => setOpen(true)}><Plus aria-hidden /> {label}</Button>

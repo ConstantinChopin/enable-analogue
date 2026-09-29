@@ -10,7 +10,8 @@
  */
 import React, { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, FlaskConical, History } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, FlaskConical, History } from "lucide-react";
 import { useDemo, allTrips, type Action, type DemoState } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Dock } from "@/components/dock";
@@ -37,7 +38,7 @@ const sectionLabel: Record<string, string> = {
   resolution: "Unmatched payments",
   publish: "Publish queue",
   connections: "Connections",
-  review: "Confirm new records",
+  review: "Confirm records",
   settings: "Settings",
   system: "The system",
   lab: "Lab",
@@ -53,23 +54,29 @@ function entityLabel(section: string, id: string, s: DemoState): string {
   return sectionLabel[id] ?? id;
 }
 
-function crumbFor(pathname: string, s: DemoState): string[] {
+/** Each level of the path, named, with the address of that level (NAV-07). */
+function crumbFor(pathname: string, s: DemoState): { label: string; href: string }[] {
   const parts = pathname.split("/").filter(Boolean);
-  if (parts.length === 0) return ["Briefing"];
-  const out: string[] = [];
+  if (parts.length === 0) return [{ label: "Briefing", href: "/briefing" }];
+  const out: { label: string; href: string }[] = [];
+  /* Pages behind the account start at the account, as the dock lights it. */
+  if (parts[0] === "settings" || parts[0] === "connections") out.push({ label: "Account", href: "/settings" });
   parts.forEach((part, i) => {
     if (part === "admin" || part === "ops") return;            // grouping only, not a place
+    const href = "/" + parts.slice(0, i + 1).join("/");
     const known = sectionLabel[part];
-    if (known) { out.push(known); return; }
+    if (known) { out.push({ label: known, href }); return; }
     const parent = parts[i - 1] ?? "";
-    out.push(entityLabel(parent, part, s));
+    out.push({ label: entityLabel(parent, part, s), href });
   });
-  return out.length ? out : ["Briefing"];
+  return out.length ? out : [{ label: "Briefing", href: "/briefing" }];
 }
 
 /* The bar lives in the panel's top edge (Constantin, 2026-09-25): no strip of its own
-   above the frame, just the smallest chrome. Back and forward are tiny circles and each
-   crumb a tiny pill, on the faintest surface. */
+   above the frame, just the smallest chrome. Back is a tiny circle and each crumb a tiny
+   pill, on the faintest surface. Every crumb but the last is a link to its level, so the
+   bar follows the product's structure; Back follows history (NAV-07). Forward went: a
+   browser's own forward does that, and two arrows read as the product's navigation. */
 function FrameBar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -79,16 +86,16 @@ function FrameBar() {
   return (
     <div className="frame-bar box-content flex h-6 shrink-0 items-center gap-1 px-[var(--space-4)] pt-[var(--space-4)]">
       <button onClick={() => router.back()} className={btn} aria-label="Back"><ArrowLeft className="size-3" /></button>
-      <button onClick={() => router.forward()} className={btn} aria-label="Forward"><ArrowRight className="size-3" /></button>
       <nav aria-label="Breadcrumb" className="ml-1 flex min-w-0 items-center gap-1">
-        {crumbs.map((c, i) => (
-          <span
-            key={`${c}-${i}`}
-            className={cn("flex h-6 min-w-0 items-center truncate rounded-full bg-faint px-2.5 type-micro", i === crumbs.length - 1 ? "text-label" : "text-label-secondary")}
-          >
-            {c}
-          </span>
-        ))}
+        {crumbs.map((c, i) => {
+          const last = i === crumbs.length - 1;
+          const pill = "flex h-6 min-w-0 items-center truncate rounded-full bg-faint px-2.5 type-meta";
+          return last ? (
+            <span key={`${c.href}-${i}`} aria-current="page" className={cn(pill, "text-label")}>{c.label}</span>
+          ) : (
+            <Link key={`${c.href}-${i}`} href={c.href} className={cn(pill, "text-label-secondary hover:bg-interactive hover:text-label")}>{c.label}</Link>
+          );
+        })}
       </nav>
 
       {/* The vintage marker lives in the frame, not on the screens. It was marked on
@@ -101,7 +108,7 @@ function FrameBar() {
         <button
           type="button"
           onClick={() => d({ type: "lab", on: false })}
-          className="ml-auto flex h-6 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-faint px-2.5 type-micro text-label-secondary hover:bg-interactive hover:text-label"
+          className="ml-auto flex h-6 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-faint px-2.5 type-meta text-label-secondary hover:bg-interactive hover:text-label"
         >
           <FlaskConical className="size-3" aria-hidden />
           Lab · the itinerary builder · switch to live
@@ -109,7 +116,7 @@ function FrameBar() {
       )}
       {s.world === "v1" && (
         <span
-          className="ml-auto mr-1 flex h-[var(--chip-h)] shrink-0 items-center gap-1.5 rounded-full bg-crit-soft px-2.5 type-micro text-crit"
+          className="ml-auto mr-1 flex h-[var(--chip-h)] shrink-0 items-center gap-1.5 rounded-full bg-crit-soft px-2.5 type-meta text-crit"
           role="status"
         >
           <History className="size-3" aria-hidden />
@@ -173,6 +180,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const onSignIn = pathname === "/signin";
+  const panelHere = s.assistantOpen && !pathname.startsWith("/ask");
   /* Outside the product too: the clickable roadmap (/roadmap) and the door that enters the
      prototype as someone (/door). No frame, no sign-in redirect. */
   const outside = pathname.startsWith("/roadmap") || pathname === "/door";
@@ -260,10 +268,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
           className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl frame-surface"
         >
           <FrameBar />
-          {/* The assistant's card takes the right-hand slot on every page, and the page
-              gives it the room, as it does for an inspector. */}
-          <div className={cn("min-h-0 flex-1", s.assistantOpen && "mr-[424px]")}>{children}</div>
-          {s.assistantOpen && <AssistantCard />}
+          {/* The assistant's card takes the right-hand slot on every page but one, and the
+              page gives it the room on a wide screen, as it does for an inspector. On
+              Conversations the page IS the assistant at full size, so the card does not
+              draw there (AI-02, VIS-100). */}
+          <div className={cn("min-h-0 flex-1", panelHere && "lg:mr-[424px]")}>{children}</div>
+          {panelHere && <AssistantCard />}
         </main>
         {/* The dock's own row — the panel ends above it, so the border truly
             excludes the dock rather than being overlapped by it. The dock is 48 tall,

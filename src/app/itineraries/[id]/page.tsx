@@ -1,6 +1,6 @@
 "use client";
 /**
- * The trip — the itinerary builder, in the lab (docs/rebuild/06-itinerary-builder.md).
+ * The trip — the itinerary builder (docs/rebuild/06-itinerary-builder.md).
  *
  * Job: get a trip to confirmed. A trip is its lines; a line is a fact with a status
  * (Idea · Asked · Held until … · Confirmed · Declined), and it becomes confirmed only
@@ -22,24 +22,43 @@
  * edited and sent by the advisor; the reply lands in Forwarded mail, is read into a
  * status, a date and a reference, and waits until she accepts it.
  *
- * Outside the lab this route goes back to the ledger: the builder is on trial.
+ * 2026-09-28 (UX sweep COL-01, NAV-02, FB-01, FB-02, NAV-09, COL-09, COL-10; VIS-096 to
+ * VIS-101). This is the only trip view, in both modes: every "Open the trip" lands here.
+ * In the lab the advisor builds the trip; outside it the page is read: the overview, the
+ * day tabs, the lines, the checks, with the builder's controls drawn and marked
+ * (`SchematicAction`), never live-looking and never the primary. What is not building
+ * works in both: taking a closed property off the trip, keeping a line despite a taste,
+ * and sharing the trip. The owner reads a trip whose traveller is shared with her and
+ * acts on none of it (06 §7); a trip she may not see is absent (VIS-098).
+ *
+ * One attention item per line (VIS-099): a closed record is a Blocker whose one act is
+ * "Take it off the trip" (destructive, with Undo, never the primary: NAV-09); a taste it
+ * argues with is a Warning (Find another, Keep it; kept is recorded with who and when)
+ * and is not said while the closure stands. The line, the tab and a pending act live in
+ * the URL (`?line=`, `?day=`, `?act=` from the ledger's footer).
  */
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useDemo, canViewCommissions, allTrips, type DemoState } from "@/lib/store";
+import { useDemo, canViewCommissions, type DemoState } from "@/lib/store";
 import { productById, products, personName, type Trip } from "@/data/seed";
 import {
   linesOf, daysOf, dayLabel, shortDate, nightsOf, statusWord, termsFor, supplierOf, draftRequest, addDays,
   stamp, TODAY, type TripLine, type LineKind, type LineRequest,
 } from "@/data/trip-lines";
-import { tripChecks, tallyOf, projectedOf, blockOf, tasteClash, incentiveOf, incentiveWords, inCommissions } from "@/lib/trip-checks";
-import type { Insight } from "@/lib/insights";
-import { askAssistant, EnableMark } from "@/components/assistant";
+import {
+  tripChecks, tallyOf, projectedOf, blockOf, cautionOf, tasteClash, tasteKey, keptWords, incentiveOf, incentiveWords,
+  inCommissions, visibleTrips, takeOff, tripShareOf, tripShareKey, type Check,
+} from "@/lib/trip-checks";
+import { notify } from "@/lib/notify";
+import { askWhy, EnableMark } from "@/components/assistant";
 import { InsightRail } from "@/components/insight-rail";
+import { ShareSheet, audienceOptions, audienceLabel } from "@/components/share-sheet";
 import { PageHeader, SplitPage, PropertyImage } from "@/components/layouts";
-import { Chip, Section, SeverityBanner, Segmented, ConfirmBanner, EmptyState } from "@/components/bits";
+import {
+  Chip, Section, SeverityBanner, Segmented, ConfirmBanner, EmptyState, Blocker, Warning, SchematicAction, Rows, Row,
+} from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,7 +66,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
-  ArrowRight, Bed, CarFront, DoorOpen, PlaneLanding, Plus, Search, StickyNote, Ticket, TrainFront, UtensilsCrossed,
+  ArrowRight, Bed, CarFront, DoorOpen, PlaneLanding, Plus, Search, Share2, StickyNote, Ticket, TrainFront, UtensilsCrossed,
 } from "lucide-react";
 
 const eur = (n: number) => `EUR ${n.toLocaleString("en-GB")}`;
@@ -78,6 +97,10 @@ const nextId = () => `n${++made}${Date.now().toString(36)}`;
 /** A reply read and not yet accepted: the line's open question. */
 const waitingReply = (l: TripLine) => [...l.requests].reverse().find((r) => r.reply && !r.reply.accepted);
 
+/** What a control does in this mode: works (the lab, the advisor), is drawn and marked
+    (the advisor outside the lab: COL-09), or is not there (the owner reads). */
+type Mode = "edit" | "drawn" | "read";
+
 /* ── the status, as a chip: words always, the tone only repeats them ─────────── */
 function LineStatus({ l, s }: { l: TripLine; s: DemoState }) {
   if (l.suggested) return <Chip tone="primary">Suggested</Chip>;
@@ -86,10 +109,10 @@ function LineStatus({ l, s }: { l: TripLine; s: DemoState }) {
   if (waitingReply(l)) return <Chip tone="primary">Reply to read</Chip>;
   const word = statusWord(l, TODAY);
   const tone =
-    l.status === "confirmed" ? "ok"
-    : l.status === "declined" ? "crit"
-    : l.status === "held" && l.holdUntil && Date.parse(l.holdUntil) - Date.parse(TODAY) <= 2 * 86_400_000 ? "warn"
-    : l.status === "held" ? "primary"
+    /* colour means severity only (VIS-097): ochre where she must decide (a hold about to
+       lapse, a refusal to replace), otherwise the words carry it */
+    (l.status === "held" && l.holdUntil && Date.parse(l.holdUntil) - Date.parse(TODAY) <= 2 * 86_400_000) || l.status === "declined" ? "warn"
+    : l.status === "held" || l.status === "confirmed" ? "primary"
     : "neutral";
   return <Chip tone={tone}>{word}</Chip>;
 }
@@ -105,120 +128,197 @@ export default function TripPage() {
 type Compose = { line: string; kind: LineRequest["kind"] };
 type Adding = { kind?: LineKind; on?: string; replace?: string } | null;
 
+/* Several of the URL's keys change in one act (a line on another day brings its day
+   forward), so they are written together: two writes in one tick would each start from
+   the same address and the second would undo the first. */
+function useQuery() {
+  const params = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const set = useCallback((patch: Record<string, string | null>) => {
+    const next = new URLSearchParams(Array.from(params.entries()));
+    for (const [k, v] of Object.entries(patch)) { if (v === null || v === "") next.delete(k); else next.set(k, v); }
+    const q = next.toString();
+    router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
+  }, [params, router, pathname]);
+  return [params, set] as const;
+}
+
 function TripView() {
   const { id } = useParams<{ id: string }>();
-  const search = useSearchParams();
-  const router = useRouter();
   const { s, d } = useDemo();
-  const trip = allTrips(s).find((t) => t.id === id);
+  const [params, setQuery] = useQuery();
+  /* The owner sees a trip only once its traveller is shared with her (VIS-098). */
+  const trip = visibleTrips(s).find((t) => t.id === id);
+  const canAct = s.role === "user";
+  const mode: Mode = !canAct ? "read" : s.lab ? "edit" : "drawn";
 
-  /* The builder is on trial: outside the lab a trip opens in the ledger. */
-  useEffect(() => { if (!s.lab) router.replace("/itineraries"); }, [s.lab, router]);
-
-  const [selected, setSelected] = useState<string | null>(() => search?.get("line") ?? null);
+  const selected = params.get("line");
+  const tab = params.get("day") ?? "overview";
+  const pendingAct = params.get("act");
   const [compose, setCompose] = useState<Compose | null>(null);
   const [adding, setAdding] = useState<Adding>(null);
-  /* Overview first (Constantin, 2026-09-25); a day's tab when a link names the day. */
-  const [tab, setTab] = useState<string>(() => search?.get("day") ?? "overview");
+  const [sharing, setSharing] = useState(false);
 
   const lines = useMemo(() => (trip ? linesOf(s.tripLines, trip.id) : []), [s.tripLines, trip]);
   const checks = useMemo(() => (trip ? tripChecks(s, trip) : []), [s, trip]);
   const line = lines.find((l) => l.id === selected);
 
+  const select = (lineId: string | null, then?: Compose | null) => {
+    setCompose(then ?? null);
+    /* a line on another day's tab brings its day forward; the overview holds every line */
+    const on = lineId ? lines.find((l) => l.id === lineId)?.on : undefined;
+    setQuery({ line: lineId, act: null, ...(on && tab !== "overview" && tab !== on ? { day: on } : {}) });
+    if (lineId) window.setTimeout(() => document.querySelector(`[data-agent-target="line-${lineId}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" }), 60);
+  };
+  const setTab = (t: string) => setQuery({ day: t === "overview" ? null : t });
+
+  /* An act, from the rail or from the ledger's footer: ask, confirm, chase, add, open. */
+  const run = (act: string) => {
+    if (!trip) return;
+    const [verb, a, b] = act.split(":");
+    if (verb === "select") { select(a); return; }
+    if (verb === "day") { setQuery({ day: a === "overview" ? null : a, act: null }); return; }
+    if (mode !== "edit") { setQuery({ act: null }); return; }
+    if (verb === "compose") { select(a, { line: a, kind: b as LineRequest["kind"] }); return; }
+    if (verb === "add") { setAdding({ kind: a as LineKind, on: b }); setQuery({ act: null }); return; }
+    /* "Find another" from a traveller's page: the add sheet, on that line's day and kind */
+    if (verb === "find") {
+      const l = lines.find((x) => x.id === a);
+      if (l) { select(a); setAdding({ kind: l.kind, on: l.on, replace: l.id }); } else setQuery({ act: null });
+      return;
+    }
+    if (verb === "ask-all") {
+      setQuery({ act: null });
+      d({ type: "thread", id: null });
+      d({ type: "task", task: "ask-ideas", label: "Ask the suppliers about every idea on this trip", path: `/itineraries/${trip.id}` });
+    }
+  };
+  /* The ledger's footer started an act here: run it once the page is up, then take it off
+     the address (the act clears `act`, so a reload does not repeat it). */
+  useEffect(() => {
+    if (!pendingAct || !trip) return;
+    const t = window.setTimeout(() => run(pendingAct), 0);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingAct, trip?.id]);
+
   if (!trip) {
     return (
       <div className="p-[var(--panel-pad)]">
-        <EmptyState title="No trip by that name." body="It may have been removed." action={<Button asChild variant="secondary" size="sm"><Link href="/itineraries">Every trip</Link></Button>} />
+        <PageHeader title="Not on your list" />
+        <EmptyState
+          title="Nothing at this address for you"
+          body="A trip that is not shared with you is absent, not locked."
+          action={<Button asChild variant="secondary" size="sm"><Link href="/itineraries">Every trip you can see</Link></Button>}
+        />
       </div>
     );
   }
 
   const railKey = `trip-rail-${trip.id}`;
-  const railOpen = !s.dismissed[railKey];
+  /* Closed, the card collapses to a small "N insights" control in its place, as on the
+     Briefing (FB-11): it is never taken away with what is still waiting on it. */
+  const collapsed = !!s.dismissed[railKey];
   /* One card on the right at a time: a line's card or a conversation takes the slot, and
      closing it gives the rail back where it was. Mounted while hidden, so it keeps its place. */
-  const railShown = railOpen && !line && !s.assistantOpen;
-  const select = (lineId: string | null, then?: Compose | null) => {
-    setSelected(lineId);
-    setCompose(then ?? null);
-    /* a line on another day's tab brings its day forward; the overview holds every line */
-    const on = lineId ? lines.find((l) => l.id === lineId)?.on : undefined;
-    if (on && tab !== "overview" && tab !== on) setTab(on);
-    if (lineId) window.setTimeout(() => document.querySelector(`[data-agent-target="line-${lineId}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" }), 60);
-  };
+  const railShown = !line && !s.assistantOpen;
 
-  /* The rail's acts, handled here: ask, confirm, chase, add, take off, open. */
-  const onAct = (i: Insight) => {
-    const act = i.action.act ?? "";
-    const [verb, a, b] = act.split(":");
-    if (verb === "remove") { d({ type: "lineRemove", id: a }); setSelected(null); return; }
-    if (verb === "select") { select(a); return; }
-    if (verb === "compose") { select(a, { line: a, kind: b as LineRequest["kind"] }); return; }
-    if (verb === "add") { setAdding({ kind: a as LineKind, on: b }); return; }
-    if (verb === "ask-all") { d({ type: "thread", id: null }); d({ type: "task", task: "ask-ideas", label: "Ask the suppliers about every idea on this trip", path: `/itineraries/${trip.id}` }); return; }
-  };
+  /* Read, the rail's acts point at what they are about: a line opens, a day comes forward.
+     The builder's acts (ask, add) are the lab's. */
+  const railChecks: Check[] = mode === "edit" ? checks : checks.map((c) => {
+    if (c.action.act?.startsWith("select:")) return c;
+    if (c.line) return { ...c, action: { label: "Open the line", act: `select:${c.line}` } };
+    if (c.chapter.startsWith("day-")) return { ...c, action: { label: "Show the day", act: `day:${c.chapter.slice(4)}` } };
+    return { ...c, action: { label: "Show the overview", act: "day:overview" } };
+  });
 
   const days = daysOf(trip);
   const money = canViewCommissions(s);
   const pending = lines.filter((l) => l.suggested);
+  const share = tripShareOf(s, trip.id);
+  const shareKey = tripShareKey(trip.id);
 
   return (
     <SplitPage
       header={
         <PageHeader
-          title={<>{trip.title}<Chip tone={trip.status === "Planning" || trip.status === "Inbound" ? "primary" : "ok"}>{trip.status}</Chip></>}
+          title={trip.title}
           actions={
-            <>
-              <Button variant="secondary" size="sm" onClick={() => setAdding({})}><Plus aria-hidden /> Add to trip</Button>
-              {trip.travellerId && (
-                <Button asChild variant="tertiary" size="sm"><Link href={`/travellers/${trip.travellerId}`}>Open {trip.traveller}</Link></Button>
-              )}
-            </>
+            canAct ? (
+              <>
+                <Button variant="secondary" size="sm" onClick={() => setSharing(true)}><Share2 aria-hidden /> Share</Button>
+                {mode === "edit"
+                  ? <Button variant="secondary" size="sm" onClick={() => setAdding({})}><Plus aria-hidden /> Add to trip</Button>
+                  : <SchematicAction><Plus className="size-[var(--icon-md)]" aria-hidden /> Add to trip</SchematicAction>}
+              </>
+            ) : undefined
           }
         >
-          <p className="mt-[var(--space-2)] type-meta tnum">
-            {trip.traveller} · {trip.dates} · {trip.nights} nights · {trip.destinations.join(", ")}
-            {trip.startsInDays !== null && <> · leaves in {trip.startsInDays} days</>}
-          </p>
+          <div className="mt-[var(--space-2)] flex flex-wrap items-center gap-x-[var(--space-3)] gap-y-[var(--space-1)]">
+            <p className="type-meta tnum">
+              {trip.travellerId ? (
+                <Link href={`/travellers/${trip.travellerId}`} className="underline decoration-hairline underline-offset-4 hover:decoration-ink">{trip.traveller}</Link>
+              ) : trip.traveller}
+              {" · "}{trip.dates} · {trip.nights} nights · {trip.destinations.join(", ")}
+              {trip.startsInDays !== null && <> · leaves in {trip.startsInDays} days</>}
+            </p>
+            <Chip tone={trip.status === "Planning" || trip.status === "Inbound" ? "primary" : "neutral"}>{trip.status}</Chip>
+            <span className="type-meta">
+              {!canAct ? `Shared with you by ${personName.user}` : share === "private" ? "Only you can see it" : `Shared with ${audienceLabel(share, false).replace(/^The/, "the")}`}
+            </span>
+          </div>
         </PageHeader>
       }
       panelOpen={!!line}
       onClosePanel={() => select(null)}
       panelTitle={line?.what ?? "Line"}
-      panel={line ? <LineCard key={line.id} l={line} trip={trip} compose={compose?.line === line.id ? compose.kind : null} setCompose={(k) => setCompose(k ? { line: line.id, kind: k } : null)} onRemoved={() => select(null)} onFindAnother={(kind, on, replace) => setAdding({ kind, on, replace })} /> : null}
+      panel={line ? (
+        <LineCard
+          key={line.id} l={line} trip={trip} mode={mode}
+          compose={compose?.line === line.id ? compose.kind : null}
+          setCompose={(k) => setCompose(k ? { line: line.id, kind: k } : null)}
+          onRemoved={() => select(null)}
+          onFindAnother={(kind, on, replace) => setAdding({ kind, on, replace })}
+        />
+      ) : null}
     >
-      <div className="doc-layout" style={railShown ? undefined : { gridTemplateColumns: "minmax(0, 1fr)" }}>
+      <div className="doc-layout" style={!railShown ? { gridTemplateColumns: "minmax(0, 1fr)" } : collapsed ? { gridTemplateColumns: "minmax(0, 1fr) auto" } : undefined}>
         <div className="min-w-0">
           {pending.length > 0 && (
             <div className="mb-[var(--space-4)] flex flex-wrap items-center gap-x-[var(--space-4)] gap-y-[var(--space-3)] rounded-lg bg-sunken px-[var(--space-4)] py-[var(--space-3)]">
               <EnableMark className="size-5 shrink-0 text-label-secondary" />
-              <p className="min-w-0 flex-1 type-data-read">
+              <p className="min-w-0 flex-1 type-data">
                 Enable drafted {pending.length === 1 ? "one line" : `${pending.length} lines`} from {trip.traveller}&apos;s profile and the agency&apos;s records. Keep, swap or remove each: nothing is asked of anyone until you keep it.
               </p>
-              <Button size="sm" variant="secondary" onClick={() => pending.forEach((l) => d({ type: "lineSet", id: l.id, patch: { suggested: undefined } }))}>
-                Keep all {pending.length}
-              </Button>
+              {mode === "edit" ? (
+                <Button size="sm" variant="secondary" onClick={() => pending.forEach((l) => d({ type: "lineSet", id: l.id, patch: { suggested: undefined } }))}>
+                  Keep all {pending.length}
+                </Button>
+              ) : mode === "drawn" ? <SchematicAction>Keep all {pending.length}</SchematicAction> : null}
             </div>
           )}
 
-          <DayStrip
-            days={days} lines={lines} s={s} tab={tab} onTab={setTab}
-            onLine={(lid) => select(lid)}
-            onGap={(day) => setAdding({ kind: "stay", on: day })}
-          />
+          {/* A trip that arrived with no lines here (booked in the booking system) has no
+              days to tab through outside the lab: its summary is the page. */}
+          {(lines.length > 0 || mode === "edit") && (
+            <DayStrip
+              days={days} lines={lines} s={s} tab={tab} onTab={setTab} editable={mode === "edit"}
+              onLine={(lid) => select(lid)}
+              onGap={(day) => (mode === "edit" ? setAdding({ kind: "stay", on: day }) : setTab(day))}
+            />
+          )}
 
           <div role="tabpanel" aria-label={tab === "overview" ? "Overview" : dayLabel(tab)} className="mt-[var(--space-4)]">
             {tab === "overview" ? (
               <>
                 <Standing trip={trip} lines={lines} s={s} money={money} />
                 {lines.length === 0 && (
-                  <section className="chapter" data-slot="chapter" data-chapter="standing" id="chapter-standing" data-agent-target="standing">
-                    <p className="max-w-[62ch] type-prose-lead">Nothing on this trip yet. Start with where they sleep; each line begins as an idea, and nobody is asked until you ask.</p>
-                  </section>
+                  <Arrived trip={trip} building={mode === "edit"} started={s.createdTrips.some((c) => c.id === trip.id)} />
                 )}
                 {lines.length > 0 && days.map((day, i) => (
                   <DayChapter
-                    key={day} compact day={day} n={i + 1} last={i === days.length - 1} lines={lines} s={s}
+                    key={day} compact day={day} n={i + 1} last={i === days.length - 1} lines={lines} s={s} mode={mode}
                     selected={selected}
                     onSelect={(lid) => select(lid === selected ? null : lid)}
                     onAddStay={() => setAdding({ kind: "stay", on: day })}
@@ -228,7 +328,7 @@ function TripView() {
               </>
             ) : (
               <DayChapter
-                day={tab} n={days.indexOf(tab) + 1} last={tab === days[days.length - 1]} lines={lines} s={s}
+                day={tab} n={days.indexOf(tab) + 1} last={tab === days[days.length - 1]} lines={lines} s={s} mode={mode}
                 selected={selected}
                 onSelect={(lid) => select(lid === selected ? null : lid)}
                 onAddStay={() => setAdding({ kind: "stay", on: tab })}
@@ -238,13 +338,15 @@ function TripView() {
           </div>
         </div>
 
-        {railOpen && (
+        {(railChecks.length > 0 || !collapsed) && (
           <aside className={railShown ? "doc-rail" : "doc-rail hidden"} data-rail-label="This trip">
             <InsightRail
-              insights={checks}
+              insights={railChecks}
+              collapsed={collapsed}
               onClose={() => d({ type: "dismiss", id: railKey })}
-              onAct={onAct}
-              onWhy={(cid) => askAssistant(d, s, `why:${cid}`, `/itineraries/${trip.id}`, true)}
+              onOpen={() => d({ type: "restore", id: railKey })}
+              onAct={(i) => run(i.action.act ?? "")}
+              onWhy={(i) => askWhy(d, s, i, `/itineraries/${trip.id}`)}
               empty={{ label: "This trip", text: "Nothing on this trip is waiting on you." }}
               paused={!railShown}
               lead="standing"
@@ -255,8 +357,63 @@ function TripView() {
         )}
       </div>
 
-      <AddSheet trip={trip} adding={adding} onClose={() => setAdding(null)} onAdded={(lid) => { setAdding(null); select(lid); }} />
+      {mode === "edit" && (
+        <AddSheet trip={trip} adding={adding} onClose={() => setAdding(null)} onAdded={(lid) => { setAdding(null); select(lid); }} />
+      )}
+
+      {/* Sharing a trip (COL-10, VIS-101): the same sheet as everything else. Only me or
+          the Paris desk for now; the whole agency waits on the store's trip share, which
+          would carry it to the owner's publish queue. */}
+      {canAct && (
+        <ShareSheet
+          open={sharing}
+          onOpenChange={setSharing}
+          what={trip.title}
+          current={share}
+          options={audienceOptions(false).filter((o) => o.value !== "agency")}
+          describe={(v) => (v === "private" ? "The trip is private to you again" : "Shared the trip with the Paris desk")}
+          onShare={(v) => (v === "private" ? d({ type: "undecide", id: shareKey }) : d({ type: "decide", id: shareKey, what: v }))}
+        />
+      )}
     </SplitPage>
+  );
+}
+
+/* ── a trip that arrived with no lines here: what it came with ─────────────────── */
+function Arrived({ trip, building, started }: { trip: Trip; building: boolean; started: boolean }) {
+  const records = trip.products.map((id) => productById(id)).filter((p): p is NonNullable<ReturnType<typeof productById>> => !!p);
+  return (
+    <section className="chapter" data-slot="chapter" data-chapter="standing" id="chapter-standing" data-agent-target="standing">
+      {started ? (
+        <p className="max-w-[62ch] type-prose-lead">
+          Nothing on this trip yet.{building ? " Start with where they sleep; each line begins as an idea, and nobody is asked until you ask." : ""}
+        </p>
+      ) : (
+        <>
+          <p className="max-w-[62ch] type-prose-lead">
+            {trip.status}{trip.checklist ? `, with the departure checklist at ${trip.checklist.done} of ${trip.checklist.of}` : ""}.
+            {trip.alert ? ` ${cap(trip.alert)}.` : ""}
+          </p>
+          <p className="mt-[var(--space-3)] type-data text-label-secondary">
+            Its lines are in the booking system.{building ? " Add them here as ideas to work them in Enable." : ""}
+          </p>
+          {records.length > 0 && (
+            <Rows className="mt-[var(--space-4)]">
+              {records.map((p) => (
+                <Row key={p.id}>
+                  <Link href={`/records/${p.id}`} className="row-primary flex items-center gap-[var(--space-3)] underline decoration-hairline underline-offset-4 hover:decoration-ink">
+                    <span className="size-8 shrink-0 overflow-hidden rounded-md bg-sunken">
+                      <PropertyImage id={p.id} name={p.name} category={p.category} />
+                    </span>
+                    <span className="min-w-0 truncate"><span className="type-data-strong">{p.name}</span><span className="text-label-secondary"> · {p.city}</span></span>
+                  </Link>
+                </Row>
+              ))}
+            </Rows>
+          )}
+        </>
+      )}
+    </section>
   );
 }
 
@@ -320,8 +477,8 @@ function Standing({ trip, lines: all, s, money }: { trip: Trip; lines: TripLine[
    The stay band runs under the tabs across the nights each stay covers, so the shape of
    the trip stays in view whichever day is open; a night with nowhere to sleep is an amber
    gap in it. Under each day, what it holds, in a word. Long trips scroll sideways. */
-function DayStrip({ days, lines, s, tab, onTab, onLine, onGap }: {
-  days: string[]; lines: TripLine[]; s: DemoState; tab: string;
+function DayStrip({ days, lines, s, tab, onTab, onLine, onGap, editable }: {
+  days: string[]; lines: TripLine[]; s: DemoState; tab: string; editable: boolean;
   onTab: (t: string) => void; onLine: (id: string) => void; onGap: (day: string) => void;
 }) {
   const sleepable = (l: TripLine) => l.kind === "stay" && !!l.until && l.status !== "declined" && !blockOf(s, l.productId);
@@ -374,7 +531,7 @@ function DayStrip({ days, lines, s, tab, onTab, onLine, onGap }: {
             title={`${l.what} · ${l.suggested ? "suggested" : statusWord(l, TODAY)}`}
             style={{ gridRow: 2 + lane, gridColumn: `${from + 2} / ${to + 2}` }}
             className={cn(
-              "pressable flex h-[var(--control-h-sm)] min-w-0 cursor-pointer items-center gap-[var(--space-1)] rounded-md border px-[var(--space-2)] type-micro",
+              "pressable flex h-[var(--control-h-sm)] min-w-0 cursor-pointer items-center gap-[var(--space-1)] rounded-md border px-[var(--space-2)] type-meta",
               l.status === "idea" ? "border-dashed border-hairline text-label-secondary" : "border-hairline bg-sunken text-label",
               "hover:bg-interactive",
             )}
@@ -389,14 +546,14 @@ function DayStrip({ days, lines, s, tab, onTab, onLine, onGap }: {
             type="button"
             onClick={() => onGap(days[from])}
             style={{ gridRow: 2, gridColumn: `${from + 2} / ${to + 2}` }}
-            className="pressable flex h-[var(--control-h-sm)] min-w-0 cursor-pointer items-center gap-[var(--space-2)] rounded-md border border-dashed border-hairline px-[var(--space-1)] type-micro text-label-secondary hover:bg-interactive"
+            className="pressable flex h-[var(--control-h-sm)] min-w-0 cursor-pointer items-center gap-[var(--space-2)] rounded-md border border-dashed border-hairline px-[var(--space-1)] type-meta text-label-secondary hover:bg-interactive"
           >
             <Chip tone="warn">No stay · {to - from} {to - from === 1 ? "night" : "nights"}</Chip>
-            <span className="truncate">add one</span>
+            {editable && <span className="truncate">add one</span>}
           </button>
         ))}
         {days.map((d, i) => (
-          <span key={`w-${d}`} className="truncate px-1 text-center type-micro text-label-tertiary" style={{ gridRow: 2 + bandRows, gridColumn: i + 2 }}>{word(d)}</span>
+          <span key={`w-${d}`} className="truncate px-1 text-center type-meta text-label-tertiary" style={{ gridRow: 2 + bandRows, gridColumn: i + 2 }}>{word(d)}</span>
         ))}
       </div>
     </div>
@@ -406,8 +563,8 @@ function DayStrip({ days, lines, s, tab, onTab, onLine, onGap }: {
 /* ── a day: its lines, the stay it sleeps in, or the gap where one should be ────
    Full on its own tab, with "Add to" for that day; compact on the overview, where the
    band already says where they sleep and the day's name opens its tab. */
-function DayChapter({ day, n, last, lines, s, selected, onSelect, onAddStay, compact = false, onOpen, onAdd }: {
-  day: string; n: number; last: boolean; lines: TripLine[]; s: DemoState;
+function DayChapter({ day, n, last, lines, s, mode, selected, onSelect, onAddStay, compact = false, onOpen, onAdd }: {
+  day: string; n: number; last: boolean; lines: TripLine[]; s: DemoState; mode: Mode;
   selected: string | null; onSelect: (id: string) => void; onAddStay: () => void;
   compact?: boolean; onOpen?: () => void; onAdd?: () => void;
 }) {
@@ -422,6 +579,7 @@ function DayChapter({ day, n, last, lines, s, selected, onSelect, onAddStay, com
   const hasStays = lines.some((l) => l.kind === "stay" && l.status !== "declined");
   const sleeps = lines.some((l) => sleepable(l) && l.on <= day && day < l.until!);
   const bare = hasStays && !last && !sleeps;
+  const short = dayLabel(day).split(" ").slice(0, 2).join(" ");
 
   if (compact) {
     return (
@@ -445,7 +603,12 @@ function DayChapter({ day, n, last, lines, s, selected, onSelect, onAddStay, com
     <Section
       anchor={`day-${day}`}
       title={<>{dayLabel(day)}<span className="type-meta">Day {n}</span></>}
-      actions={onAdd ? <Button variant="tertiary" size="sm" onClick={onAdd}><Plus aria-hidden /> Add to {dayLabel(day).split(" ").slice(0, 2).join(" ")}</Button> : undefined}
+      actions={
+        !onAdd ? undefined
+        : mode === "edit" ? <Button variant="tertiary" size="sm" onClick={onAdd}><Plus aria-hidden /> Add to {short}</Button>
+        : mode === "drawn" ? <SchematicAction><Plus className="size-[var(--icon-md)]" aria-hidden /> Add to {short}</SchematicAction>
+        : undefined
+      }
     >
       <ul className="divide-y divide-hairline">
         {leaving.map((l) => (
@@ -465,7 +628,8 @@ function DayChapter({ day, n, last, lines, s, selected, onSelect, onAddStay, com
         {bare && (
           <li className="flex flex-wrap items-center justify-between gap-[var(--space-2)] py-[var(--space-2)] pl-[calc(var(--space-3)+2px)]">
             <Chip tone="warn">Nowhere to sleep tonight</Chip>
-            <Button variant="tertiary" size="sm" onClick={onAddStay}>Add a stay</Button>
+            {mode === "edit" ? <Button variant="tertiary" size="sm" onClick={onAddStay}>Add a stay</Button>
+              : mode === "drawn" ? <SchematicAction>Add a stay</SchematicAction> : null}
           </li>
         )}
         {!today.length && !staying.length && !leaving.length && !bare && (
@@ -484,15 +648,14 @@ function LineRow({ l, s, on, onSelect, compact = false }: { l: TripLine; s: Demo
     l.status === "confirmed" && l.confirmation ? `ref ${l.confirmation.ref}${l.confirmation.by === "traveller" ? ", booked by the travellers" : ""}` : l.detail,
   ].filter(Boolean).join(" · ");
   return (
-    <li data-agent-target={`line-${l.id}`}>
+    <li data-agent-target={`line-${l.id}`} className="row-select">
       <button
         type="button"
         onClick={onSelect}
         aria-pressed={on}
         className={cn(
-          "pressable block w-full cursor-pointer border-l-2 pr-[var(--space-2)] pl-[var(--space-3)] text-left",
+          "block w-full cursor-pointer px-[var(--space-3)] text-left",
           compact ? "py-[var(--space-2)]" : "py-[var(--space-3)]",
-          on ? "border-l-selected bg-sunken" : "border-l-transparent hover:bg-interactive",
         )}
       >
         <span className="flex items-center gap-[var(--space-2)]">
@@ -508,8 +671,8 @@ function LineRow({ l, s, on, onSelect, compact = false }: { l: TripLine; s: Demo
 }
 
 /* ── the card: one line, and the one act its state allows ───────────────────────── */
-function LineCard({ l, trip, compose, setCompose, onRemoved, onFindAnother }: {
-  l: TripLine; trip: Trip;
+function LineCard({ l, trip, mode, compose, setCompose, onRemoved, onFindAnother }: {
+  l: TripLine; trip: Trip; mode: Mode;
   compose: LineRequest["kind"] | null;
   setCompose: (k: LineRequest["kind"] | null) => void;
   onRemoved: () => void;
@@ -519,7 +682,9 @@ function LineCard({ l, trip, compose, setCompose, onRemoved, onFindAnother }: {
   const money = canViewCommissions(s);
   const p = l.productId ? productById(l.productId) : undefined;
   const block = blockOf(s, l.productId);
+  const caution = cautionOf(s, l.productId, l.on);
   const clash = tasteClash(trip.traveller, l.productId);
+  const kept = keptWords(s, trip, l.productId);
   const inc = incentiveOf(l);
   const terms = l.productId && l.program ? termsFor(l.productId, l.program) : null;
   const projected = terms ? projectedOf(l, terms.rate) : null;
@@ -528,6 +693,18 @@ function LineCard({ l, trip, compose, setCompose, onRemoved, onFindAnother }: {
   const [byHand, setByHand] = useState(false);
   const [ref, setRef] = useState("");
   const open = l.status === "idea" || l.status === "requested" || l.status === "held" || l.status === "declined";
+  const edit = mode === "edit";
+  const canAct = mode !== "read";
+  const blocked = !!block && l.status !== "confirmed";
+
+  /* Taking it off: never the primary, destructive, with Undo (NAV-09). */
+  const takeItOff = () => { takeOff(s, d, trip, l); onRemoved(); };
+  /* Removing a suggestion nobody kept: immediate, and Undo puts it back. */
+  const removeSuggestion = () => {
+    d({ type: "lineRemove", id: l.id });
+    onRemoved();
+    notify("Suggestion removed", { detail: l.what, undo: () => d({ type: "lineAdd", line: l }) });
+  };
 
   return (
     <div className="flex flex-col gap-[var(--space-6)]">
@@ -539,8 +716,41 @@ function LineCard({ l, trip, compose, setCompose, onRemoved, onFindAnother }: {
             {dayLabel(l.on)}{l.time ? ` · ${l.time}` : ""}{l.until ? ` → ${dayLabel(l.until)}` : ""}
           </span>
         </div>
-        {l.detail && <p className="type-data-read text-label-secondary">{cap(l.detail)}.</p>}
+        {l.detail && <p className="type-data text-label-secondary">{cap(l.detail)}.</p>}
       </div>
+
+      {/* One attention item for this line (VIS-099): a closure outranks a taste, and the
+          closure's one act is to take the line off the trip. Nobody acknowledges it. */}
+      {/* In the card's narrow column the act sits under the sentence, not beside it. */}
+      {blocked ? (
+        <Blocker title="Closed to bookings">
+          {block.text} <span className="type-meta">{block.by}, {block.openedAt}</span>
+          {canAct && (
+            <div className="mt-[var(--space-3)]">
+              <Button variant="secondary" size="sm" onClick={takeItOff}>Take it off the trip</Button>
+            </div>
+          )}
+        </Blocker>
+      ) : clash && open ? (
+        <Warning title={`Against ${trip.traveller}'s taste`} kept={kept}>
+          {clash.sentence}
+          {canAct && (
+            <div className="mt-[var(--space-3)] flex flex-wrap items-center gap-[var(--space-2)]">
+              {edit
+                ? <Button size="sm" variant="secondary" onClick={() => onFindAnother(l.kind, l.on, l.id)}>Find another</Button>
+                : <SchematicAction>Find another</SchematicAction>}
+              <Button size="sm" variant="secondary" onClick={() => d({ type: "decide", id: tasteKey(trip, l.productId!), what: "Kept despite the preference" })}>Keep it</Button>
+            </div>
+          )}
+        </Warning>
+      ) : caution && open ? (
+        <Warning title="A notice on this property">{caution.text}</Warning>
+      ) : null}
+      {inc && money && l.status !== "confirmed" && (
+        <SeverityBanner severity="Info">
+          {incentiveWords(inc)} on bookings made by {inc.bookingWindowEnd}.
+        </SeverityBanner>
+      )}
 
       {/* the record it books */}
       {p && (
@@ -556,29 +766,11 @@ function LineCard({ l, trip, compose, setCompose, onRemoved, onFindAnother }: {
         </Link>
       )}
 
-      {/* what argues with it: the agency's notice, the traveller's taste, a closing window */}
-      {block && l.status !== "confirmed" && (
-        <SeverityBanner severity="Critical">
-          <div className="type-data-strong">Closed to bookings</div>
-          <div>{block.by} closed it on {block.openedAt}: {block.text.split(" — ")[0].toLowerCase()}. Nobody can ask for it while the notice stands.</div>
-        </SeverityBanner>
-      )}
-      {clash && open && (
-        <SeverityBanner severity="Important">
-          {trip.traveller} asked for “{clash.pref.toLowerCase()}”. The record lists it as {clash.tag}.
-        </SeverityBanner>
-      )}
-      {inc && money && l.status !== "confirmed" && (
-        <SeverityBanner severity="Info">
-          {incentiveWords(inc)} on bookings made by {inc.bookingWindowEnd}.
-        </SeverityBanner>
-      )}
-
       {/* the programme it is booked under, and what that gives */}
       {p && p.programs.length > 0 && (
         <div className="flex flex-col gap-[var(--space-3)]">
-          <div className="type-micro-caps text-label-tertiary">Programme</div>
-          {p.programs.length > 1 && l.status !== "confirmed" ? (
+          <div className="type-meta text-label-tertiary">Programme</div>
+          {edit && p.programs.length > 1 && l.status !== "confirmed" ? (
             <Segmented
               label="Programme"
               value={l.program ?? p.programs[0]}
@@ -590,7 +782,7 @@ function LineCard({ l, trip, compose, setCompose, onRemoved, onFindAnother }: {
           )}
           {terms && (
             <>
-              <ul className="flex flex-col gap-[var(--space-1)] type-data-read">
+              <ul className="flex flex-col gap-[var(--space-1)] type-data">
                 {terms.amenities.map((a) => <li key={a}>{a}</li>)}
               </ul>
               {money && (
@@ -606,58 +798,63 @@ function LineCard({ l, trip, compose, setCompose, onRemoved, onFindAnother }: {
       {/* a suggestion: why Enable put it here, and the three things to do with it */}
       {l.suggested && (
         <div className="flex flex-col gap-[var(--space-3)]">
-          <div className="type-micro-caps text-label-tertiary">Why Enable suggested it</div>
-          <p className="type-data-read">{cap(l.suggested.reason)}.</p>
+          <div className="type-meta text-label-tertiary">Why Enable suggested it</div>
+          <p className="type-data">{cap(l.suggested.reason)}.</p>
           <p className="type-meta">From {l.suggested.source}. Nothing is asked of anyone until you keep it.</p>
-          <div className="flex flex-wrap items-center gap-[var(--space-2)]">
-            <Button size="sm" onClick={() => d({ type: "lineSet", id: l.id, patch: { suggested: undefined } })}>Keep</Button>
-            <Button size="sm" variant="secondary" onClick={() => onFindAnother(l.kind, l.on, l.id)}>Swap</Button>
-            <Button size="sm" variant="tertiary" onClick={() => { d({ type: "lineRemove", id: l.id }); onRemoved(); }}>Remove</Button>
-          </div>
+          {edit ? (
+            <div className="flex flex-wrap items-center gap-[var(--space-2)]">
+              <Button size="sm" onClick={() => d({ type: "lineSet", id: l.id, patch: { suggested: undefined } })}>Keep</Button>
+              <Button size="sm" variant="secondary" onClick={() => onFindAnother(l.kind, l.on, l.id)}>Swap</Button>
+              <Button size="sm" variant="tertiary" onClick={removeSuggestion}>Remove</Button>
+            </div>
+          ) : canAct ? (
+            <div className="flex flex-wrap items-center gap-[var(--space-2)]">
+              <SchematicAction>Keep</SchematicAction><SchematicAction>Swap</SchematicAction><SchematicAction>Remove</SchematicAction>
+            </div>
+          ) : null}
         </div>
       )}
 
       {/* the act its state allows */}
-      {l.suggested ? null : compose ? (
+      {l.suggested || blocked ? null : compose && edit ? (
         <Composer l={l} trip={trip} kind={compose} to={who} onDone={() => setCompose(null)} />
       ) : reply?.reply ? (
         <div className="flex flex-col gap-[var(--space-3)]">
-          <div className="type-micro-caps text-label-tertiary">Their reply, as read</div>
-          <p className="type-data-read">
+          <div className="type-meta text-label-tertiary">Their reply, as read</div>
+          <p className="type-data">
             {reply.reply.read.status === "held" && <>They hold it until <span className="type-data-strong">{shortDate(reply.reply.read.until ?? TODAY)}</span>.</>}
             {reply.reply.read.status === "confirmed" && <>Confirmed{reply.reply.read.ref && <>, reference <span className="type-data-strong tnum">{reply.reply.read.ref}</span></>}.</>}
             {reply.reply.read.status === "declined" && <>They cannot do it.</>}
             {reply.reply.read.note && <> “{reply.reply.read.note}”</>}
           </p>
           <p className="type-meta">From “{reply.reply.doc}”, {reply.reply.at}, in Forwarded mail. Nothing changes on the trip until you accept it.</p>
-          <div className="flex flex-wrap items-center gap-[var(--space-2)]">
-            <Button size="sm" onClick={() => d({ type: "lineAccept", id: l.id, request: reply.id })}>
-              {reply.reply.read.status === "declined" ? "Accept the refusal" : "Confirm what they said"}
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => setCompose("chase")}>That is not what they said</Button>
-          </div>
-        </div>
-      ) : block && l.status !== "confirmed" ? (
-        <div className="flex flex-wrap items-center gap-[var(--space-2)]">
-          <Button size="sm" onClick={() => { d({ type: "lineRemove", id: l.id }); onRemoved(); }}>Take it off the trip</Button>
+          <Acts
+            mode={mode}
+            primary={{ label: reply.reply.read.status === "declined" ? "Accept the refusal" : "Confirm what they said", go: () => d({ type: "lineAccept", id: l.id, request: reply.id }) }}
+            secondary={{ label: "That is not what they said", go: () => setCompose("chase") }}
+          />
         </div>
       ) : l.kind === "note" ? null : l.status === "idea" ? (
         <Act
+          mode={mode}
           text={who ? `Nobody has asked ${who.name} yet.` : "Nobody to ask: add a supplier, or mark it confirmed by hand."}
           primary={who ? { label: `Ask ${who.name.replace(/ reservations$/, "")}`, go: () => setCompose("availability") } : undefined}
         />
       ) : l.status === "requested" ? (
         <Act
+          mode={mode}
           text={`Asked ${l.requests[l.requests.length - 1]?.sentAt ?? "today"}. The reply lands in Forwarded mail and waits here for you.`}
           secondary={{ label: "Draft a chase", go: () => setCompose("chase") }}
         />
       ) : l.status === "held" ? (
         <Act
+          mode={mode}
           text={`${who?.name ?? "They"} hold it until ${shortDate(l.holdUntil ?? TODAY)}. Ask them to confirm, and send their reference.`}
           primary={{ label: "Ask them to confirm", go: () => setCompose("confirm") }}
         />
       ) : l.status === "declined" ? (
         <Act
+          mode={mode}
           text={l.requests[l.requests.length - 1]?.reply?.read.note ?? `${who?.name ?? "They"} cannot do it.`}
           primary={{ label: "Find another", go: () => onFindAnother(l.kind, l.on) }}
           secondary={{ label: "Ask again", go: () => setCompose("availability") }}
@@ -668,8 +865,8 @@ function LineCard({ l, trip, compose, setCompose, onRemoved, onFindAnother }: {
         </ConfirmBanner>
       ) : null}
 
-      {/* by hand: a confirmation that came by phone */}
-      {!l.suggested && !compose && !reply && open && !block && l.kind !== "note" && (
+      {/* by hand: a confirmation that came by phone; and taking an idea off the trip */}
+      {edit && !l.suggested && !compose && !reply && open && !blocked && l.kind !== "note" && (
         byHand ? (
           <div className="flex flex-col gap-[var(--space-2)]">
             <Label htmlFor={`ref-${l.id}`}>Their reference</Label>
@@ -682,10 +879,10 @@ function LineCard({ l, trip, compose, setCompose, onRemoved, onFindAnother }: {
             <p className="type-meta">Recorded with your name and today&apos;s date.</p>
           </div>
         ) : (
-          <div className="flex flex-wrap items-center gap-[var(--space-1)]">
+          <div className="flex flex-wrap items-center gap-[var(--space-2)]">
             <Button size="sm" variant="tertiary" onClick={() => setByHand(true)}>Confirmed by phone?</Button>
             {(l.status === "idea" || l.status === "declined") && (
-              <Button size="sm" variant="tertiary" onClick={() => { d({ type: "lineRemove", id: l.id }); onRemoved(); }}>Take it off the trip</Button>
+              <Button size="sm" variant="secondary" onClick={takeItOff}>Take it off the trip</Button>
             )}
           </div>
         )
@@ -694,7 +891,7 @@ function LineCard({ l, trip, compose, setCompose, onRemoved, onFindAnother }: {
       {/* what was asked, and what came back */}
       {l.requests.length > 0 && (
         <div className="flex flex-col gap-[var(--space-3)]">
-          <div className="type-micro-caps text-label-tertiary">History</div>
+          <div className="type-meta text-label-tertiary">History</div>
           <ol className="flex flex-col gap-[var(--space-3)]">
             {l.requests.map((r) => (
               <li key={r.id} className="flex flex-col gap-[var(--space-1)]">
@@ -722,16 +919,35 @@ function LineCard({ l, trip, compose, setCompose, onRemoved, onFindAnother }: {
   );
 }
 
-function Act({ text, primary, secondary }: { text: string; primary?: { label: string; go: () => void }; secondary?: { label: string; go: () => void } }) {
+type Go = { label: string; go: () => void };
+
+/* The acts a state allows, as this mode draws them: live in the lab, drawn and marked
+   outside it (COL-09: a control that does nothing is never dressed as one that does),
+   absent for the owner. */
+function Acts({ mode, primary, secondary }: { mode: Mode; primary?: Go; secondary?: Go }) {
+  if (mode === "read" || (!primary && !secondary)) return null;
   return (
-    <div className="flex flex-col gap-[var(--space-3)]">
-      <p className="type-data-read text-label-secondary">{text}</p>
-      {(primary || secondary) && (
-        <div className="flex flex-wrap items-center gap-[var(--space-2)]">
+    <div className="flex flex-wrap items-center gap-[var(--space-2)]">
+      {mode === "edit" ? (
+        <>
           {primary && <Button size="sm" onClick={primary.go}>{primary.label}</Button>}
           {secondary && <Button size="sm" variant="secondary" onClick={secondary.go}>{secondary.label}</Button>}
-        </div>
+        </>
+      ) : (
+        <>
+          {primary && <SchematicAction>{primary.label}</SchematicAction>}
+          {secondary && <SchematicAction>{secondary.label}</SchematicAction>}
+        </>
       )}
+    </div>
+  );
+}
+
+function Act({ mode, text, primary, secondary }: { mode: Mode; text: string; primary?: Go; secondary?: Go }) {
+  return (
+    <div className="flex flex-col gap-[var(--space-3)]">
+      <p className="type-data text-label-secondary">{text}</p>
+      <Acts mode={mode} primary={primary} secondary={secondary} />
     </div>
   );
 }
@@ -758,9 +974,9 @@ function Composer({ l, trip, kind, to, onDone }: {
       <Label htmlFor={`draft-${l.id}`}>{kind === "confirm" ? "Ask them to confirm" : kind === "chase" ? "The chase" : "The request"}</Label>
       <p className="-mt-[var(--space-1)] type-meta">To {to.name} · {to.email}</p>
       <Textarea id={`draft-${l.id}`} value={text} onChange={(e) => setText(e.target.value)} className="min-h-56" />
-      <div className="mt-[var(--space-2)] flex flex-wrap items-center gap-[var(--space-2)]">
-        <Button size="sm" onClick={send} disabled={!text.trim()}>Send</Button>
+      <div className="mt-[var(--space-2)] flex flex-wrap items-center justify-end gap-[var(--space-2)]">
         <Button size="sm" variant="secondary" onClick={onDone}>Discard</Button>
+        <Button size="sm" onClick={send} disabled={!text.trim()}>Send</Button>
       </div>
       <p className="type-meta">Sends once, on this click. The reply lands in Forwarded mail and waits here for you.</p>
     </div>
@@ -768,9 +984,11 @@ function Composer({ l, trip, kind, to, onDone }: {
 }
 
 /* ── adding a line: from the agency's records, or by hand ──────────────────────────
-   The checks run at the moment of choice, where DEC-27 put them: a closed record says
-   so and cannot be added; a taste it argues with warns and does not block; a window
-   closing is said in money's words, for those who see money. */
+   The checks run at the moment of choice, where DEC-27 put them, through the one gate
+   (VIS-099): a record closed by a Critical notice says so in the words the trip uses and
+   cannot be added; an Important notice and a taste it argues with warn and do not block;
+   a window closing is said in money's words, for those who see money. "Find another"
+   (a taste, a refusal) opens here on that day, with that kind, in the trip's places. */
 function AddSheet({ trip, adding, onClose, onAdded }: {
   trip: Trip; adding: Adding; onClose: () => void; onAdded: (id: string) => void;
 }) {
@@ -790,27 +1008,37 @@ function AddSheet({ trip, adding, onClose, onAdded }: {
   const [program, setProgram] = useState<string | null>(null);
 
   /* Each opening starts from what asked for it: a gap asks for a stay on its night. */
-  const key = adding ? `${adding.kind ?? ""}-${adding.on ?? ""}` : "closed";
+  const key = adding ? `${adding.kind ?? ""}-${adding.on ?? ""}-${adding.replace ?? ""}` : "closed";
   const [seen, setSeen] = useState(key);
   if (key !== seen) {
     setSeen(key);
-    setFrom(adding?.kind && adding.kind !== "stay" ? "own" : "records");
+    setFrom(adding?.kind && adding.kind !== "stay" && !adding.replace ? "own" : "records");
     setKind(adding?.kind ?? "stay");
     setOn(adding?.on ?? days[0] ?? TODAY);
     setPick(null); setQ(""); setWhat(""); setSupplier(""); setEmail(""); setTime(""); setNights("1"); setProgram(null);
   }
 
+  const replacing = adding?.replace ? linesOf(s.tripLines, trip.id).find((l) => l.id === adding.replace) : undefined;
+  const swap = !!replacing?.suggested;
   const results = useMemo(() => {
     const here = (c: string) => trip.destinations.some((dest) => c.toLowerCase().includes(dest.toLowerCase()));
     return products
       .filter((p) => p.category !== "Rep firm" && p.status !== "Closed")
+      .filter((p) => p.id !== replacing?.productId)
+      /* finding another stay: the trip's places, hotels first, unless she searches wider */
+      .filter((p) => !replacing || q.trim() || (here(p.city) && (replacing.kind !== "stay" || p.category === "Hotel")))
       .filter((p) => !q.trim() || `${p.name} ${p.city} ${p.country}`.toLowerCase().includes(q.trim().toLowerCase()))
       .sort((a, b) => Number(here(b.city)) - Number(here(a.city)) || a.name.localeCompare(b.name))
       .slice(0, 8);
-  }, [q, trip.destinations]);
+  }, [q, trip.destinations, replacing]);
   const chosen = pick ? productById(pick) : undefined;
   const block = chosen ? blockOf(s, chosen.id) : null;
+  const caution = chosen ? cautionOf(s, chosen.id, on) : null;
+  const taste = chosen ? tasteClash(trip.traveller, chosen.id) : null;
   const maxNights = Math.max(1, days.length - 1 - days.indexOf(on));
+
+  /* the line it replaces goes (a swap, or another in place of one against their taste) */
+  const replace = () => { if (replacing) takeOff(s, d, trip, replacing, { quiet: true }); };
 
   const add = () => {
     const id = nextId();
@@ -824,8 +1052,7 @@ function AddSheet({ trip, adding, onClose, onAdded }: {
         sell: stay ? n * 1100 : undefined,
       };
       d({ type: "lineAdd", line });
-    /* a swap: the new line takes the suggestion's place */
-    if (adding?.replace) d({ type: "lineRemove", id: adding.replace });
+      replace();
       onAdded(id);
       return;
     }
@@ -835,8 +1062,7 @@ function AddSheet({ trip, adding, onClose, onAdded }: {
       status: kind === "note" ? "confirmed" : "idea", requests: [],
     };
     d({ type: "lineAdd", line });
-    /* a swap: the new line takes the suggestion's place */
-    if (adding?.replace) d({ type: "lineRemove", id: adding.replace });
+    replace();
     onAdded(id);
   };
 
@@ -856,8 +1082,12 @@ function AddSheet({ trip, adding, onClose, onAdded }: {
     <Sheet open={!!adding} onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="right">
         <SheetHeader>
-          <SheetTitle>{adding?.replace ? "Swap the suggestion" : `Add to ${trip.title}`}</SheetTitle>
-          <SheetDescription>{adding?.replace ? "Choose what goes in its place. It starts as an idea, kept." : "A line starts as an idea. Nobody is asked until you ask."}</SheetDescription>
+          <SheetTitle>{swap ? "Swap the suggestion" : replacing ? `Find another for ${dayLabel(replacing.on)}` : `Add to ${trip.title}`}</SheetTitle>
+          <SheetDescription>
+            {swap ? "Choose what goes in its place. It starts as an idea, kept."
+              : replacing ? `In place of ${replacing.what.split(",")[0]}. It starts as an idea; nobody is asked until you ask.`
+              : "A line starts as an idea. Nobody is asked until you ask."}
+          </SheetDescription>
         </SheetHeader>
         <div className="flex min-h-0 flex-1 flex-col gap-[var(--space-4)] overflow-y-auto px-[var(--space-6)] pb-[var(--space-6)]">
           <Segmented
@@ -876,36 +1106,38 @@ function AddSheet({ trip, adding, onClose, onAdded }: {
               <ul className="divide-y divide-hairline">
                 {results.map((p) => {
                   const closed = blockOf(s, p.id);
-                  const taste = tasteClash(trip.traveller, p.id);
+                  const against = tasteClash(trip.traveller, p.id);
                   const on = pick === p.id;
                   return (
-                    <li key={p.id}>
+                    <li key={p.id} className="row-select">
                       <button
                         type="button"
                         aria-pressed={on}
                         onClick={() => { setPick(on ? null : p.id); setProgram(p.programs[0] ?? null); }}
-                        className={cn("pressable block w-full cursor-pointer border-l-2 py-[var(--space-2)] pr-[var(--space-2)] pl-[var(--space-3)] text-left", on ? "border-l-selected bg-sunken" : "border-l-transparent hover:bg-interactive")}
+                        className="block w-full cursor-pointer px-[var(--space-3)] py-[var(--space-2)] text-left"
                       >
                         <span className="block truncate type-data-strong">{p.name}</span>
                         <span className="mt-0.5 flex flex-wrap items-center gap-[var(--space-1)] type-meta">
                           {p.city}{p.programs.length ? ` · ${p.programs.join(", ")}` : ""}
                           {closed && <Chip tone="crit">Closed to bookings</Chip>}
-                          {!closed && taste && <Chip tone="warn">Against their taste</Chip>}
+                          {!closed && against && <Chip tone="warn">Against their taste</Chip>}
                         </span>
                       </button>
                     </li>
                   );
                 })}
+                {results.length === 0 && <li className="py-[var(--space-2)] type-meta">No record here matches. Search wider, or add it by hand.</li>}
               </ul>
               {chosen && (
                 <div className="flex flex-col gap-[var(--space-3)] border-t border-hairline pt-[var(--space-4)]">
                   {block ? (
-                    <SeverityBanner severity="Critical">{block.by} closed {chosen.name} to bookings on {block.openedAt}: {block.text.split(" — ")[0].toLowerCase()}.</SeverityBanner>
+                    <Blocker title="Closed to bookings">
+                      {block.text} <span className="type-meta">{block.by}, {block.openedAt}</span>
+                    </Blocker>
                   ) : (
                     <>
-                      {tasteClash(trip.traveller, chosen.id) && (
-                        <SeverityBanner severity="Important">{trip.traveller} asked for “{tasteClash(trip.traveller, chosen.id)!.pref.toLowerCase()}”. The record lists it as {tasteClash(trip.traveller, chosen.id)!.tag}. You can still add it.</SeverityBanner>
-                      )}
+                      {taste && <Warning title={`Against ${trip.traveller}'s taste`}>{taste.sentence} You can still add it.</Warning>}
+                      {caution && <Warning title="A notice on this property">{caution.text}</Warning>}
                       {DaySelect}
                       {(chosen.category === "Hotel" || chosen.category === "Cruise") && (
                         <div className="flex flex-col gap-[var(--space-1)]">
@@ -962,15 +1194,12 @@ function AddSheet({ trip, adding, onClose, onAdded }: {
             </>
           )}
         </div>
-        <div className="flex items-center gap-[var(--space-2)] border-t border-hairline px-[var(--space-6)] py-[var(--space-4)]">
-          <Button
-            size="sm"
-            onClick={add}
-            disabled={from === "records" ? !chosen || !!block : !what.trim()}
-          >
-            {from === "own" && kind === "note" ? "Add the note" : "Add as an idea"}
+        {/* Cancel, then the act at the right (VIS-101). */}
+        <div className="flex items-center justify-end gap-[var(--space-2)] border-t border-hairline px-[var(--space-6)] py-[var(--space-4)]">
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button onClick={add} disabled={from === "records" ? !chosen || !!block : !what.trim()}>
+            {from === "own" && kind === "note" ? "Add the note" : replacing && !swap ? "Add in its place" : "Add as an idea"}
           </Button>
-          <Button size="sm" variant="secondary" onClick={onClose}>Cancel</Button>
         </div>
       </SheetContent>
     </Sheet>

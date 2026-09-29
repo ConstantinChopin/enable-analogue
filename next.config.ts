@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
      misleading webpack errors. Set NEXT_DIST_DIR to build alongside a running dev server. */
   distDir: process.env.NEXT_DIST_DIR || ".next",
 
+  /* The prototype is shown, not only developed: the case study embeds it live, and
+     screens are captured from it. The dev badge is not the product, so it is off.
+     Compile and runtime errors still surface. */
+  devIndicators: false,
+
   /* The demo is deployed so it can be opened from a link rather than a terminal.
      It is a reconstruction of client work, so it should not be indexed: the URL is
      for people who have been given it, not for search. */

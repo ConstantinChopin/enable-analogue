@@ -2,92 +2,91 @@
 /**
  * The insight rail — the Briefing's tool that follows (src/lib/insights.ts has the logic).
  *
- * One insight at a time, in rank order, so its action is the page's one primary. The
- * rail and the page move together (Constantin, 2026-09-24):
- *   scrolling    the chapter crossing the reading line brings up its first insight; a
- *                chapter with none leaves the card where it is, and the lead brings back
- *                the first move
+ * One insight at a time, in the inbox's order (FB-04: severity, then the inbox's own
+ * order), so its action is the page's one primary, and each card says how bad it is in
+ * the inbox's words.
+ *
  *   the arrows   step through the insights and carry the page to each one's chapter
- *   the close    puts the rail away for the session; the page header brings it back
- * Below the desktop layout the rail sits after the chapters: it does not track the
- * scroll, and the arrows change the card without moving the page.
+ *   the close    collapses the card to a small "N insights" control in its place, which
+ *                opens it again (FB-11, 2026-09-28). It used to put the rail away for the
+ *                session behind a quiet "Show insights" in the page header.
+ *
+ * The card no longer follows the scroll (FB-11, 2026-09-28). From 2026-09-24 the chapter
+ * being read brought up its insight, so the card changed under the reader, and because it
+ * was a live region a screen reader announced every scroll. It now changes only when the
+ * reader asks it to (the arrows), and only that change is announced.
+ * Below the desktop layout the rail sits after the chapters, and the arrows change the
+ * card without moving the page.
  */
 import React from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { IconChrome } from "@/components/bits";
+import { Chip, IconChrome } from "@/components/bits";
 import type { Insight } from "@/lib/insights";
 
 const DESKTOP = "(min-width: 1024px)";
 
-export function InsightRail({ insights, onClose, onSheet, onWhy, onAct, empty, paused = false, onFocus, lead = "today" }: {
+export function InsightRail({ insights, onClose, onOpen, collapsed = false, onSheet, onWhy, onAct, empty, onFocus, lead = "today" }: {
   insights: Insight[];
+  /** The close: collapses the card (the page keeps `collapsed`), or takes the rail away. */
   onClose: () => void;
+  /** Collapsed: the small control that opens the card again. */
+  collapsed?: boolean;
+  onOpen?: () => void;
   onSheet?: (sheet: NonNullable<Insight["action"]["sheet"]>) => void;
   /** The page handles an insight whose action is an `act` (the trip page: ask, add, take off). */
   onAct?: (i: Insight) => void;
-  /** Hidden for now (a conversation or a card has the slot): the page's scroll does not
-      steer it, so it comes back on the insight it left on. */
+  /** Kept for callers: the card no longer follows the scroll (FB-11), so there is
+      nothing to pause while it is hidden. */
   paused?: boolean;
   /** The arrows moved to an insight: the page may bring its part forward (a day's tab). */
   onFocus?: (i: Insight) => void;
-  /** The chapter whose reading brings back the first move (the Briefing's "today"). */
+  /** The chapter the first insight's arrow carries the page to (the Briefing's "today"). */
   lead?: string;
   /** What the rail says when nothing is waiting, and its label. */
   empty?: { label: string; text: string };
-  /** The assistant explains an insight (the lab): a tertiary "Why?" beside the act. */
-  onWhy?: (id: string) => void;
+  /** The assistant explains an insight: a tertiary "Why?" beside the act. */
+  onWhy?: (i: Insight) => void;
 }) {
   const [index, setIndex] = React.useState(0);
-  /* While the arrows are carrying the page, the chapters it passes do not steer the rail. */
-  const steering = React.useRef(0);
-  const held = React.useRef(paused);
-  React.useEffect(() => {
-    /* coming back: the page reflows as the rail returns; let it settle before scrolling steers again */
-    if (held.current && !paused) steering.current = Date.now() + 1200;
-    held.current = paused;
-  }, [paused]);
+  /* Only a change the reader started is announced (FB-11). */
+  const [announce, setAnnounce] = React.useState("");
   const count = insights.length;
   const i = Math.min(index, Math.max(0, count - 1));
   const cur = insights[i];
 
-  React.useEffect(() => {
-    if (!window.matchMedia(DESKTOP).matches) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (held.current || Date.now() < steering.current) return;
-        for (const e of entries) {
-          if (!e.isIntersecting) continue;
-          const chapter = e.target.getAttribute("data-chapter");
-          if (chapter === lead) { setIndex(0); continue; }
-          const at = insights.findIndex((x) => x.chapter === chapter);
-          if (at >= 0) setIndex(at);
-        }
-      },
-      { rootMargin: "-32% 0px -64% 0px" },
-    );
-    document.querySelectorAll("[data-chapter]").forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, [insights, lead]);
-
   const go = (to: number) => {
     const next = (to + count) % count;
     setIndex(next);
-    if (insights[next]) onFocus?.(insights[next]);
+    const it = insights[next];
+    if (!it) return;
+    setAnnounce(`${next + 1} of ${count}${it.severity ? `, ${it.severity}` : ""}: ${it.headline}`);
+    onFocus?.(it);
     if (!window.matchMedia(DESKTOP).matches) return;
-    const target = next === 0 ? lead : insights[next].chapter;
-    const el = document.getElementById(`chapter-${target}`);
-    if (!el) return;
-    steering.current = Date.now() + 900;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    const target = next === 0 ? lead : it.chapter;
+    document.getElementById(`chapter-${target}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  if (collapsed) {
+    return (
+      <Button
+        variant="secondary"
+        size="sm"
+        aria-expanded={false}
+        aria-label={count ? `Show ${count} ${count === 1 ? "insight" : "insights"}` : "Show insights"}
+        onClick={onOpen}
+      >
+        <span className="tnum">{count}</span> {count === 1 ? "insight" : "insights"}
+      </Button>
+    );
+  }
 
   if (!cur) {
     return (
       <section className="tool tool-follows flex min-w-0 flex-col" data-slot="card" data-variant="tool">
         <RailHead label={empty?.label ?? "Today"} counter="" onClose={onClose} />
-        <p className="type-data-read text-label-secondary">{empty?.text ?? "Nothing today that the chapters do not already say."}</p>
+        <p className="type-data text-label-secondary">{empty?.text ?? "Nothing is waiting on you today."}</p>
       </section>
     );
   }
@@ -102,10 +101,17 @@ export function InsightRail({ insights, onClose, onSheet, onWhy, onAct, empty, p
         onClose={onClose}
       />
       {/* Keyed by the insight, so a change reads as a new card, not an edit. */}
-      <div key={cur.id} className="insight-in flex flex-col gap-[var(--space-4)]" aria-live="polite">
+      <div key={cur.id} className="insight-in flex flex-col gap-[var(--space-4)]">
         <div className="flex flex-col gap-[var(--space-2)]">
+          {/* How bad, in the inbox's words and colours (FB-04): claret only for
+              Critical, ochre for a decision, everything else neutral. */}
+          {cur.severity && (
+            <div className="flex">
+              <Chip tone={cur.severity === "Critical" ? "crit" : cur.severity === "Important" ? "warn" : "neutral"}>{cur.severity}</Chip>
+            </div>
+          )}
           <h3 className="type-section">{cur.headline}</h3>
-          <p className="type-data-read text-label-secondary">{cur.text}</p>
+          <p className="type-data text-label-secondary">{cur.text}</p>
         </div>
         <p className="type-meta text-label-secondary">From {cur.evidence}</p>
         <div className="flex items-center gap-[var(--space-2)]">
@@ -116,9 +122,10 @@ export function InsightRail({ insights, onClose, onSheet, onWhy, onAct, empty, p
           ) : (
             <Button asChild><Link href={cur.action.href ?? "#"}>{cur.action.label}</Link></Button>
           )}
-          {onWhy && <Button variant="tertiary" onClick={() => onWhy(cur.id)}>Why?</Button>}
+          {onWhy && <Button variant="tertiary" onClick={() => onWhy(cur)}>Why?</Button>}
         </div>
       </div>
+      <p className="sr-only" aria-live="polite">{announce}</p>
     </section>
   );
 }

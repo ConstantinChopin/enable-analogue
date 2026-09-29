@@ -47,7 +47,7 @@ function AvatarFallback({
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
       className={cn(
-        "flex size-full items-center justify-center rounded-full bg-sunken type-micro text-label-secondary",
+        "flex size-full items-center justify-center rounded-full bg-sunken type-meta text-label-secondary",
         className
       )}
       {...props}
@@ -92,7 +92,7 @@ function AvatarGroupCount({
     <div
       data-slot="avatar-group-count"
       className={cn(
-        "relative flex size-8 shrink-0 items-center justify-center rounded-full bg-sunken type-micro text-label-secondary ring-2 ring-raised group-has-data-[size=lg]/avatar-group:size-10 group-has-data-[size=sm]/avatar-group:size-6",
+        "relative flex size-8 shrink-0 items-center justify-center rounded-full bg-sunken type-meta text-label-secondary ring-2 ring-raised group-has-data-[size=lg]/avatar-group:size-10 group-has-data-[size=sm]/avatar-group:size-6",
         className
       )}
       {...props}

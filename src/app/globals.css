@@ -3,7 +3,8 @@
 /* ═══════════════════════════════════════════════════════════════════
    Enable — the visual language, Pass 1 (docs/rebuild/03-constitution.md)
 
-   Two voices: Instrument Sans for the machine, Newsreader for the person.
+   Two faces: Source Serif 4 for the page title and the lead, Instrument
+   Sans for everything else (VIS-092). Two weights; emphasis is ink.
    Surfaces speak the studio's language (VIS-091): content is paper,
    chrome is glass, rules and fills are translucent ink.
    Trust states own the only chroma. The accent is ink.
@@ -211,6 +212,12 @@
   --elev-2: var(--sys-glass-edge), var(--sys-glass-shadow);
   --elev-3: var(--sys-glass-edge), 0 4px 12px rgb(var(--ref-glass-shade) / 0.07), 0 16px 40px rgb(var(--ref-glass-shade) / 0.09);
   --elev-4: var(--sys-glass-edge), 0 8px 24px rgb(var(--ref-glass-shade) / 0.08), 0 24px 64px rgb(var(--ref-glass-shade) / 0.12);
+  /* The lift: a selected row (VIS-093). The glass edge over a short, close shadow that
+     reaches about 10px, so a row lifts inside the scroll box it lives in without the
+     shadow being cut at the box's edge. Elevation 2's shadow reaches 28. */
+  --elev-lift: var(--sys-glass-edge), 0 1px 2px rgb(var(--ref-glass-shade) / 0.05), 0 3px 10px -2px rgb(var(--ref-glass-shade) / 0.11);
+  /* The room a lift needs inside anything that clips: the table's scroll box, a list's. */
+  --lift-room: var(--space-3);
 
   /* ── sys: motion — one curve, one duration (VIS-060) ─────────────── */
   --ease: cubic-bezier(0.2, 0, 0, 1);
@@ -347,14 +354,16 @@
   --shadow-elev-2: var(--elev-2);
   --shadow-elev-3: var(--elev-3);
   --shadow-elev-4: var(--elev-4);
+  --shadow-elev-lift: var(--elev-lift);
 
   --font-sans:  var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-serif), ui-serif, Georgia, serif;
 
-  /* Optical weight stops, not mechanical ones (survives from the previous language). */
-  --font-weight-medium:   510;
-  --font-weight-semibold: 590;
-  --font-weight-bold:     680;
+  /* Two weights, 400 and 500 (VIS-092). Emphasis is the ink ladder first, then size; the
+     one step of weight is 500, so anything that asks to be heavier gets that step. */
+  --font-weight-medium:   500;
+  --font-weight-semibold: 500;
+  --font-weight-bold:     500;
 
   --ease-standard: var(--ease);
 
@@ -365,12 +374,12 @@ body {
   background: var(--sys-bg-base);
   color: var(--sys-label-primary);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-  /* `body` is the data role (VIS-010): 14/18. */
+  /* `body` is the data role (VIS-010, VIS-092): 14/20. */
   font-size: 14px;
-  line-height: 18px;
+  line-height: 20px;
 }
 .tnum { font-variant-numeric: tabular-nums; }
-b, strong { font-weight: 590; }
+b, strong { font-weight: 500; }
 
 /* Focus is a double ring, never an outline (VIS-060). */
 *:focus-visible { outline: none; box-shadow: var(--sys-focus-ring); }
@@ -385,30 +394,27 @@ b, strong { font-weight: 590; }
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
 
-/* ═══ Type roles (VIS-010 … VIS-012) ═════════════════════════════════
-   Composite tokens, not sizes. Each bundles family, size, weight,
-   leading and tracking, so the sans/serif split is carried by the role.
-   Two leadings per size, chosen by role: scanned ≈1.3, read ≈1.45.
-   The serif never appears below 15. Tracking tightens only at 16+.   */
+/* ═══ Type roles (VIS-092, 2026-09-28) ═══════════════════════════════
+   Eight composite tokens, not sizes. Each bundles family, size, weight,
+   leading and tracking. The scale is 12 · 14 · 16 · 18 · 28, two weights.
+   The serif sets only the page title and the lead. Emphasis is the ink
+   ladder (label, secondary, tertiary) before it is weight: a row's
+   subject is 500, everything that qualifies it is 400 in a lighter ink.
+   No capitals: a field label is meta in tertiary ink, in sentence case.
+   Retired 2026-09-28: data-read (now data), micro, micro-caps and code
+   (now meta), section-quiet (data in secondary ink), prose-quote (prose
+   in italic).                                                         */
 @layer components {
-  /* the machine */
-  .type-data         { font-family: var(--font-sans); font-size: 14px; line-height: 18px; font-weight: 400; }
-  .type-data-read    { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 400; }
-  .type-data-strong  { font-family: var(--font-sans); font-size: 14px; line-height: 18px; font-weight: 590; }
-  .type-meta         { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 400; color: var(--sys-label-secondary); }
-  .type-micro        { font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 510; letter-spacing: 0.01em; }
-  .type-micro-caps   { font-family: var(--font-sans); font-size: 10px; line-height: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
-  /* Machine strings (a source URI, a record id): set in the sans since the mono went
-     (2026-09-25). Meta size, tabular figures; the colour comes from where it is used. */
-  .type-code         { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 400; font-variant-numeric: tabular-nums; }
-  .type-figure       { font-family: var(--font-sans); font-size: 18px; line-height: 24px; font-weight: 510; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-  .type-section      { font-family: var(--font-sans); font-size: 16px; line-height: 20px; font-weight: 590; letter-spacing: -0.005em; }
-  .type-section-quiet{ font-family: var(--font-sans); font-size: 14px; line-height: 18px; font-weight: 400; color: var(--sys-label-secondary); }
-  /* the person */
-  .type-title-page   { font-family: var(--font-serif); font-size: 26px; line-height: 30px; font-weight: 500; letter-spacing: -0.02em; }
+  .type-title-page   { font-family: var(--font-serif); font-size: 28px; line-height: 34px; font-weight: 400; letter-spacing: -0.01em; }
   .type-prose-lead   { font-family: var(--font-serif); font-size: 18px; line-height: 28px; font-weight: 400; }
-  .type-prose        { font-family: var(--font-serif); font-size: 16px; line-height: 24px; font-weight: 400; }
-  .type-prose-quote  { font-family: var(--font-serif); font-size: 15px; line-height: 24px; font-weight: 400; font-style: italic; }
+  .type-section      { font-family: var(--font-sans); font-size: 16px; line-height: 22px; font-weight: 500; }
+  .type-prose        { font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 400; }
+  .type-data         { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 400; }
+  .type-data-strong  { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 500; }
+  /* Meta also carries machine strings (a source URI, a record id; add .tnum) and chips.
+     Secondary ink by default; a colour utility where it is used wins over it. */
+  .type-meta         { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 400; color: var(--sys-label-secondary); }
+  .type-figure       { font-family: var(--font-sans); font-size: 18px; line-height: 24px; font-weight: 400; font-variant-numeric: tabular-nums; }
 }
 
 
@@ -461,7 +467,7 @@ b, strong { font-weight: 590; }
 
 /* ═══ Control geometry, as classes ═══════════════════════════════════
    Height, padding, radius and type arrive together. A FIELD's text is
-   what the user typed (400); a LABEL on a control is the product's (510). */
+   what the user typed (400); a LABEL on a control is the product's (500). */
 @layer components {
   .control-sm { height: var(--control-h-sm); padding-inline: var(--control-px-sm); border-radius: var(--radius-2); font-family: var(--font-sans); font-size: 14px; line-height: 18px; font-weight: 400; }
   .control-md { height: var(--control-h-md); padding-inline: var(--control-px-md); border-radius: var(--radius-2); font-family: var(--font-sans); font-size: 14px; line-height: 18px; font-weight: 400; }
@@ -529,6 +535,153 @@ b, strong { font-weight: 590; }
 .row-grid > .row-meta,
 .row-grid > .row-trailing { white-space: nowrap; flex-shrink: 0; }
 @media (max-width: 640px) { .row-grid > .row-meta { display: none; } }
+
+/* ═══ The selectable row (VIS-093, 2026-09-28) ═══════════════════════
+   The inspector is a card that floats over the page; the row that opened it
+   is lifted onto the same paper. One treatment for every list and ledger:
+     rest      only the text. The hairline between rows is inset to the text
+               edge, so no line ever runs into a rounded end.
+     hover     the faintest fill, radius 3 (a tile in a list). Lighter than
+               the lift on purpose: a hover never outranks a selection.
+     pressed   a firmer fill step. A row is a surface; it does not shrink.
+     selected  raised paper with the glass edge and the lift (`--elev-lift`):
+               the card's own material, with a shadow short enough to stay
+               inside the scroll box the row lives in. No edge bar, no tint — the
+               row is lifted, not marked.
+     focus     the double ring, on the row's radius, over the lift.
+   The hairlines either side of a lit row fade out with it, so a lit row is
+   never cut by one. `.row-select` is a row you can press; `.row-lift` is a
+   row whose selection is driven from inside it (its own button opens the
+   sheet): it lifts, but has no hover of its own. Where the row is an <li>
+   around a <button>, the <li> wears the state and the button takes its radius. */
+@layer components {
+  .row-select,
+  .row-lift {
+    position: relative;
+    border: 0;
+    border-radius: var(--radius-3);
+    transition: background-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  }
+  .row-select > button { border-radius: inherit; }
+  .row-select:hover { background-color: var(--sys-fill-faint); }
+  .row-select:active { background-color: var(--sys-fill-interactive-hover); }
+  :is(.row-select, .row-lift):is([data-state="selected"], [aria-selected="true"], [aria-pressed="true"], :has(> [aria-selected="true"], > [aria-pressed="true"])) {
+    background-color: var(--sys-bg-raised);
+    box-shadow: var(--elev-lift);
+  }
+  :is(.row-select, .row-lift):is([data-state="selected"], [aria-selected="true"], [aria-pressed="true"]):focus-visible,
+  .row-select:has(> [aria-selected="true"], > [aria-pressed="true"]):has(> :focus-visible) {
+    box-shadow: var(--sys-focus-ring), var(--elev-lift);
+  }
+  .row-select:has(> [aria-selected="true"], > [aria-pressed="true"]) > button:focus-visible { box-shadow: none; }
+
+  :is(.row-select, .row-lift) + :is(.row-select, .row-lift)::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: var(--row-inset, var(--space-3));
+    right: var(--row-inset, var(--space-3));
+    border-top: var(--hairline) solid var(--sys-stroke-hairline);
+    transition: opacity var(--dur) var(--ease);
+    pointer-events: none;
+  }
+  .row-select:hover::before,
+  .row-select:hover + :is(.row-select, .row-lift)::before,
+  :is(.row-select, .row-lift):is([data-state="selected"], [aria-selected="true"], [aria-pressed="true"], :has(> [aria-selected="true"], > [aria-pressed="true"]))::before,
+  :is(.row-select, .row-lift):is([data-state="selected"], [aria-selected="true"], [aria-pressed="true"], :has(> [aria-selected="true"], > [aria-pressed="true"])) + :is(.row-select, .row-lift)::before {
+    opacity: 0;
+  }
+
+  /* The ledger: the same row, drawn on its cells. A table cannot round a row, so the
+     first and last cells carry the radius; the hairline is drawn on each cell and
+     inset at the two ends by the cell padding, to the text edge. The lift is a
+     filter rather than a box-shadow, so it follows the rounded cells as one shape. */
+  [data-slot="table"] { border-collapse: separate; border-spacing: 0; }
+  /* The table scrolls sideways, so its box clips. Give the lift room inside it, and
+     take the same room back outside, so the table itself does not move. */
+  [data-slot="table-container"] {
+    padding-inline: var(--lift-room);
+    margin-inline: calc(-1 * var(--lift-room));
+    padding-bottom: var(--lift-room);
+    margin-bottom: calc(-1 * var(--lift-room));
+  }
+  [data-slot="table-row"] > td {
+    position: relative;
+    transition: background-color var(--dur) var(--ease);
+  }
+  [data-slot="table-row"] > td:first-child { border-start-start-radius: var(--radius-3); border-end-start-radius: var(--radius-3); }
+  [data-slot="table-row"] > td:last-child { border-start-end-radius: var(--radius-3); border-end-end-radius: var(--radius-3); }
+  [data-slot="table-row"] + [data-slot="table-row"] > td::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    border-top: var(--hairline) solid var(--sys-stroke-hairline);
+    transition: opacity var(--dur) var(--ease);
+    pointer-events: none;
+  }
+  [data-slot="table-row"] + [data-slot="table-row"] > td:first-child::before { left: var(--space-4); }
+  [data-slot="table-row"] + [data-slot="table-row"] > td:last-child::before { right: var(--space-4); }
+  /* The rule under the column heads is drawn like the rows' hairlines and ends where
+     they end, at the text edge, so the header and the rows share one width. */
+  [data-slot="table-head"] { position: relative; }
+  [data-slot="table-head"]::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-bottom: var(--hairline) solid var(--sys-stroke-hairline);
+    pointer-events: none;
+  }
+  [data-slot="table-head"]:first-child::after { left: var(--space-4); }
+  [data-slot="table-head"]:last-child::after { right: var(--space-4); }
+  [data-slot="table-body"] > [data-slot="table-row"]:is(:hover, :has([aria-expanded="true"])) > td { background-color: var(--sys-fill-faint); }
+  [data-slot="table-body"] > [data-slot="table-row"]:active > td { background-color: var(--sys-fill-interactive-hover); }
+  [data-slot="table-body"] > [data-slot="table-row"][data-state="selected"] > td { background-color: var(--sys-bg-raised); }
+  [data-slot="table-body"] > [data-slot="table-row"][data-state="selected"] {
+    /* the lift as filters: the glass edge's outer line, then the short shadow */
+    filter: drop-shadow(0 0 0.5px rgb(var(--ref-studio-ink) / 0.16)) drop-shadow(0 1px 2px rgb(var(--ref-glass-shade) / 0.05)) drop-shadow(0 3px 8px rgb(var(--ref-glass-shade) / 0.1));
+  }
+  /* Focus is the ring, drawn on the cells because a row cannot carry one: a 2px focus
+     line along the top and bottom of every cell, and down the outer ends. */
+  [data-slot="table-row"]:focus-visible { outline: none; box-shadow: none; }
+  [data-slot="table-row"]:focus-visible > td { box-shadow: inset 0 2px 0 var(--sys-focus), inset 0 -2px 0 var(--sys-focus); }
+  [data-slot="table-row"]:focus-visible > td:first-child { box-shadow: inset 2px 0 0 var(--sys-focus), inset 0 2px 0 var(--sys-focus), inset 0 -2px 0 var(--sys-focus); }
+  [data-slot="table-row"]:focus-visible > td:last-child { box-shadow: inset -2px 0 0 var(--sys-focus), inset 0 2px 0 var(--sys-focus), inset 0 -2px 0 var(--sys-focus); }
+  [data-slot="table-body"] > [data-slot="table-row"]:is(:hover, [data-state="selected"]) > td::before,
+  [data-slot="table-body"] > [data-slot="table-row"]:is(:hover, [data-state="selected"]) + [data-slot="table-row"] > td::before {
+    opacity: 0;
+  }
+}
+/* The toast (VIS-097): the card's material and the product's type. Unlayered, and one
+   step more specific than sonner's own rules, which it injects at runtime. */
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] {
+  box-shadow: var(--elev-3);
+  font-family: var(--font-sans);
+  padding: var(--space-3) var(--space-4);
+  gap: var(--space-3);
+}
+[data-sonner-toaster] [data-sonner-toast] [data-title] { font-size: 14px; line-height: 20px; font-weight: 400; color: var(--sys-label-primary); }
+[data-sonner-toaster] [data-sonner-toast] [data-description] { font-size: 12px; line-height: 16px; color: var(--sys-label-secondary); }
+[data-sonner-toaster] [data-sonner-toast] [data-button] {
+  height: var(--control-h-sm); padding-inline: var(--space-3); border-radius: var(--radius-2);
+  background: var(--sys-fill-interactive); color: var(--sys-label-primary);
+  font-family: var(--font-sans); font-size: 14px; font-weight: 500;
+}
+[data-sonner-toaster] [data-sonner-toast] [data-button]:hover { background: var(--sys-fill-interactive-hover); }
+/* Undo beside a way to the result: the quieter of the two, text on no fill. */
+[data-sonner-toaster] [data-sonner-toast] [data-button][data-cancel] { background: transparent; color: var(--sys-label-secondary); font-weight: 400; }
+[data-sonner-toaster] [data-sonner-toast] [data-button][data-cancel]:hover { background: var(--sys-fill-interactive); color: var(--sys-label-primary); }
+
+/* Unlayered on purpose: it must outrank a list's `divide-y` utility, whose full-width
+   rule would otherwise run beside the row's own inset hairline and into its corners. */
+.row-select, .row-lift { border-width: 0; }
+/* A scroll box that holds selectable rows edge to edge: room for the lift on every
+   side, taken back by negative margins, so the rows stay where they are and the
+   shadow is not cut by the box. (The table's box does the same, above.) */
+.lift-room { padding: var(--lift-room); margin: calc(-1 * var(--lift-room)); }
 
 /* ═══ Document layout ═════════════════════════════════════════════════
    A record, a profile: a body with a margin. Above `lg` the margin is a
@@ -598,9 +751,9 @@ b, strong { font-weight: 590; }
     content: attr(data-rail-label);
     display: block;
     margin-bottom: var(--space-3);
+    /* the meta role, in tertiary ink: a field label, in sentence case (VIS-092) */
     font-family: var(--font-sans);
-    font-size: 11px; line-height: 14px; font-weight: 590;
-    text-transform: uppercase; letter-spacing: 0.06em;
+    font-size: 12px; line-height: 16px; font-weight: 400;
     color: var(--sys-label-tertiary);
   }
   .doc-layout > .doc-rail .tool { box-shadow: none; padding: 0; background: transparent; }

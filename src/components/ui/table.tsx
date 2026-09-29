@@ -5,15 +5,18 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 /* ── Table — the ledger, reconciled with the row primitive ───────────────────
-   Column heads in `type-micro-caps` (Airbnb's field-label form), body rows at
-   the 40px row module, hairlines between rows, none under the last. Hover is a
-   fill step; a selected row inverts nothing — it carries a 2px ink left edge,
-   so selection reads without colour and without hiding the row's own tints.  */
+   Column heads in `type-meta`, tertiary ink, sentence case (VIS-092), over one
+   hairline; body rows at the 40px row module, with inset hairlines between them.
+   The row's states are the selectable row's (VIS-093), drawn in globals.css on
+   the cells: hover a rounded fill step, selected lifted onto raised paper. A
+   page marks the selected row with data-state="selected" and nothing else. */
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      /* Width is auto, not full: globals.css gives the box room for a lifted row's
+         shadow and takes it back with negative margins, so the table keeps its width. */
+      className="relative overflow-x-auto"
     >
       <table
         data-slot="table"
@@ -28,7 +31,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("[&_tr]:border-b [&_tr]:border-hairline", className)}
+      className={className}
       {...props}
     />
   )
@@ -57,16 +60,32 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
   )
 }
 
-function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
+/* A row you can click is a row you can reach (WCAG 2.1.1, COL-07): it takes focus,
+   Enter or Space selects it, Enter on the selected row opens it (`onOpen`, the full
+   page), and ↑/↓ move between rows. A double-click opens it too. */
+function TableRow({
+  className, onClick, onOpen, onKeyDown, onDoubleClick, tabIndex, ...props
+}: React.ComponentProps<"tr"> & { onOpen?: () => void }) {
+  const interactive = Boolean(onClick || onOpen)
   return (
     <tr
       data-slot="table-row"
-      className={cn(
-        "border-hairline transition-colors duration-200 ease-standard hover:bg-interactive/60 has-aria-expanded:bg-interactive/60",
-        "data-[state=selected]:shadow-[inset_2px_0_0_0_var(--sys-fill-selected)] data-[state=selected]:bg-interactive/40",
-        "[&:not(:first-child)]:border-t",
-        className
-      )}
+      className={cn(interactive && "cursor-pointer", className)}
+      tabIndex={tabIndex ?? (interactive ? 0 : undefined)}
+      onClick={onClick}
+      onDoubleClick={(e) => { onDoubleClick?.(e); if (!e.defaultPrevented) onOpen?.() }}
+      onKeyDown={(e) => {
+        onKeyDown?.(e)
+        if (e.defaultPrevented || e.target !== e.currentTarget) return
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          if (e.key === "Enter" && onOpen && props["aria-selected"]) onOpen()
+          else onClick?.(e as unknown as React.MouseEvent<HTMLTableRowElement>)
+        } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          const sib = (e.key === "ArrowDown" ? e.currentTarget.nextElementSibling : e.currentTarget.previousElementSibling) as HTMLElement | null
+          if (sib?.dataset.slot === "table-row") { e.preventDefault(); sib.focus() }
+        }
+      }}
       {...props}
     />
   )
@@ -77,7 +96,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-[var(--control-h-sm)] px-[var(--space-4)] text-left align-middle whitespace-nowrap type-micro-caps text-label-tertiary [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "h-[var(--control-h-sm)] px-[var(--space-4)] text-left align-middle whitespace-nowrap type-meta text-label-tertiary [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}

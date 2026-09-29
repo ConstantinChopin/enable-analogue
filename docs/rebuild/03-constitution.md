@@ -8,32 +8,30 @@
 
 ---
 
-## 1. Type — two voices, one optical floor
+## 1. Type — two faces, two weights, emphasis by ink
 
-Inter for the machine, Newsreader for the person. Survives from the previous language on its original evidence (both carry an optical-size axis; the x-height ratio separates the registers).
+_Revised 2026-09-28 (VIS-092). The 2026-09-10 version set Inter and Newsreader in fourteen roles and four weights; it is kept in the git history and in VIS-010 to VIS-012._
 
-**The floor moves to 14.** Inter's optical axis runs 14 to 32. The previous body of 13/16 sat below the axis, so the argued optical behaviour did not apply at the size the product mostly rendered. The data body is now 14/18, the smallest size at which the argument holds. (Anatomy: product UI body is 14/18 scanned, 16/24 read; the largest product title is 26.)
+Instrument Sans sets everything (VIS-090). Source Serif 4 sets the page title and the lead, nothing else: the serif marks the two places the page speaks to the person, and its optical axis (8–60) makes the title fine at 28 without a heavier weight.
 
-**Two leadings per size, chosen by role.** Scanned text at about 1.3, read text at about 1.45. A row is scanned; a paragraph of machine text is read.
+**Two weights, 400 and 500.** Emphasis is the ink ladder first (label, secondary, tertiary, quaternary), then size, and only then the one step of weight. A row's subject is 500; everything that qualifies it is 400 in a lighter ink.
+
+**One leading per size.** A paragraph of machine text and a row share 14/20; the two leadings of 14 did not read as different, and one role is one fewer choice.
+
+**No capitals.** A field label is meta in tertiary ink, in sentence case.
 
 | Role | Family | Size / leading / weight | Job |
 |---|---|---|---|
-| `type-data` | Inter | 14 / 18 / 400 | the default: rows, cells, controls |
-| `type-data-read` | Inter | 14 / 20 / 400 | paragraphs of machine text |
-| `type-data-strong` | Inter | 14 / 18 / 590 | the subject of a row; emphasis at the same size |
-| `type-meta` | Inter | 12 / 16 / 400 · secondary | attribution, dates, secondary facts |
-| `type-micro` | Inter | 11 / 14 / 510 | chips, counts, small labels |
-| `type-micro-caps` | Inter | 10 / 12 / 700 · caps · 0.04em | a field's label inside a control |
-| `type-code` | Plex Mono | 11 / 14 / 510 | identifiers, refs |
-| `type-figure` | Inter | 18 / 24 / 510 · tnum · −0.01em | the number a section is about |
-| `type-section` | Inter | 16 / 20 / 590 · −0.005em | a chapter title that owns what follows |
-| `type-section-quiet` | Inter | 14 / 18 / 400 · secondary | a note's title, not a chapter's |
-| `type-title-page` | Newsreader | 26 / 30 / 500 · −0.02em | the page's name, once |
-| `type-prose-lead` | Newsreader | 18 / 28 / 400 | an answer's opening sentence, a refusal |
-| `type-prose` | Newsreader | 16 / 24 / 400 | answers, explanations, the brief |
-| `type-prose-quote` | Newsreader | 15 / 24 / 400 · italic | a quoted source |
+| `type-title-page` | Source Serif 4 | 28 / 34 / 400 · −0.01em | the page's name, once |
+| `type-prose-lead` | Source Serif 4 | 18 / 28 / 400 | the day in sentences, an answer's opening, a refusal |
+| `type-section` | Instrument Sans | 16 / 22 / 500 | a chapter title that owns what follows |
+| `type-prose` | Instrument Sans | 16 / 24 / 400 · italic for a quoted source | answers, explanations |
+| `type-data` | Instrument Sans | 14 / 20 / 400 | the default: rows, cells, controls, paragraphs of machine text; a note's title in secondary ink |
+| `type-data-strong` | Instrument Sans | 14 / 20 / 500 | the subject of a row |
+| `type-meta` | Instrument Sans | 12 / 16 / 400 · secondary | attribution, dates, chips, counts, field labels (tertiary), machine strings (`tnum`) |
+| `type-figure` | Instrument Sans | 18 / 24 / 400 · tnum | the number a section is about |
 
-Rules kept: weight is the first level of emphasis; the serif never appears below 15; one display size per surface; tracking tightens only at 16 and above.
+Rules kept: one display size per surface; the serif never appears below 18.
 
 ## 2. Colour — roles, not values
 
@@ -42,7 +40,7 @@ The warm ramp survives (no neutral grey anywhere; the earth is in the ground). T
 **What the anatomy adds:** three distinctions the previous system did not draw.
 
 1. **A fill you can press is a different token from a fill you cannot.** `fill-interactive` (with hover and pressed) versus `bg-sunken`. Same value today; different names, so a change to one cannot silently change the other.
-2. **Selected is inverse, not tinted.** `fill-selected` is ink with paper text. A selected chip, tab or row inverts. This is the feed-forward the panel found missing.
+2. **Selected is inverse, not tinted.** `fill-selected` is ink with paper text. A selected chip or tab inverts. This is the feed-forward the panel found missing. _A selected row does not invert: it lifts onto raised paper, the material of the card it opens (VIS-093, 2026-09-28)._
 3. **Every interactive role ships its four states.** hover, pressed, selected, disabled, as named tokens. Disabled is a colour swap, never opacity.
 
 | Family | Roles |

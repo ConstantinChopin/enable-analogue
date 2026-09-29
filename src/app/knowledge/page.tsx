@@ -1,71 +1,74 @@
 "use client";
 /**
- * Knowledge vault — recomposed as a document with a ledger (Pass 1.5), read by both
- * types (docs/rebuild/05-two-roles.md §3).
+ * Knowledge — recomposed as a document with a ledger (Pass 1.5), read by both types
+ * (docs/rebuild/05-two-roles.md §3).
  *
- * Chapters, in order: Documents (the ledger) · Carrying a verified source (quiet, deep)
- * · Adding a document (quiet, deep). What used to open the page as "Needs you" (her own
- * documents indexing, her sources needing attention) is status, not a chapter, and it is
- * not raised as a pop-up either (the toasts went on 2026-09-25): a document still
- * indexing says so on its own row, and source health lives on Connections and in
- * Notifications. The assistant's peek is the one thing that interrupts.
- * The inspector is the tool that follows, and it starts CLOSED: the vault opens on the
- * ledger, and a row opens the inspector (2026-09-24, Constantin). Only a link that names
- * one document (`?doc=`) arrives with it open, because that reader came to read it.
- * It shows the selected document's provenance, whose it is, its history, and the ONE
- * primary at its bottom:
- *   owner, on a document from the agency's sources   "Assign access"
- *   everyone else, on every other document           "Open document"
- * An advisor's own document — one she uploaded or forwarded, or indexed from her own
- * mailbox or Drive — is the personal layer. Only she changes who reads it ("Manage
- * access", a secondary); the owner cannot, and does not see it until it is shared with
- * her. Sharing with a colleague or the team is immediate; sharing with the whole agency
- * waits for the owner to release it, and the access sheet says so before she commits.
- * Text actions (New connection · Upload) sit in the title row for both types.
+ * The title row acts, the toolbar views (VIS-095, NAV-01, 2026-09-28). The title is
+ * "Knowledge", the name the dock and the crumb use (NAV-06), with the vault's one count
+ * and its one create, Upload, drawn as a SchematicAction because this build does not
+ * wire it (COL-09). The source switch, the search and the result ("4 of 812 from Drive ·
+ * newest first") sit in the toolbar directly above the ledger. The rows are sorted
+ * newest first, so the order the toolbar states is the order they run in (COL-06).
+ * Connecting a source is a link in "Adding a document", where the page explains how
+ * documents arrive, not an act in the title row.
+ *
+ * One list-and-detail pattern (VIS-096). A click on a row selects it and opens the
+ * inspector; the row is keyboard-reachable through the table primitive (COL-07), and
+ * the source, the search and the selection live in the URL, so Back and a link from a
+ * notification (`?source=Announcements&doc=<id>`) arrive where they point. A document
+ * has no page of its own, so the inspector has no "Open ↗"; its footer holds the
+ * document's one act:
+ *   owner, on a document from the agency's sources   "Assign access" (primary)
+ *   anyone, on her own document                      "Share…" (secondary)
+ *   everyone else                                    nothing filled
+ * with "Ask about this" beside it. "Open document" was the advisor's only primary and
+ * it did nothing (COL-09): it is now a SchematicAction on the panel's "The file" row.
+ *
+ * Sharing is the one sharing sheet (VIS-101, COL-10): Only me (or Administrators only,
+ * for the agency's own documents) · The Paris desk · The whole agency, with the same
+ * commit label and a toast with Undo. Who reads a document is read from the store, so
+ * a share survives navigation.
  *
  * The three Deel defects (01-feedback-deel.md §2 Craft) were all on this surface,
  * and each is now structurally impossible rather than merely fixed:
- *   C1  the bar and its legend read ONE constant, VERIFIED_TONE — there is no
- *       second place a colour could be chosen.
+ *   C1  the bar and its legend read ONE constant, VERIFIED — there is no second place
+ *       a colour could be chosen. Since 2026-09-28 it is ink, not green: colour means
+ *       severity, and a share of verified documents is not one (VIS-097, FB-05).
  *   C2  every count on the page goes through count(): digits with a thousands
  *       separator, then the one noun, in one grammar.
- *   C3  the selected row is a TableRow with data-state="selected" (2px ink edge
- *       and a fill, from the primitive); the selected source filter inverts.
+ *   C3  the selected row is a TableRow with data-state="selected" (lifted onto
+ *       raised paper by the primitive, VIS-093); the selected source inverts.
  *
  * Access defaults are the governance posture: private on arrival to whoever brought it
- * in, every widening logged. Colour here means access scope or document state, nothing
- * else.
+ * in, every widening logged. Colour here means nothing but severity, and nothing on
+ * this page is severe: access and indexing are neutral words.
  *
- * Local components (not promoted to bits): AccessChip, ProvenancePanel.
+ * Local components (not promoted to bits): AccessChip, ProvenancePanel, DocFooter.
  */
-import React, { Suspense, useMemo, useState } from "react";
+import React, { Suspense, useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { useDemo, announcementsFor, type AnnouncementView } from "@/lib/store";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useDemo, announcementsFor, type AnnouncementView, type DemoState, type ShareScope } from "@/lib/store";
 import {
   vaultDocs, vaultStats, connections, people, personName, productById,
   type Persona, type VaultDoc,
 } from "@/data/seed";
-import { PageHeader, SplitPage } from "@/components/layouts";
+import { ListSearch, ListToolbar, PageHeader, SplitPage } from "@/components/layouts";
 import {
-  Chip, DataList, Section, SchematicBadge, StatusDot, Rows, Row, RowStack, ConfirmBanner,
+  Chip, DataList, Section, SchematicAction, Segmented, StatusDot, Rows, Row, RowStack,
 } from "@/components/bits";
+import { ShareSheet, audienceOptions, type AudienceOption } from "@/components/share-sheet";
+import { askAbout } from "@/components/assistant";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
-} from "@/components/ui/sheet";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Building2, FileText, HardDrive, Lock, Mail, User, Users2, Loader2, Megaphone } from "lucide-react";
+import { Building2, FileText, HardDrive, Lock, Mail, MessageSquareText, User, Users2, Loader2, Megaphone } from "lucide-react";
 
 /* ── C1: one tone for the meter and its key ─────────────────────────────────────
    The bar and the legend swatch beneath it both read this. A legend that disagrees
-   with its bar would need a second constant, and there is none.                */
-const VERIFIED_TONE = "ok" as const;
+   with its bar would need a second constant, and there is none. Ink, not green: a
+   share of verified documents is a quantity, not a severity (FB-05, 2026-09-28). */
+const VERIFIED = { bar: "neutral", dot: "primary" } as const;
 
 /* ── C2: one grammar for every count ────────────────────────────────────────────
    Digits with the en-GB thousands separator, then the noun. Nothing on this page
@@ -91,7 +94,7 @@ const sourceIcon: Record<string, React.ElementType> = {
   Announcement: Megaphone,
 };
 
-/** Tab → the source it selects. `null` selects everything. */
+/** Source switch → the source it selects. `null` selects everything. */
 const tabSource: Record<string, string | null> = {
   All: null,
   Drive: "Drive sync",
@@ -100,14 +103,44 @@ const tabSource: Record<string, string | null> = {
   Uploads: "Upload",
   Announcements: "Announcement",
 };
+const TABS = Object.keys(tabSource);
+
+/* ── the list's state lives in the URL (COL-07, VIS-096, 2026-09-28) ─────────────
+   The source, the search and the selected document, written with history.replaceState
+   (which Next's router hears without a server round trip) and several keys at once. */
+function useListParams(): [URLSearchParams, (patch: Record<string, string | null>) => void] {
+  const params = useSearchParams();
+  const patch = useCallback((next: Record<string, string | null>) => {
+    const q = new URLSearchParams(window.location.search);
+    for (const [k, v] of Object.entries(next)) {
+      if (v === null || v === "") q.delete(k); else q.set(k, v);
+    }
+    const str = q.toString();
+    window.history.replaceState(null, "", str ? `${window.location.pathname}?${str}` : window.location.pathname);
+  }, []);
+  return [useMemo(() => new URLSearchParams(params?.toString() ?? ""), [params]), patch];
+}
+
+/* ── newest first, and true (COL-06) ────────────────────────────────────────────
+   The rows used to run 26 Aug → 12 Mar → 18 Aug under "newest first". Every date on a
+   row is a day of this year ("18 Aug"), or "Today" for what was written this session. */
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function dayKey(updated: string) {
+  if (/^today$/i.test(updated)) return "2026-08-28";
+  const m = updated.match(/^(\d{1,2}) ([A-Z][a-z]{2})/);
+  if (!m) return "0000-00-00";
+  return `2026-${String(MONTHS.indexOf(m[2]) + 1).padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+}
+const norm = (v: string) => v.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 
 /* ── announcements, as the vault holds them ─────────────────────────────────────
    A source of its own (05-two-roles.md, 2026-09-24): what the agency wrote to its desk,
    dated, with its author and audience. It reaches whoever it was written for, so the
    rows are already filtered by the store. */
 const ANNOUNCEMENT = "Announcement";
-const asDoc = (a: AnnouncementView): VaultDoc => ({
-  name: a.title, source: ANNOUNCEMENT, updated: a.when,
+type Doc = VaultDoc & { key: string };
+const asDoc = (a: AnnouncementView): Doc => ({
+  key: a.id, name: a.title, source: ANNOUNCEMENT, updated: a.when,
   access: a.audience === "agency" ? "agency" : "team · Paris", state: "ok", by: personName[a.by],
 });
 
@@ -125,18 +158,27 @@ function holderOf(doc: VaultDoc): Holder {
 }
 const holderName = (h: Exclude<Holder, "agency">) => (h === "colleague" ? people.colleague : personName[h]);
 
-/* The words for each access value, as the sheet offers them and the banner repeats them. */
-const COLLEAGUE_SHARE = `shared · ${people.colleague}`;
-const accessLabel = (v: string) =>
-  v === "admin only" ? "administrators only"
-  : v === "agency" ? "the whole agency"
-  : v === "processing" ? "closed, while it indexes"
-  : v;
+/* ── who reads it now: the seed, and what was shared this session ───────────────────
+   Read from the store's `docShares`, so a share made here is still true after Back. A
+   user's share with the whole agency waits for the owner's release (the store's
+   publish queue carries it as `shared-doc-…`); until then the document stays where it
+   was, and says it is waiting.                                                       */
+const scopeOfAccess = (access: string): ShareScope =>
+  access === "agency" ? "agency" : access.startsWith("team") ? "team" : "private";
+const queueId = (name: string) => `shared-doc-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+function accessNow(s: DemoState, doc: VaultDoc): { access: string; waiting: boolean } {
+  if (doc.access === "processing") return { access: "processing", waiting: false };
+  const shared = s.docShares[doc.name];
+  if (!shared || shared.scope === scopeOfAccess(doc.access)) return { access: doc.access, waiting: false };
+  if (shared.scope === "private") return { access: holderOf(doc) === "agency" ? "admin only" : "private", waiting: false };
+  if (shared.scope === "team") return { access: "team · Paris", waiting: false };
+  if (shared.by === "owner" || s.released[queueId(doc.name)]?.outcome === "published") return { access: "agency", waiting: false };
+  return { access: doc.access, waiting: !s.released[queueId(doc.name)] };
+}
 
-/* Every access value is a chip, including the one that is waiting. "Processing"
-   used to render as bare text in a column of pills, so the single row awaiting a
-   decision was the one that looked like nothing. The tone is document state
-   (indexing); the scope values carry an icon and a word, no colour.            */
+/* Every access value is a chip, including the one that is indexing: "Processing" once
+   rendered as bare text in a column of pills, so the one row awaiting a decision was
+   the one that looked like nothing. Scope carries an icon and a word; no colour. */
 function AccessChip({ access }: { access: string }) {
   const indexing = access === "processing";
   const icon = indexing ? (
@@ -150,10 +192,11 @@ function AccessChip({ access }: { access: string }) {
   ) : access === "agency" ? (
     <Building2 className="size-[var(--icon-sm)]" aria-hidden />
   ) : null;
+  const word = indexing ? "indexing" : access === "agency" ? "whole agency" : access === "team · Paris" ? "Paris desk" : access;
   return (
-    <Chip tone={indexing ? "warn" : "neutral"}>
+    <Chip tone="neutral">
       {icon}
-      {indexing ? "indexing" : access === "agency" ? "whole agency" : access}
+      {word}
     </Chip>
   );
 }
@@ -168,45 +211,14 @@ export default function KnowledgePage() {
 }
 
 function KnowledgeVault() {
-  const { s, d } = useDemo();
+  const { s } = useDemo();
   const owner = s.role === "owner";
-  /* Arriving from the Briefing or a notification: `?source=Announcements&doc=<id>`
-     opens the archive on that announcement, with the inspector open because that reader
-     came to read it. Read once, as the initial state. */
-  const params = useSearchParams();
-  const arrival = (() => {
-    const src = params?.get("source") ?? null;
-    const id = params?.get("doc") ?? null;
-    const a = id ? announcementsFor(s).find((x) => x.id === id) : undefined;
-    return { tab: src && src in tabSource ? src : "All", doc: a?.title ?? null };
-  })();
-  /* Both types connect sources: an advisor her own mailbox or Drive, the owner the
-     agency's. Connecting indexes and never shares, so it needs no gate. */
-  const canConnect = true;
-  const [tab, setTab] = useState<string>(arrival.tab);
-  const [selected, setSelected] = useState<string | null>(arrival.doc);
-
-  /* The access sheet, and what was decided in it this session. A share that takes
-     effect at once rewrites the document's chip; a user's share with the whole agency
-     does not — it waits for the owner, and the document says so. */
-  const [accessFor, setAccessFor] = useState<string | null>(null);
-  const [accessScope, setAccessScope] = useState<string>("private");
-  const [accessDone, setAccessDone] = useState(false);
-  const [granted, setGranted] = useState<Record<string, string>>({});
-  /* Seeded from the store, so a share sent to the owner's queue survives navigation. */
-  const [waiting, setWaiting] = useState<Record<string, true>>(() =>
-    Object.fromEntries(
-      Object.entries(s.docShares)
-        .filter(([, v]) => v.scope === "agency" && v.by === "user")
-        .map(([name]) => [name, true as const]),
-    ),
-  );
-
-  /* The inspector starts closed, on every layout: the vault opens on its ledger, and
-     choosing a row is what opens the inspector. On a phone it is a sheet, and a sheet
-     that opens by itself is an ambush; on a desktop, a document nobody chose pushed the
-     ledger into a narrower column for nothing. */
-  const [panelOpen, setPanelOpen] = useState(arrival.doc !== null);
+  const [params, patch] = useListParams();
+  const tabParam = params.get("source");
+  const tab = tabParam && tabParam in tabSource ? tabParam : "All";
+  const docParam = params.get("doc");
+  const [query, setQuery] = useState(() => params.get("q") ?? "");
+  const q = norm(query);
 
   /* The vault is permission-filtered like every other surface: a document a person
      cannot open does not appear in the list at all — absent, not masked, and not
@@ -216,171 +228,95 @@ function KnowledgeVault() {
      or not. Counting rows after the filter is deliberate: the totals a reader is given
      must be totals of what they can actually reach. */
   const announced = useMemo(() => announcementsFor(s), [s]);
-  const visible = useMemo(() => {
-    const canSeeAdminOnly = owner;
+  const visible = useMemo<Doc[]>(() => {
     const docs = vaultDocs.filter((doc) => {
-      if (doc.access === "admin only") return canSeeAdminOnly;
-      if (doc.access === "private" || doc.access === "processing") {
+      const access = accessNow(s, doc).access;
+      if (access === "admin only") return owner;
+      if (access === "private" || access === "processing") {
         const h = holderOf(doc);
-        return h === "agency" ? canSeeAdminOnly : h === s.role;
+        return h === "agency" ? owner : h === s.role;
       }
       return true;
     });
-    return [...announced.map(asDoc), ...docs];
-  }, [owner, s.role, announced]);
+    return [...announced.map(asDoc), ...docs.map((doc) => ({ ...doc, key: doc.name }))];
+  }, [owner, s, announced]);
 
-  const rows = useMemo(() => {
+  const inSource = useMemo(() => {
     const src = tabSource[tab];
     return visible.filter((doc) => !src || doc.source === src);
   }, [tab, visible]);
-
-  const accessOf = (doc: VaultDoc) =>
-    doc.access === "processing" ? doc.access : (granted[doc.name] ?? doc.access);
-
-  const sel: VaultDoc | undefined = selected
-    ? visible.find((doc) => doc.name === selected)
-    : undefined;
-  const inbound = connections.find((c) => c.name.startsWith("Inbound mail"));
-
+  const rows = useMemo(
+    () => inSource
+      .filter((doc) => !q || norm(`${doc.name} ${doc.source} ${doc.by ?? ""}`).includes(q))
+      .sort((a, b) => dayKey(b.updated).localeCompare(dayKey(a.updated)) || a.name.localeCompare(b.name)),
+    [inSource, q],
+  );
 
   /* The vault's figures are agency-wide; a user's totals must be totals of what she
      can reach, or the page breaks its own rule. The owner reaches the whole vault. */
-  const tabCounts: Record<string, number> = owner
-    ? { ...vaultStats.tabs, All: vaultStats.tabs.All + announced.length, Announcements: announced.length }
-    : Object.fromEntries(
-        [...Object.keys(vaultStats.tabs), "Announcements"].map((t) => {
-          const src = tabSource[t];
-          return [t, src === null ? visible.length : visible.filter((doc) => doc.source === src).length];
-        }),
-      );
-  const total = owner ? vaultStats.total + announced.length : visible.length;
-  const selAnnouncement = sel?.source === ANNOUNCEMENT ? announced.find((a) => a.title === sel.name) : undefined;
-
-  const openDoc = (name: string) => {
-    setSelected(name);
-    setPanelOpen(true);
+  const sourceTotal = (t: string) => {
+    if (!owner) return tabSource[t] === null ? visible.length : visible.filter((doc) => doc.source === tabSource[t]).length;
+    if (t === "Announcements") return announced.length;
+    if (t === "All") return vaultStats.tabs.All + announced.length;
+    return vaultStats.tabs[t as keyof typeof vaultStats.tabs];
   };
+  const total = sourceTotal("All");
 
-  /* ── the access sheet's document ── */
-  const accessDoc = accessFor ? vaultDocs.find((doc) => doc.name === accessFor) : undefined;
-  const agencyDoc = !!accessDoc && holderOf(accessDoc) === "agency";
-  const closedScope = agencyDoc ? "admin only" : "private";
-  const currentAccess = accessDoc ? accessOf(accessDoc) : closedScope;
-  /* One sharing rule: the whole agency waits for the owner, unless she is the one sharing. */
-  const waitsForOwner = !owner;
-  const accessOptions = [
-    agencyDoc
-      ? { v: "admin only", label: "Administrators only", detail: "Where it arrived. It answers the administrators and nobody else." }
-      : { v: "private", label: "Private", detail: "Only you. It never reaches anyone else's answers." },
-    { v: COLLEAGUE_SHARE, label: `A colleague · ${people.colleague}`, detail: "Only her, at once." },
-    { v: "team · Paris", label: "Team · Paris", detail: "The Paris desk, at once. Answers for anyone on it may cite this." },
-    {
-      v: "agency", label: "The whole agency",
-      detail: waitsForOwner
-        ? `Waits for ${people.owner} to release it, with you kept as its author. Until then it stays where it is.`
-        : "Every advisor, at once. The widest scope, and the hardest to walk back.",
-    },
-  ];
-  const sentToQueue = accessDone && accessScope === "agency" && waitsForOwner;
+  const sel = docParam ? visible.find((doc) => doc.key === docParam) : undefined;
+  const selAnnouncement = sel?.source === ANNOUNCEMENT ? announced.find((a) => a.id === sel.key) : undefined;
+  const inbound = connections.find((c) => c.name.startsWith("Inbound mail"));
+  const onSearch = (v: string) => { setQuery(v); patch({ q: v.trim() || null }); };
 
-  const openAccess = (name: string) => {
-    const doc = vaultDocs.find((d) => d.name === name);
-    if (!doc) return;
-    const current = accessOf(doc);
-    setAccessScope(current === "processing" ? (holderOf(doc) === "agency" ? "admin only" : "private") : current);
-    setAccessDone(false);
-    setAccessFor(name);
-  };
-  const closeAccess = () => { setAccessFor(null); setAccessDone(false); };
-  const applyAccess = () => {
-    if (!accessFor) return;
-    /* The store hears every share, so the whole-agency one reaches the owner's
-       publish queue and the rest are on record. */
-    d({ type: "shareDocument", name: accessFor, scope: accessScope === "agency" ? "agency" : accessScope === "private" || accessScope === "admin only" ? "private" : "team" });
-    if (accessScope === "agency" && waitsForOwner) {
-      setWaiting((w) => ({ ...w, [accessFor]: true }));
-    } else {
-      setGranted((g) => ({ ...g, [accessFor]: accessScope }));
-    }
-    setAccessDone(true);
-  };
+  /* One count in the title (C2, COL-13); the toolbar says what the list is showing of
+     it, and in what order, without saying the title's number again. A source's own
+     total is said only once a source is chosen, and only when the list is short of it. */
+  const scopeTotal = sourceTotal(tab);
+  const shown = tab === "All"
+    ? rows.length === scopeTotal ? <>All shown</> : <>{count(rows.length, DOCUMENTS)} shown</>
+    : rows.length === scopeTotal ? <>All from {tab}</> : <><span className="tnum">{digits(rows.length)}</span> of <span className="tnum">{digits(scopeTotal)}</span> from {tab}</>;
+  const result = <>{shown} · newest first</>;
 
   const header = (
-    <>
-      <PageHeader
-        title={<>Knowledge vault <Chip tone="neutral">{count(total, DOCUMENTS)}</Chip></>}
-        /* Two ways a document reaches the vault, and neither shares it. Uploading one is
-           daily work. Connecting a SOURCE — an advisor's own mailbox or Drive, or the
-           agency's drive — indexes it closed to whoever connected it. Both types do both,
-           so both are text actions for both: the primary lives in the inspector, on the
-           document it acts on. */
-        actions={
-          <>
-            {canConnect && (
-              <Button asChild variant="link" size="sm">
-                <Link href="/connections?add=1">New connection</Link>
-              </Button>
-            )}
-            <span className="inline-flex items-center gap-[var(--space-2)]">
-              <Button variant="tertiary" size="sm">Upload</Button>
-              <SchematicBadge />
-            </span>
-          </>
-        }
-      >
-        {/* ── the source filter: pills, the selected one inverts (C3) ── */}
-        <Tabs value={tab} onValueChange={setTab} className="mt-[var(--space-4)]">
-          <TabsList aria-label="Document sources" className="max-w-full flex-wrap">
-            {Object.entries(tabCounts).map(([t, c]) => (
-              <TabsTrigger key={t} value={t}>
-                {t}
-                <span className="type-micro tnum">{digits(c)}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-      </PageHeader>
-
-    </>
+    <PageHeader
+      title="Knowledge"
+      count={count(total, DOCUMENTS)}
+      create={<SchematicAction>Upload</SchematicAction>}
+    />
   );
 
   return (
     <SplitPage
       header={header}
-      panelOpen={panelOpen}
-      onClosePanel={() => setPanelOpen(false)}
-      panelTitle={sel ? sel.name : "No document selected"}
+      panelOpen={!!sel}
+      onClosePanel={() => patch({ doc: null })}
+      panelTitle={sel?.name ?? "Document"}
       panel={
-        selAnnouncement ? (
-          <AnnouncementPanel a={selAnnouncement} />
-        ) : (
-          <ProvenancePanel
-            sel={sel}
-            access={sel ? accessOf(sel) : ""}
-            waiting={!!sel && !!waiting[sel.name]}
-            onManageAccess={openAccess}
-          />
-        )
+        selAnnouncement ? <AnnouncementPanel a={selAnnouncement} />
+        : sel ? <ProvenancePanel sel={sel} />
+        : null
       }
+      footer={sel ? <DocFooter doc={sel} announcement={!!selAnnouncement} /> : undefined}
     >
       <div className="min-w-0">
-        {/* ── the ledger ── */}
-        <Section
-          title="Documents"
-          /* The facets total 1,284 and the list holds a sample. Rather than imply a
-             pagination that does not exist, the footer says which of the two numbers
-             is the build and which is the vault — in the same grammar. */
-          footer={
-            <span className="flex flex-col gap-1 type-meta sm:flex-row sm:items-baseline sm:justify-between sm:gap-[var(--space-4)]">
-              <span className="shrink-0">{count(rows.length, DOCUMENTS)} shown · newest first</span>
-              {owner && (
-                <span className="sm:text-right">
-                  A working sample of the {count(vaultStats.total, DOCUMENTS)} in the vault. Paging is not built.
-                </span>
-              )}
-            </span>
+        <ListToolbar
+          state={
+            <Segmented
+              label="Document sources"
+              value={tab}
+              onChange={(t) => patch({ source: t === "All" ? null : t, doc: null })}
+              options={TABS.map((t) => ({ value: t, label: t }))}
+            />
           }
-        >
+          search={<ListSearch value={query} onChange={onSearch} placeholder="Search documents" />}
+          result={result}
+        />
+
+        {/* ── the ledger ── */}
+        {rows.length === 0 ? (
+          <p className="py-[var(--space-6)] type-data text-label-secondary">
+            No documents match. Change the search or choose another source.
+          </p>
+        ) : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -393,28 +329,20 @@ function KnowledgeVault() {
             <TableBody>
               {rows.map((doc) => {
                 const Icon = sourceIcon[doc.source] ?? FileText;
-                const isSel = doc.name === selected && panelOpen;
+                const isSel = doc.key === sel?.key;
+                const now = doc.source === ANNOUNCEMENT ? doc.access : accessNow(s, doc).access;
                 return (
                   /* C3: the selected row carries data-state="selected" — the primitive
-                     draws the 2px ink edge and the fill; the name takes the strong
-                     weight. Three differences besides colour, none chosen here. */
+                     lifts it onto raised paper (VIS-093): a surface and an elevation,
+                     not a colour. The primitive also makes the row reachable by
+                     keyboard, so the page adds no key handler of its own. */
                   <TableRow
-                    key={doc.name}
+                    key={doc.key}
                     data-state={isSel ? "selected" : undefined}
                     aria-selected={isSel}
-                    tabIndex={0}
-                    onClick={() => openDoc(doc.name)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        openDoc(doc.name);
-                      }
-                    }}
-                    className="cursor-pointer"
+                    onClick={() => patch({ doc: doc.key })}
                   >
-                    <TableCell className={cn("max-w-[32ch] truncate", isSel ? "type-data-strong" : "type-data")}>
-                      {doc.name}
-                    </TableCell>
+                    <TableCell className="max-w-[32ch] truncate type-data">{doc.name}</TableCell>
                     <TableCell className="text-label-secondary">
                       <span className="inline-flex items-center gap-[var(--space-2)]">
                         <Icon className="size-[var(--icon-md)] shrink-0" aria-hidden />
@@ -423,95 +351,50 @@ function KnowledgeVault() {
                     </TableCell>
                     <TableCell className="type-meta tnum">{doc.updated}</TableCell>
                     <TableCell className="text-right">
-                      <AccessChip access={accessOf(doc)} />
+                      <AccessChip access={now} />
                     </TableCell>
                   </TableRow>
                 );
               })}
             </TableBody>
           </Table>
-        </Section>
+        )}
+        {owner && tab !== "Announcements" && (
+          <p className="mt-[var(--space-4)] type-meta">This build shows a sample of the vault. Paging is not built.</p>
+        )}
 
         {/* ── context, not a task ────────────────────────────────────────────
             The screen used to open on this statistic. It is a report — true,
-            unactionable — so it sits below the decisions and the ledger, and states
-            its own consequence rather than a bare percentage. */}
-        {/* The vault-wide figure is the owner's: what the assistant answers from, across
-            the agency. A user who can reach a dozen documents would be told about 912. */}
+            unactionable — so it sits below the ledger, and states its own
+            consequence rather than a bare percentage. The vault-wide figure is the
+            owner's: what the assistant answers from, across the agency. */}
         {owner && (
           <Section title="Carrying a verified source" quiet deep>
             <div className="flex flex-wrap items-center gap-x-[var(--space-6)] gap-y-[var(--space-3)]">
               <span className="type-figure">{vaultStats.verifiedSourcePct}%</span>
               <div className="flex max-w-md flex-1 flex-col gap-[var(--space-2)]">
-                <Progress tone={VERIFIED_TONE} value={vaultStats.verifiedSourcePct} />
+                <Progress tone={VERIFIED.bar} value={vaultStats.verifiedSourcePct} />
                 <span className="flex flex-wrap items-center gap-x-[var(--space-4)] gap-y-1 type-meta">
-                  <StatusDot tone={VERIFIED_TONE}>verified · {count(vaultStats.verified, DOCUMENTS)}</StatusDot>
+                  <StatusDot tone={VERIFIED.dot}>verified · {count(vaultStats.verified, DOCUMENTS)}</StatusDot>
                   <StatusDot tone="muted">no source yet · {count(vaultStats.noSource, DOCUMENTS)}</StatusDot>
                 </span>
               </div>
             </div>
-            <p className="mt-[var(--space-3)] max-w-[60ch] type-data-read text-label-secondary">
-              A document with no verified source still answers — with its date and a freshness
-              warning attached.
+            <p className="mt-[var(--space-3)] max-w-[60ch] type-data text-label-secondary">
+              A document without a verified source still answers, with its date and a note that nothing confirms it.
             </p>
           </Section>
         )}
 
         <Section title="Adding a document" quiet deep>
-          <p className="max-w-[60ch] type-data-read text-label-secondary">
-            Upload a document, or mail one in — {inbound?.name.replace("Inbound mail — ", "")} ·{" "}
-            {inbound?.posture}. Either way it arrives private to you.
+          <p className="max-w-[60ch] type-data text-label-secondary">
+            Mail a document to {inbound?.name.replace("Inbound mail — ", "")} and it arrives here, private to you.
+            Connecting your own mailbox or Drive indexes what is in it, also private to you.
           </p>
+          <Button asChild variant="link" size="sm" className="mt-[var(--space-3)]">
+            <Link href="/connections?add=1">Connect a source</Link>
+          </Button>
         </Section>
-
-        {/* ── Access — widening is an act, and the act is attributed and logged ── */}
-        <Sheet open={!!accessFor} onOpenChange={(o) => { if (!o) closeAccess(); }}>
-          <SheetContent side="right">
-            <SheetHeader>
-              <SheetTitle>Access · {accessFor}</SheetTitle>
-              <SheetDescription>
-                {agencyDoc
-                  ? "It arrived closed to the administrators. What you open goes out at once, attributed and recorded in this document’s history."
-                  : waitsForOwner
-                    ? `It arrived private to you. A colleague or your team sees it at once; the whole agency waits for ${people.owner} to release it.`
-                    : "It arrived private to you. What you open goes out at once, attributed and recorded in this document’s history."}
-              </SheetDescription>
-            </SheetHeader>
-            <div className="space-y-[var(--space-4)] overflow-y-auto px-[var(--space-6)] py-[var(--space-6)]">
-              <RadioGroup value={accessScope} onValueChange={setAccessScope} className="gap-[var(--space-3)]">
-                {accessOptions.map((o) => (
-                  <div key={o.v} className="flex items-start gap-[var(--space-3)]">
-                    <RadioGroupItem value={o.v} id={`acc-${o.v}`} className="mt-px" disabled={accessDone} />
-                    <Label htmlFor={`acc-${o.v}`} className="flex flex-col items-start gap-0.5">
-                      <span className="type-data-strong">{o.label}</span>
-                      <span className="type-meta">{o.detail}</span>
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
-              <ConfirmBanner show={accessDone}>
-                {sentToQueue ? (
-                  <>
-                    Sent to {people.owner}&rsquo;s publish queue · {personName[s.role]} · today. It
-                    reaches the whole agency when she releases it; until then it stays{" "}
-                    {accessLabel(currentAccess)}.
-                  </>
-                ) : (
-                  <>
-                    Access set to {accessLabel(accessScope)} · {personName[s.role]} · today. Recorded
-                    in this document&rsquo;s history.
-                  </>
-                )}
-              </ConfirmBanner>
-            </div>
-            <SheetFooter className="flex-row justify-end">
-              <Button variant="secondary" onClick={closeAccess}>Close</Button>
-              <Button disabled={accessDone || accessScope === currentAccess} onClick={applyAccess}>
-                Apply and log
-              </Button>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
       </div>
     </SplitPage>
   );
@@ -519,9 +402,8 @@ function KnowledgeVault() {
 
 /* ── the inspector for an announcement ───────────────────────────────────────────
    The message as written, who wrote it and for whom, and the records it links, each a
-   way into the record. It is an agency source once it reaches the agency, so the panel
-   says what that means: answers may cite it, with its date. No filled action — the
-   next step is a record, and a record is a link. */
+   way into the record (COL-12). It is an agency source once it reaches the agency, so
+   the panel says what that means: answers may cite it, with its date. */
 function AnnouncementPanel({ a }: { a: AnnouncementView }) {
   const agency = a.audience === "agency" && !a.waiting;
   return (
@@ -537,7 +419,7 @@ function AnnouncementPanel({ a }: { a: AnnouncementView }) {
       <p className="max-w-[60ch] type-prose">{a.body}</p>
       {a.links.length > 0 && (
         <div>
-          <h3 className="type-section-quiet">Linked records</h3>
+          <h3 className="type-data text-label-secondary">Linked records</h3>
           <Rows className="mt-[var(--space-2)]">
             {a.links.map((id) => {
               const p = productById(id);
@@ -557,65 +439,53 @@ function AnnouncementPanel({ a }: { a: AnnouncementView }) {
         {a.waiting
           ? `Waiting for ${people.owner} to release it to the whole agency. Until then it reaches its author and the Paris desk.`
           : agency
-            ? "An agency source: answers may cite it, with its date. The facts it states stay on the records it links."
+            ? "An agency source: answers may cite it, with its date."
             : "Shared with the Paris desk. Answers for anyone on it may cite it, with its date."}
       </p>
     </div>
   );
 }
 
-/* ── the inspector: the document, whose it is, its history, and the one action ─────
+/* ── the inspector: the document, whose it is, and its history ──────────────────
    The SplitPage panel is already the tool on raised paper, so nothing inside it is
-   boxed again. Read the role directly rather than threading it down.
+   boxed again, and its name is the panel's header, so the body does not repeat it
+   (COL-13).
 
    Who may change a document's access follows whose it is, not who is signed in:
      the agency's (from its sources)   the owner assigns access — her primary
-     her own (uploaded, forwarded,     she manages access — a secondary under
-       or from her own source)           "Open document"
-     someone else's                    nobody here: it is read, and the panel says
-                                         whose it is and who can widen it          */
-function ProvenancePanel({
-  sel, access, waiting, onManageAccess,
-}: {
-  sel: VaultDoc | undefined;
-  access: string;
-  waiting: boolean;
-  onManageAccess: (name: string) => void;
-}) {
+     her own (uploaded, forwarded,     she shares it — a secondary
+       or from her own source)
+     someone else's                    nobody here: the panel says whose it is      */
+function ProvenancePanel({ sel }: { sel: Doc }) {
   const { s } = useDemo();
   const reviewer = s.role === "owner";
-
-  if (!sel) {
-    return (
-      <p className="type-data-read text-label-secondary">
-        Select a document to see where it came from and who can read it.
-      </p>
-    );
-  }
+  const { access, waiting } = accessNow(s, sel);
+  const shared = s.docShares[sel.name];
 
   const holder = holderOf(sel);
-  const canAssign = reviewer && holder === "agency";
-  const canManage = holder === s.role;
-  const closed = access === "private" || access === "admin only" || access === "processing";
   const how = sel.source === "Email-in" ? "forwarded" : "uploaded";
   const belongsTo =
-    holder === "agency" ? "The agency · from its sources"
-    : holder === s.role ? `You · ${how}`
-    : `${holderName(holder)} · ${how}`;
+    holder === "agency" ? "The agency, from its sources"
+    : holder === s.role ? `You, ${how}`
+    : `${holderName(holder)}, ${how}`;
 
-  const footnote = canAssign
-    ? "Widening is attributed, dated and written to this document's history."
-    : canManage
-      ? reviewer
-        ? "Yours to share. What you open goes out at once, and is logged."
-        : `Yours to share. Your team sees it at once; the whole agency when ${people.owner} releases it.`
-      : holder === "agency"
-        ? `The agency's document. ${people.owner} assigns who reads it.`
+  const whoDecides =
+    holder === "agency"
+      ? reviewer ? "What you open goes out at once." : `${people.owner} decides who reads the agency's documents.`
+      : holder === s.role
+        ? reviewer ? "Yours to share. What you open goes out at once." : `Yours to share. The Paris desk sees it at once; the whole agency once ${people.owner} releases it.`
         : `${holderName(holder)}'s own document. Only she changes who reads it.`;
+
+  const history = [
+    ...(shared && accessNow(s, sel).access !== sel.access
+      ? [`${personName[shared.by]} changed who reads it · today`]
+      : []),
+    ...(waiting ? [`${personName[shared!.by]} shared it with the whole agency · waiting for ${people.owner}`] : []),
+    ...(sel.detail?.history ?? []),
+  ];
 
   return (
     <div className="space-y-[var(--space-6)]">
-      {/* The same DataList every other panel uses. */}
       <DataList
         rows={[
           { label: "Source", value: sel.detail ? "Drive / Partners" : sel.source },
@@ -628,40 +498,31 @@ function ProvenancePanel({
             : []),
           { label: "Updated", value: <span className="tnum">{sel.updated}</span> },
           { label: "Access", value: <AccessChip access={access} /> },
+          /* Opening the file is drawn, not wired (COL-09): it keeps its place, and is
+             never the inspector's act. */
+          { label: "The file", value: <SchematicAction>Open document</SchematicAction> },
         ]}
       />
 
       <div>
-        <h3 className="type-section-quiet">History</h3>
-        {sel.detail ? (
-          <>
-            <Rows className="mt-[var(--space-2)]">
-              {sel.detail.history.map((item) => {
-                const [head, ...rest] = item.split(" · ");
-                return (
-                  <RowStack key={item} head={<span className="row-primary type-data">{head}</span>}>
-                    {rest.join(" · ")}
-                  </RowStack>
-                );
-              })}
-            </Rows>
-            <p className="mt-[var(--space-3)] type-meta">
-              Every widening is logged. Nothing becomes readable by accident.
-            </p>
-          </>
+        <h3 className="type-data text-label-secondary">History</h3>
+        {history.length > 0 ? (
+          <Rows className="mt-[var(--space-2)]">
+            {history.map((item) => {
+              const [head, ...rest] = item.split(" · ");
+              return (
+                <RowStack key={item} head={<span className="row-primary type-data">{head}</span>}>
+                  {rest.join(" · ")}
+                </RowStack>
+              );
+            })}
+          </Rows>
         ) : (
-          <p className="mt-[var(--space-2)] type-data-read text-label-secondary">
-            {closed
-              ? "Not opened to anyone since it arrived. Every widening is logged."
-              : "Every widening is logged, with who opened it and when."}{" "}
-            Nothing becomes readable by accident.
+          <p className="mt-[var(--space-2)] type-data text-label-secondary">
+            {access === "processing" ? "Still indexing, and closed to everyone until it finishes." : "Nobody has changed who reads it since it arrived."}
           </p>
         )}
-        {waiting && (
-          <p className="mt-[var(--space-2)] type-meta">
-            Shared with the whole agency · waiting for {people.owner} to release it.
-          </p>
-        )}
+        <p className="mt-[var(--space-3)] type-meta">{whoDecides}</p>
       </div>
 
       {/* A document that arrives here proposes records, and those records wait for a
@@ -680,33 +541,65 @@ function ProvenancePanel({
           </Row>
         </Rows>
       )}
+    </div>
+  );
+}
 
-      {/* The one primary, at the bottom of the tool that owns it. On a document from the
-          agency's sources the owner's act is assigning access (the vault's governance
-          claim). On every other document — and always for an advisor — it is opening
-          the document, which this build draws and does not wire. Her own documents keep
-          "Manage access" as a secondary: the personal layer is hers to widen, and nobody
-          else's. */}
-      <div className="space-y-[var(--space-2)] border-t border-hairline pt-[var(--space-4)]">
-        {canAssign ? (
-          <Button className="w-full" onClick={() => onManageAccess(sel.name)}>
-            Assign access
+/* ── the inspector's footer: the document's one act ─────────────────────────────
+   The owner's act on an agency document is assigning access; anyone's act on her own
+   is sharing it, in the one sharing sheet (VIS-101, COL-10). With neither, asking about
+   it is all there is, and nothing is filled. */
+function agencyOptions(): AudienceOption<ShareScope>[] {
+  return [
+    { value: "private", label: "Administrators only", hint: "Where it arrived. Only the administrators’ answers use it." },
+    { value: "team", label: "The Paris desk", hint: "6 advisors see it at once." },
+    { value: "agency", label: "The whole agency", hint: "Every advisor sees it at once." },
+  ];
+}
+
+function DocFooter({ doc, announcement }: { doc: Doc; announcement: boolean }) {
+  const { s, d } = useDemo();
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const owner = s.role === "owner";
+  const holder = holderOf(doc);
+  const canAssign = !announcement && owner && holder === "agency";
+  const canShare = !announcement && holder === s.role && doc.access !== "processing";
+  const agencyDoc = holder === "agency";
+  const current = scopeOfAccess(announcement ? doc.access : accessNow(s, doc).access);
+
+  const describe = (next: ShareScope) =>
+    next === "private"
+      ? agencyDoc ? `${doc.name} is for administrators only` : `${doc.name} is private to you`
+      : next === "team" ? `Shared ${doc.name} with the Paris desk`
+      : owner ? `Shared ${doc.name} with the whole agency`
+      : `${doc.name} is in ${people.owner}’s publish queue`;
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-[var(--space-2)]">
+      <Button
+        variant={canAssign || canShare ? "tertiary" : "secondary"}
+        size="sm"
+        onClick={() => askAbout(d, s, { kind: "document", id: doc.key, label: doc.name, href: `/knowledge?doc=${encodeURIComponent(doc.key)}` }, pathname)}
+      >
+        <MessageSquareText aria-hidden /> Ask about this
+      </Button>
+      {(canAssign || canShare) && (
+        <>
+          <Button variant={canAssign ? "default" : "secondary"} size="sm" onClick={() => setOpen(true)}>
+            {canAssign ? "Assign access" : "Share…"}
           </Button>
-        ) : (
-          <>
-            <div className="flex items-center gap-[var(--space-2)]">
-              <Button className="flex-1">Open document</Button>
-              <SchematicBadge />
-            </div>
-            {canManage && (
-              <Button variant="secondary" size="sm" className="w-full" onClick={() => onManageAccess(sel.name)}>
-                Manage access
-              </Button>
-            )}
-          </>
-        )}
-        <p className="text-center type-meta">{footnote}</p>
-      </div>
+          <ShareSheet<ShareScope>
+            open={open}
+            onOpenChange={setOpen}
+            what={doc.name}
+            current={current}
+            options={agencyDoc ? agencyOptions() : audienceOptions(owner)}
+            describe={describe}
+            onShare={(scope) => d({ type: "shareDocument", name: doc.name, scope })}
+          />
+        </>
+      )}
     </div>
   );
 }

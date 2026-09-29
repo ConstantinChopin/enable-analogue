@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 /* An alert is a bordered row at column width: symbol · title · one sentence.
    Ink on tint for state; the neutral form is a hairline box on raised paper. */
 const alertVariants = cva(
-  "relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-lg px-[var(--space-4)] py-[var(--space-3)] type-data-read has-[>svg]:grid-cols-[calc(var(--icon-lg)+var(--space-3))_1fr] has-[>svg]:gap-x-0 [&>svg]:size-[var(--icon-lg)] [&>svg]:translate-y-px [&>svg]:text-current",
+  "relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-lg px-[var(--space-4)] py-[var(--space-3)] type-data has-[>svg]:grid-cols-[calc(var(--icon-lg)+var(--space-3))_1fr] has-[>svg]:gap-x-0 [&>svg]:size-[var(--icon-lg)] [&>svg]:translate-y-px [&>svg]:text-current",
   {
     variants: {
       variant: {
@@ -55,7 +55,7 @@ function AlertDescription({
   return (
     <div
       data-slot="alert-description"
-      className={cn("col-start-2 grid justify-items-start gap-1 type-data-read", className)}
+      className={cn("col-start-2 grid justify-items-start gap-1 type-data", className)}
       {...props}
     />
   )

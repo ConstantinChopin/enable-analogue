@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
    Not an action. Radius-1 like Airbnb's tag row; the pill is reserved for chips
    that float over content (see bits.Chip). `outline` is the neutral default. */
 const badgeVariants = cva(
-  "inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-sm px-1.5 type-micro [&>svg]:pointer-events-none [&>svg]:size-[var(--icon-sm)]",
+  "inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-sm px-1.5 type-meta [&>svg]:pointer-events-none [&>svg]:size-[var(--icon-sm)]",
   {
     variants: {
       variant: {

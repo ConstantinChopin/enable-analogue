@@ -38,11 +38,20 @@
  * it needs a question log the model does not have yet.
  *
  * RANK, for both: 1 a traveller at risk · 2 money with a deadline · 3 money without one ·
- * 4 the agency's knowledge · 5 opportunities; then the sooner one. The first is the day's
- * first move. One insight per object: the higher one covers the rest.
+ * 4 the agency's knowledge · 5 opportunities; then the sooner one. One insight per object:
+ * the higher one covers the rest.
+ *
+ * ONE ORDER WITH THE INBOX (FB-04, VIS-097, 2026-09-28). The tiers above still choose
+ * which insight covers an object, but the rail is ordered as Notifications is (store
+ * `needsYou`): by severity, Critical first, then in the inbox's own order. Each insight
+ * carries a severity; where an inbox item is about the same subject (`covers`), the two
+ * are one item: the insight takes the notification's severity and place, and leaves the
+ * rail when the notification is dealt with or deferred. Until then an expired partner
+ * portal login was Critical in the inbox and fifth of seven on the Briefing. The first
+ * in this order is the day's first move.
  */
 import type { DemoState } from "@/lib/store";
-import { canViewCommissions, queueItems, allTrips } from "@/lib/store";
+import { canViewCommissions, queueItems, allTrips, inboxFor, needsYou } from "@/lib/store";
 import {
   commissions, notices, promotions, trips, deskTrips, worldEvents, candidates,
   orphanedPayments, connections, productById,
@@ -52,6 +61,8 @@ import { linesOf } from "@/data/trip-lines";
 import { tripChecks } from "@/lib/trip-checks";
 
 export type Tier = 1 | 2 | 3 | 4 | 5;
+/** The inbox's three severities (VIS-097): the rail and Notifications rank by the same. */
+export type Severity = "Critical" | "Important" | "Info";
 
 export interface Insight {
   id: string;
@@ -76,6 +87,13 @@ export interface Insight {
   /** The reader's own act. `sheet` opens a sheet on the Briefing instead of a page; `act`
       is handled by the page the rail sits on (the trip page: ask, add, take off). */
   action: { label: string; href?: string; sheet?: "announcement"; act?: string };
+  /** How bad, in the inbox's words. Set by `insightsFor`; a trip's own checks leave it out. */
+  severity?: Severity;
+  /** The inbox item about the same subject, if there is one: its subject's href, and
+      where one href holds two items, the tag and severity that tell them apart. */
+  covers?: { href: string; tag?: string; severity?: Severity };
+  /** The inbox item it was joined to (`covers`), once ranked. */
+  inbox?: string;
 }
 
 /* ── dates ─────────────────────────────────────────────────────────────────── */
@@ -126,9 +144,10 @@ function listedOf(s: DemoState, t: Trip): string[] {
   if (!lines.length) return (t.shortlist ?? []).filter((p) => !s.shortlistOff[t.id]?.includes(p));
   return lines.filter((l) => l.productId && l.status === "idea").map((l) => l.productId!);
 }
-/** Where "Open the trip" goes: the trip itself in the builder, the ledger outside it. */
-const tripHref = (s: DemoState, t: Trip, line?: string, fallback = "/itineraries") =>
-  s.lab ? `/itineraries/${t.id}${line ? `?line=${line}` : ""}` : fallback;
+/** Where "Open the trip" goes: the trip itself, and the line when there is one. Every
+    trip has its page in live and in the lab since 2026-09-28 (read-only outside the lab);
+    until then the live app fell back to the Itineraries ledger. */
+const tripHref = (_s: DemoState, t: Trip, line?: string) => `/itineraries/${t.id}${line ? `?line=${line}` : ""}`;
 const lineOn = (s: DemoState, t: Trip, pred: (l: ReturnType<typeof linesOf>[number]) => boolean) =>
   linesOf(s.tripLines, t.id).find(pred)?.id;
 
@@ -144,13 +163,14 @@ function worldMeetsClient(s: DemoState): Insight[] {
       const open = hit.state === "unconfirmed";
       out.push({
         id: `world-${e.id}-${t.id}`, chapter: "departures", title: "Departures", tier: 1,
+        severity: open ? "Critical" : "Important",
         within: t.startsInDays ?? daysFromToday(hit.on), subject: `trip:${t.id}`,
         facts: { traveller: t.traveller, trip: t.title, event: e.headline, on: hit.on, leg: hit.what, legState: hit.state },
         headline: open ? `Book a car for ${t.traveller}'s arrival` : `Warn ${t.traveller} about the ${e.kind}`,
         text: `${t.traveller} lands in ${e.place} on ${short(hit.on)}, a ${e.kind} day. ${capital(e.effect)}. `
           + (open ? "The airport transfer is not booked yet." : "The transfer is booked, but the roads will be slow."),
         evidence: `${e.source} · read ${e.readAt}`,
-        action: { label: "Open the trip", href: tripHref(s, t, lineOn(s, t, (l) => l.what === hit.what), "/itineraries?window=30") },
+        action: { label: "Open the trip", href: tripHref(s, t, lineOn(s, t, (l) => l.what === hit.what)) },
       });
     }
   }
@@ -175,6 +195,7 @@ function knowledgeMeetsClient(s: DemoState): Insight[] {
       out.push({
         id: `notice-${n.id}-${t.id}`, chapter: "notices", title: "Notices",
         tier: critical || (t.startsInDays ?? 999) <= 30 ? 1 : 4,
+        severity: n.severity, covers: { href: `/records/${n.productId}`, tag: "Records", severity: n.severity },
         within: t.startsInDays ?? undefined, subject: `notice:${n.id}`,
         facts: { property: n.productName, notice: n.text, severity: n.severity, trip: t.title, traveller: t.traveller, on: listed ? "shortlist" : "booked" },
         headline: critical
@@ -204,6 +225,7 @@ function deadlineMeetsClient(s: DemoState): Insight[] {
     const name = productById(p.productId)?.name ?? p.productName;
     out.push({
       id: `incentive-${p.id}`, chapter: "incentives", title: "Expiring incentives", tier: 2,
+      severity: "Important", covers: { href: `/records/${p.productId}`, tag: "Commissions" },
       within: p.daysLeft, subject: `trip:${t.id}:incentive`,
       facts: { incentive: `${p.program} ${p.rate}`, property: name, bookBy: p.bookingWindowEnd, daysLeft: p.daysLeft, trip: t.title, traveller: t.traveller },
       headline: `Book ${t.traveller}'s trip by ${p.bookingWindowEnd}`,
@@ -230,6 +252,7 @@ function lateByProgramme(s: DemoState): Insight[] {
     : `${group.length} of ${late.length} late payments are ${programme} bookings, ${eur(total)} in total.`;
   const base = {
     id: "late-programme", chapter: "commissions", title: "Commissions", tier: 3 as const,
+    severity: "Important" as const,
     subject: `programme:${programme}`,
     facts: { programme, count: group.length, of: late.length, total, properties: group.map((c) => c.property) },
     evidence: `${late.length} late commission records · the programme each was booked under`,
@@ -250,7 +273,7 @@ function tripsNeedYou(s: DemoState): Insight[] {
   return allTrips(s).filter(live).flatMap((t) => tripChecks(s, t)
     .filter((c) => c.tier === 1 && !c.id.includes("-block-") && !c.id.includes("-world-"))
     .map((c) => ({
-      ...c, chapter: "departures", title: "Trips",
+      ...c, chapter: "departures", title: "Trips", severity: "Important" as const,
       text: `${t.traveller}, ${t.title}. ${c.text}`,
       action: { label: "Open the trip", href: tripHref(s, t, (c as Insight & { line?: string }).line) },
     })));
@@ -276,12 +299,13 @@ function departureRisk(s: DemoState): Insight[] {
     const by = slack <= 0 ? "today" : slack === 1 ? "by tomorrow" : `within ${slack} days`;
     out.push({
       id: `departure-${t.id}`, chapter: "departures", title: "Departures", tier: 1,
+      severity: "Critical",
       within: t.startsInDays ?? undefined, subject: `trip:${t.id}`,
       facts: { traveller: t.traveller, trip: t.title, inDays: t.startsInDays ?? 0, open: t.alert ?? "", syncLagDays: SYNC_LAG_DAYS },
       headline: `Settle ${t.traveller}'s ${(t.alert ?? "").replace(" unconfirmed", "")} ${by}`,
       text: `They leave in ${t.startsInDays} days and the ${t.alert}. TripSuite runs up to ${SYNC_LAG_DAYS * 24} hours late, so a later fix may not show in time.`,
       evidence: `trip checklist ${t.checklist?.done}/${t.checklist?.of} · TripSuite sync lag`,
-      action: { label: `Open ${t.title}`, href: tripHref(s, t, lineOn(s, t, (l) => l.kind === "transfer" && l.status !== "confirmed"), "/itineraries?window=30") },
+      action: { label: `Open ${t.title}`, href: tripHref(s, t, lineOn(s, t, (l) => l.kind === "transfer" && l.status !== "confirmed")) },
     });
   }
   return out;
@@ -305,6 +329,7 @@ function worldMeetsDesk(s: DemoState): Insight[] {
     const open = hit.filter((x) => x.legs.some((l) => l.state === "unconfirmed")).length;
     out.push({
       id: `world-desk-${e.id}`, chapter: "announcements", title: "From the agency", tier: 1,
+      severity: "Important",
       within: daysFromToday(e.from), subject: `event:${e.id}`,
       facts: { event: e.headline, place: e.place, on: e.from, trips: hit.length, advisors, unconfirmed: open },
       headline: `Warn the team about the ${e.place} ${e.kind}`,
@@ -325,6 +350,7 @@ function noticeOutlived(s: DemoState): Insight[] {
     if (after.length === 0) continue;
     out.push({
       id: `outlived-${n.id}`, chapter: "notices", title: "Notices", tier: 4,
+      severity: "Info", covers: { href: "/notifications?tag=Records", tag: "Records" },
       within: n.until ? daysFromToday(n.until) : undefined, subject: `notice:${n.id}`,
       facts: { property: n.productName, notice: n.text, ageDays: n.ageDays, until: n.until ?? "", tripsAfter: after.length },
       headline: n.until ? `Retire the ${n.productName} notice after ${short(n.until)}` : `Review the ${n.productName} notice`,
@@ -348,6 +374,7 @@ function duplicateCandidate(s: DemoState): Insight[] {
   const name = target?.name ?? dup.match.target;
   return [{
     id: "duplicate", chapter: "confirm", title: "Records to confirm", tier: 4, subject: `record:${target?.id ?? name}`,
+    severity: "Important", covers: { href: `/admin/review/${dup.id}` },
     facts: { candidate: dup.name, from: dup.from, target: name, similarity: dup.match.similarity, tripsBooking: booking },
     headline: `Merge the ${dup.name} duplicate`,
     text: `A ${dup.from} created it, and it matches ${name} at ${dup.match.similarity}.${booking ? ` ${plural(booking, "live trip books", "live trips book")} the real record.` : ""}`,
@@ -364,6 +391,7 @@ function repeatInQueue(s: DemoState): Insight[] {
   const own = notices.find((n) => n.scope === "agency" && repeat.text.includes(n.productName))!;
   return [{
     id: "repeat", chapter: "publish", title: "Publish queue", tier: 4, subject: `queue:${repeat.id}`,
+    severity: "Info", covers: { href: "/admin/publish" },
     facts: { item: repeat.text, by: repeat.by, repeats: own.text, openedAt: own.openedAt },
     headline: `Return ${repeat.by}'s ${own.productName} notice`,
     text: `It repeats your own notice from ${own.openedAt}. Two notices on one fact confuse answers.`,
@@ -382,6 +410,7 @@ function unmatchedPayment(s: DemoState): Insight[] {
   const booker = who?.match(/booker (.+?) \(/)?.[1];
   return [{
     id: "unmatched", chapter: "unmatched", title: "Unmatched payments", tier: 3, subject: `payment:${p.id}`,
+    severity: "Important", covers: { href: "/ops/resolution" },
     facts: { amount: p.amount, arrivedAs: p.raw, match: match.ref },
     headline: `Match ${eur(p.amount)} to booking ${ref}`,
     text: `It came in under “${p.raw}”, the traveller.${booker ? ` ${ref} is booked under ${booker}, for the same trip.` : ` ${ref} is a strong match.`}`,
@@ -396,6 +425,7 @@ function brokenSource(): Insight[] {
   if (!broken) return [];
   return [{
     id: "source", chapter: "connections", title: "Connections", tier: 4, subject: `source:${broken.name}`,
+    severity: "Critical", covers: { href: "/connections", tag: "Connections" },
     facts: { source: broken.name, since: broken.lastSuccess },
     headline: `Reconnect the ${broken.name.toLowerCase()}`,
     text: `Its login expired on ${broken.lastSuccess}. Nothing has synced since, so answers from it are out of date.`,
@@ -416,5 +446,24 @@ export function insightsFor(s: DemoState): Insight[] {
     .sort((a, b) => a.x.tier - b.x.tier || (a.x.within ?? 999) - (b.x.within ?? 999) || a.i - b.i)
     .map(({ x }) => x);
   const seen = new Set<string>();
-  return ranked.filter((x) => (seen.has(x.subject) ? false : (seen.add(x.subject), true)));
+  const covered = ranked.filter((x) => (seen.has(x.subject) ? false : (seen.add(x.subject), true)));
+
+  /* One item per subject, in the inbox's order (FB-04). */
+  const inbox = inboxFor(s);
+  const waiting = needsYou(s);
+  return covered
+    .map((x, i) => {
+      const c = x.covers;
+      const note = c && inbox.find((n) => n.subject?.href === c.href && (!c.tag || n.tag === c.tag) && (!c.severity || n.severity === c.severity));
+      const severity: Severity = note ? note.severity : x.severity ?? (x.tier === 1 ? "Critical" : x.tier <= 3 ? "Important" : "Info");
+      return { x: { ...x, severity, inbox: note ? note.id : undefined }, i, place: note ? waiting.indexOf(note) : -1, dealt: !!note && !waiting.includes(note) };
+    })
+    /* dealt with (or deferred) in the inbox: the one item has gone from both */
+    .filter((r) => !r.dealt)
+    .sort((a, b) => SEVERITY_RANK[a.x.severity] - SEVERITY_RANK[b.x.severity]
+      || (a.place < 0 ? 999 : a.place) - (b.place < 0 ? 999 : b.place)
+      || a.i - b.i)
+    .map((r) => r.x);
 }
+
+const SEVERITY_RANK: Record<Severity, number> = { Critical: 0, Important: 1, Info: 2 };

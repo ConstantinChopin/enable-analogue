@@ -22,15 +22,20 @@
  * belongs to the provider; this flow shows the handoff and the grant that comes back.
  *
  * Recomposed against the rebuilt system: the sheet is its own surface, and its one
- * primary is the stepper's "Continue" / "Connect source" / "Done" in the footer. The
- * provider handoff ("Continue to Google Drive") is a secondary under the grant it
- * extends; Back / Cancel are secondary; "Use another account" is a text action.
+ * primary is the stepper's "Continue" / "Connect Google Drive" / "Done" in the footer,
+ * at the right after Back or Cancel. The provider handoff ("Continue to Google Drive")
+ * is a secondary under the grant it extends; "Use another account" is a text action.
  * Options are hairline boxes that take the ink stroke when chosen.
+ *
+ * 2026-09-28, UX sweep NAV-04, FB-05, FB-06: the flow is "New connection" wherever it
+ * starts, so its sheet says so; the commit names what it connects; states (authorised,
+ * recommended, connected) are neutral words and a finished connection is a <Done>, not
+ * a green chip.
  */
 import { useState } from "react";
 import { connectors, personEmail, type Connector } from "@/data/seed";
 import { useDemo } from "@/lib/store";
-import { Chip, DataList } from "@/components/bits";
+import { Chip, DataList, Done } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
@@ -100,7 +105,7 @@ export function AddConnection({
     <Sheet open={open} onOpenChange={(v) => (v ? onOpenChange(true) : close())}>
       <SheetContent side="right" className="w-[min(92vw,560px)]">
         <SheetHeader className="shrink-0">
-          <SheetTitle>{done ? "Source connected" : "Add a connection"}</SheetTitle>
+          <SheetTitle>{done ? `${pick?.name ?? "Source"} connected` : "New connection"}</SheetTitle>
           <SheetDescription>
             {done
               ? `The first sync is running. Documents become answerable to ${closedTo} as they are indexed.`
@@ -111,7 +116,7 @@ export function AddConnection({
         <div className="min-h-0 flex-1 overflow-y-auto px-[var(--space-6)] py-[var(--space-6)]">
           {done && pick ? (
             <div className="space-y-[var(--space-4)]">
-              <Chip tone="ok">connected · first sync running</Chip>
+              <Done>Connected · first sync running</Done>
               <DataList rows={summary} />
               <p className="type-meta">{pick.cannot}</p>
             </div>
@@ -127,7 +132,7 @@ export function AddConnection({
                   <span className="flex flex-1 flex-col items-start gap-1">
                     <span className="flex flex-wrap items-center gap-[var(--space-2)]">
                       <span className="type-data-strong">{c.name}</span>
-                      <Chip tone={c.posture === "MCP upstream" ? "primary" : "neutral"}>{c.posture}</Chip>
+                      <Chip tone="neutral">{c.posture}</Chip>
                     </span>
                     <span className="type-meta">{c.subtitle}</span>
                   </span>
@@ -136,16 +141,16 @@ export function AddConnection({
             </RadioGroup>
           ) : step === 1 && pick ? (
             <div className="space-y-[var(--space-4)]">
-              <p className="type-data-read">
-                You will be taken to {pick.name} to sign in. Enable never sees the password — it
+              <p className="type-data">
+                You will be taken to {pick.name} to sign in. Enable never sees the password. It
                 receives a token, scoped to what you approve there, which you can revoke from{" "}
                 {pick.name} at any time.
               </p>
               <div className="rounded-lg bg-sunken p-[var(--space-4)]">
-                <div className="type-micro-caps text-label-tertiary">What Enable will be granted</div>
+                <div className="type-meta text-label-tertiary">What Enable will be granted</div>
                 <ul className="mt-[var(--space-2)] space-y-1">
                   {pick.grants.map((g) => (
-                    <li key={g} className="flex items-start gap-[var(--space-2)] type-data-read">
+                    <li key={g} className="flex items-start gap-[var(--space-2)] type-data">
                       <Check className="mt-0.5 size-[var(--icon-md)] shrink-0 text-label-secondary" aria-hidden /> {g}
                     </li>
                   ))}
@@ -153,8 +158,7 @@ export function AddConnection({
               </div>
               {account ? (
                 <div className="flex flex-wrap items-center gap-[var(--space-2)]">
-                  <Chip tone="ok">authorised</Chip>
-                  <span className="type-data">{account}</span>
+                  <Done>Authorised as {account}</Done>
                   <Button variant="tertiary" size="sm" onClick={() => setAccount(null)}>
                     Use another account
                   </Button>
@@ -174,8 +178,8 @@ export function AddConnection({
           ) : step === 2 && pick ? (
             <div className="space-y-[var(--space-3)]">
               <p className="type-meta">
-                {pick.scopeLabel}. A source connected whole pulls in everything the account can
-                see, including what nobody meant to publish.
+                {pick.scopeLabel}. Connecting the whole account indexes everything it can see,
+                including what nobody meant to share.
               </p>
               {pick.scopeOptions.map((o) => (
                 <label key={o.id} htmlFor={`scope-${o.id}`} className={OPTION}>
@@ -188,7 +192,7 @@ export function AddConnection({
                   <span className="flex flex-1 flex-col gap-0.5">
                     <span className="flex flex-wrap items-center gap-[var(--space-2)]">
                       <span className="type-data-strong">{o.label}</span>
-                      {o.recommended && <Chip tone="ok">recommended</Chip>}
+                      {o.recommended && <Chip tone="neutral">recommended</Chip>}
                     </span>
                     <span className="type-meta">{o.detail}</span>
                   </span>
@@ -199,17 +203,17 @@ export function AddConnection({
             <div className="space-y-[var(--space-4)]">
               <DataList rows={summary} />
               <div className="border-t border-hairline pt-[var(--space-4)]">
-                <div className="type-micro-caps text-label-tertiary">This connection cannot</div>
-                <p className="mt-1 type-data-read">{pick.cannot}</p>
+                <div className="type-meta text-label-tertiary">This connection cannot</div>
+                <p className="mt-1 type-data">{pick.cannot}</p>
               </div>
               {/* Stated at the moment of connecting, because this is the moment the
                   person connecting assumes the opposite. */}
               <div className="rounded-lg bg-sunken p-[var(--space-4)]">
-                <div className="type-micro-caps text-label-tertiary">Connecting does not share anything</div>
-                <p className="mt-1 type-data-read">
+                <div className="type-meta text-label-tertiary">Connecting does not share anything</div>
+                <p className="mt-1 type-data">
                   {owner
-                    ? "Documents arrive closed to the administrators and answer nobody else. Each is opened in the knowledge vault, to a named audience, by a person — and the log records who."
-                    : "Documents arrive closed to you and answer nobody else. You open each in the knowledge vault, to a colleague, your team or the whole agency — and the log records it."}
+                    ? "Documents arrive closed to the administrators and answer nobody else. Each one is opened to others in Knowledge, one at a time, by a named person."
+                    : "Documents arrive closed to you and answer nobody else. You open each one to others in Knowledge: a colleague, your team or the whole agency."}
                 </p>
               </div>
             </div>
@@ -228,7 +232,7 @@ export function AddConnection({
                 disabled={!canAdvance}
                 onClick={() => (step === STEPS.length - 1 ? setDone(true) : setStep((v) => v + 1))}
               >
-                {step === STEPS.length - 1 ? "Connect source" : "Continue"}
+                {step === STEPS.length - 1 ? `Connect ${pick?.name ?? "source"}` : "Continue"}
               </Button>
             </>
           )}

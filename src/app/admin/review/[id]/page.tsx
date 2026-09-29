@@ -1,22 +1,27 @@
 "use client";
 /**
  * Candidate detail — Journey D (docs/journeys/journey-d-ingestion-confirmation.md),
- * recomposed as a document. A candidate becomes truth only when a human confirms it
+ * recomposed as a document. A candidate becomes truth only when a person confirms it
  * field by field; a held field has no confirm control; nothing merges automatically.
  *
- * Chapters, in order: the identity check (a banner: no match, or a possible match with
- * its signals) · Extracted fields (label · value · where in the document it came from,
- * with the reading in words beside the bar; a held row carries its reason and NO
- * confirm control; template copy is marked and excluded) · for the unreadable row,
- * "Nothing extracted from this row".
+ * Chapters, in order: the identity check (no match, said plainly; or a possible match,
+ * a Warning whose Keep is "Keep both records") · Extracted fields (label · value · where
+ * in the document it came from, with the reading in words beside the bar; a held row
+ * carries its reason and no confirm control; template copy is marked and excluded) · for
+ * the unreadable row, "Nothing read from this row".
  *
- * The one primary lives at the bottom of the tool that follows (Review), which counts
- * what is ready, held and template: "Confirm record — stamped M. Keller, today" on a
- * new candidate (demo J3, key 8); "Review the match" on a possible duplicate (opens the
- * merge sheet, which requires a reason); "Key the name by hand" on the unreadable row.
- * Secondary: Confirm / Enter value on a row, Create new record under the match banner,
- * Show the source row. Text: Fix on a row, Reject — reason logged. Sheets (source,
- * reject, merge) carry their own commit, as the record's sheets do.
+ * The rail (Review) counts what is ready, confirmed, held and template, and holds the one
+ * act. UX sweep COL-05, FB-06, NAV-09 (2026-09-28):
+ *   - "Confirm record" was live at "Confirmed 0 of 14", so the field-by-field rule could
+ *     be skipped without saying so. The act now says what it does: "Confirm all 14
+ *     fields" (every readable field, then the record), "Confirm the other 10" once some
+ *     are checked, and "Confirm record" only when every field is confirmed or keyed.
+ *   - After a decision the rail says what happened in place ("Confirmed · 10:14 ·
+ *     M. Keller") and names the next candidate; a toast offers Undo for ten seconds. No
+ *     green blocks.
+ *   - Reject sits in the title row as a destructive act, away from the confirm, never
+ *     under it and never the primary. Its sheet asks for the reason.
+ * The decision is shared with the queue through ./review.ts, so the queue's count drops.
  *
  * Local components: FieldLine (label · body · provenance on the shared .field-row
  * track), readingWords (the bar's label in words, so "confidence" never appears).
@@ -27,14 +32,14 @@ import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useDemo } from "@/lib/store";
 import { candidates, products, people, filterOptions } from "@/data/seed";
-import { Page, PageHeader } from "@/components/layouts";
+import { Page, PageHeader, ActionBar } from "@/components/layouts";
 import {
-  Chip, Section, ConfirmBanner, ConfidenceMeter, SeverityBanner,
-  SourceTag, Rows, Row, DataList,
+  Chip, Section, ConfidenceMeter, SourceTag, Rows, Row, DataList, Done, Warning,
 } from "@/components/bits";
+import { notify } from "@/lib/notify";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -42,6 +47,9 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  outcomeOf, outcomeLine, nextCandidate, decideCandidate, undoCandidate, isHeldField, isTemplate, fieldList,
+} from "../review";
 
 /* Which extracted fields are ENTITIES, and what they may be.
    Anything absent from this table is genuinely free text — a rate, a description, an
@@ -109,25 +117,21 @@ export default function CandidateDetail() {
   const [sourceOpen, setSourceOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [reason, setReason] = useState("");
-  const [banner, setBanner] = useState<string | null>(null);
 
   if (!candidate) {
     return (
       <Page width="wide">
         <PageHeader title="No candidate at this address" />
         <Section>
-          <p className="type-data-read text-label-secondary">Nothing is waiting for confirmation here.</p>
+          <p className="type-data text-label-secondary">Nothing is waiting for confirmation here.</p>
           <Button asChild variant="link" size="sm" className="mt-[var(--space-3)]">
-            <Link href="/admin/review">Open the queue</Link>
+            <Link href="/admin/review">Back to Confirm records</Link>
           </Button>
         </Section>
       </Page>
     );
   }
 
-  /* A candidate whose source row could not be read — held, and visibly so. The three
-     acts the copy names (open the source, fix it by hand, reject it with a reason)
-     are rendered as controls rather than described. */
   const isHeld = candidate.kind === "held";
   const raw = "raw" in candidate ? candidate.raw : undefined;
   const isDup = candidate.kind === "duplicate";
@@ -136,132 +140,125 @@ export default function CandidateDetail() {
     ? { Name: canonical.name, Rooms: String(canonical.rooms ?? "—"), Commission: canonical.rate }
     : {};
 
-  const confirmedAlready = candidate.id === "sereno" && s.candidateConfirmed;
+  const outcome = outcomeOf(s, candidate.id);
+  const confirmedAlready = outcome?.what === "Confirmed";
+  const next = nextCandidate(s, candidate.id);
   const kind = sourceKind(candidate.uri);
 
-  const isHeldField = (f: (typeof candidate.fields)[number]) => "held" in f && !!f.held;
-  const isTemplate = (f: (typeof candidate.fields)[number]) => "template" in f && !!f.template;
-
   /* A field a person has keyed is no longer held, so it stops being counted as one. */
-  const heldCount = candidate.fields.filter((f) => (isHeldField(f) || isTemplate(f)) && !corrected[f.label]).length;
   const readyFields = candidate.fields.filter((f) => (!isHeldField(f) && !isTemplate(f)) || corrected[f.label]);
   const confirmedCount = confirmedAlready
     ? readyFields.length
     : readyFields.filter((f) => fieldOk[f.label]).length;
-  const heldOnly = candidate.fields.filter((f) => isHeldField(f) && !corrected[f.label]).length;
-  const templateOnly = candidate.fields.filter((f) => isTemplate(f) && !corrected[f.label]).length;
+  const remaining = readyFields.length - confirmedCount;
+  const heldLeft = candidate.fields.filter((f) => isHeldField(f) && !corrected[f.label]);
+  const templateLeft = candidate.fields.filter((f) => isTemplate(f) && !corrected[f.label]);
+  const staysHeld = [...heldLeft, ...templateLeft].map((f) => f.label);
+
+  const decide = (what: string, message: string, detail?: string) => {
+    decideCandidate(d, candidate.id, what);
+    notify(message, { detail, undo: () => undoCandidate(d, candidate.id), seconds: 10 });
+  };
 
   function confirmRecord() {
-    d({ type: "confirmCandidate" });
-    setBanner(
-      heldCount === 0
-        ? "Confirmed. Every field is either extracted and checked or keyed by hand, and the record is live at the agency layer: answerable in Ask, visible in Records."
-        : `Confirmed with ${heldCount} ${heldCount === 1 ? "field" : "fields"} still held — they stay in review, excluded from answers. The rest is live at the agency layer: answerable in Ask, visible in Records.`,
+    setFieldOk(Object.fromEntries(readyFields.map((f) => [f.label, true])));
+    decide(
+      "Confirmed",
+      `${candidate!.name} confirmed`,
+      staysHeld.length ? `${fieldList(staysHeld)} stay held` : "Every field is live",
     );
   }
 
-  const kindChip = isHeld
-    ? <Chip tone="crit">held</Chip>
-    : isDup
-      ? <Chip tone="warn">possible duplicate</Chip>
-      : <Chip tone="primary">new candidate</Chip>;
+  const confirmLabel = remaining === 0
+    ? "Confirm record"
+    : remaining === readyFields.length
+      ? `Confirm all ${readyFields.length} fields`
+      : `Confirm the other ${remaining}`;
 
-  const reject = (
-    <Button variant="tertiary" size="sm" onClick={() => { setRejectOpen(true); setReason(""); }}>
-      Reject — reason logged
+  /* The one act, by kind; absent once decided. Repeated in the ActionBar under 1024. */
+  const primary = outcome ? null : isHeld ? (
+    <Button className="w-full" onClick={() => { setEditField("Name"); setEditValue(corrected.Name ?? ""); }}>
+      {corrected.Name ? "Key the name again" : "Key the name by hand"}
     </Button>
+  ) : isDup ? (
+    <Button className="w-full" onClick={() => { setMergeOpen(true); setReason(""); }}>
+      Merge into {candidate.match?.target}…
+    </Button>
+  ) : (
+    <Button className="w-full" onClick={confirmRecord}>{confirmLabel}</Button>
   );
 
   return (
     <Page width="wide">
-      <PageHeader title={<>{candidate.name} {kindChip}</>}>
-        <p className="mt-[var(--space-2)] type-meta">
-          {candidate.from} · <span className="type-code">{candidate.uri}</span>
+      <PageHeader
+        title={candidate.name}
+        actions={!outcome ? (
+          <Button variant="destructive" size="sm" onClick={() => { setRejectOpen(true); setReason(""); }}>
+            Reject…
+          </Button>
+        ) : undefined}
+      >
+        <p className="mt-[var(--space-2)] flex flex-wrap items-center gap-x-[var(--space-2)] gap-y-1 type-meta">
+          {isDup ? <Chip tone="warn">possible duplicate</Chip> : <Chip tone="neutral">{isHeld ? "nothing read" : "new record"}</Chip>}
+          <span>{candidate.from} · <span className="tnum">{candidate.uri}</span></span>
         </p>
       </PageHeader>
 
       <div className="doc-layout">
         {/* ── the body: chapters at column width ── */}
         <div className="min-w-0">
-          <div className="space-y-[var(--space-2)] pb-[var(--gap-2)] empty:hidden">
-            {banner && <ConfirmBanner show>{banner}</ConfirmBanner>}
-            {confirmedAlready && !banner && (
-              <ConfirmBanner show>
-                Confirmed by {people.owner} — live at the agency layer with{" "}
-                <span className="tnum">{heldCount}</span> fields still held in review.
-              </ConfirmBanner>
-            )}
-
-            {/* Identity check — first, because it decides whether anything below creates
-                a record or overlays one. */}
-            {isHeld ? null : isDup && candidate.match ? (
-              <SeverityBanner severity="Important">
-                <div className="type-data-strong">
-                  Possible match: {candidate.match.target} · match signal{" "}
-                  <span className="tnum">{candidate.match.similarity}</span>
-                </div>
-                <div className="mt-[var(--space-2)] flex flex-wrap gap-[var(--space-2)]">
-                  {candidate.match.signals.map(([k, v]) => (
-                    <Chip key={k} tone="neutral" className="tnum">{k} {v}</Chip>
-                  ))}
-                </div>
-                <p className="mt-[var(--space-2)] type-meta">
-                  The decision is merge into the existing record, or create a new one. Creating
-                  a new record keeps both: the match stays logged against them, so the duplicate
-                  comes back for a later human pass rather than disappearing.
-                </p>
-                {/* The other half of the choice, under the content it extends. */}
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="mt-[var(--space-3)]"
-                  onClick={() =>
-                    setBanner(`Created as a separate record — both stand, attributed to ${people.owner}. The match signal is logged against them.`)
-                  }
+          {/* Identity check: first, because it decides whether anything below creates a
+              record or overlays one. */}
+          {!isHeld && (isDup || !outcome) && (
+            <div className="pb-[var(--gap-2)]">
+              {isDup && candidate.match ? (
+                <Warning
+                  title={`Possible match: ${candidate.match.target}`}
+                  kept={outcome?.what === "Kept as a separate record" ? outcomeLine(outcome) : undefined}
+                  actions={!outcome ? (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => decide("Kept as a separate record", "Kept as a separate record", `${candidate.name} and ${candidate.match?.target} both stand`)}
+                    >
+                      Keep both records
+                    </Button>
+                  ) : undefined}
                 >
-                  Create new record
-                </Button>
-              </SeverityBanner>
-            ) : (
-              <SeverityBanner severity="Info">
-                Identity check — no canonical match. Name, city and place-id are all clear, so
-                this creates a new record.
-              </SeverityBanner>
-            )}
-          </div>
+                  The name is {Math.round(candidate.match.similarity * 100)}% alike, the city is the same,
+                  and there is no place ID to compare. Merge it field by field, or keep both.
+                </Warning>
+              ) : !outcome ? (
+                <p className="type-data text-label-secondary">
+                  No existing record matches it by name, city or place ID, so confirming creates a new record.
+                </p>
+              ) : null}
+            </div>
+          )}
 
-          {/* Nothing extracted — the row is all there is to show. */}
+          {/* Nothing read: the row is all there is to show. */}
           {isHeld && (
-            <Section title="Nothing extracted from this row">
-              <p className="max-w-[62ch] type-data-read text-label-secondary">
-                Nothing was extracted with confidence from this row. The candidate is held — it
-                never surfaces anywhere until a person opens the source, fixes it by hand, or
-                rejects it with a reason.
+            <Section title="Nothing read from this row">
+              <p className="max-w-[62ch] type-data text-label-secondary">
+                It stays out of answers and search until you key the name by hand, or reject it.
               </p>
               <DataList
                 className="mt-[var(--space-3)]"
                 rows={[
                   { label: "Where", value: <SourceTag kind={kind} label={raw?.where ?? ""} /> },
-                  { label: "Why it is held", value: <span className="type-data-read">{raw?.note}</span> },
+                  { label: "What is wrong", value: <span className="type-data">{raw?.note}</span> },
                   {
                     label: "Name",
                     value: corrected.Name ? (
                       <span className="inline-flex flex-wrap items-center justify-end gap-[var(--space-2)]">
                         <span className="type-data-strong">{corrected.Name}</span>
-                        <Chip tone="ok">keyed · {people.owner}</Chip>
+                        <Chip tone="neutral">keyed · {people.owner}</Chip>
                       </span>
                     ) : undefined,
                     absent: "pending",
                   },
                 ]}
               />
-              {corrected.Name && (
-                <p className="mt-[var(--space-2)] type-meta">
-                  Keyed by hand, attributed. The source row is unchanged, and the candidate stays
-                  held until the rest of it can be read.
-                </p>
-              )}
-              {/* Preview → grey button → sheet: the row itself opens beside the page. */}
               <Button variant="secondary" size="sm" className="mt-[var(--space-3)]" onClick={() => setSourceOpen(true)}>
                 Show the source row
               </Button>
@@ -270,12 +267,7 @@ export default function CandidateDetail() {
 
           {/* The fields, in the order the sheet holds them. */}
           {!isHeld && (
-            <Section title="Extracted fields" chips={<Chip tone="neutral"><span className="tnum">{candidate.fields.length}</span> fields</Chip>}>
-              <p className="-mt-[var(--space-2)] mb-[var(--space-2)] type-data-read text-label-secondary">
-                Each value, and where in the document it came from. A held field is shown with its
-                reason and cannot be confirmed; a keyed value is carried as a manual entry, not an
-                extraction.
-              </p>
+            <Section title="Extracted fields">
               <div className="divide-y divide-hairline">
                 {candidate.fields.map((f) => {
                   const held = isHeldField(f);
@@ -303,8 +295,10 @@ export default function CandidateDetail() {
                     >
                       <div className="flex flex-wrap items-center gap-x-[var(--space-3)] gap-y-1">
                         {held && !fixed ? (
-                          /* Each hold has its own reason; the value is the hold itself. */
-                          <Chip tone="crit">{f.value}</Chip>
+                          <>
+                            <Chip tone="neutral">held</Chip>
+                            <span className="type-data text-label-secondary">{f.value}</span>
+                          </>
                         ) : (
                           <span className={cn("type-data-strong", template && !fixed && "italic text-label-secondary")}>
                             {fixed ?? f.value}
@@ -312,97 +306,88 @@ export default function CandidateDetail() {
                         )}
                         {/* A supplied value is marked as keyed, not as extracted: the two are
                             not the same evidence and the record must tell them apart. */}
-                        {fixed && <Chip tone={held ? "primary" : "ok"}>{held ? "keyed" : "corrected"} · {people.owner}</Chip>}
-                        {template && !fixed && <Chip tone="warn">template copy</Chip>}
-                        {confirmed && <Chip tone="ok">confirmed</Chip>}
+                        {fixed && <Chip tone="neutral">{held ? "keyed" : "corrected"} · {people.owner}</Chip>}
+                        {template && !fixed && <Chip tone="neutral">template copy</Chip>}
+                        {confirmed && <Chip tone="neutral">confirmed</Chip>}
                       </div>
 
-                      {held && !fixed && (
-                        <p className="mt-1 type-meta">
-                          {"heldReason" in f && f.heldReason
-                            ? String(f.heldReason)
-                            : "Held here, and excluded from answers, until a person supplies what is missing."}
-                        </p>
-                      )}
-                      {held && fixed && (
-                        <p className="mt-1 type-meta">
-                          Hold cleared. Keyed by {people.owner} today, and carried as a manual entry
-                          rather than as an extraction.
-                        </p>
+                      {held && !fixed && "heldReason" in f && f.heldReason && (
+                        <p className="mt-1 type-meta">{String(f.heldReason)}</p>
                       )}
                       {template && !fixed && (
-                        <p className="mt-1 type-meta">Excluded from corroboration; queued for enrichment.</p>
+                        <p className="mt-1 type-meta">Portal boilerplate, so it is left out of answers.</p>
                       )}
 
                       {/* The row's controls. A held row has no confirm control at all: it
                           offers only the way to supply what is missing. */}
-                      <div className="mt-[var(--space-2)] flex flex-wrap items-center gap-[var(--space-2)] empty:hidden">
-                        {editing ? (
-                          <form
-                            className="flex flex-wrap items-center gap-[var(--space-2)]"
-                            onSubmit={(e) => {
-                              e.preventDefault();
-                              if (editValue.trim()) setCorrected((m) => ({ ...m, [f.label]: editValue.trim() }));
-                              setEditField(null);
-                            }}
-                          >
-                            {/* Some fields are ENTITIES, not text: a programme is one of the
-                                agency's partner programmes or it is not a programme. Typed
-                                fields get a list; the rest get a box. */}
-                            {options ? (
-                              <Select
-                                value={editValue}
-                                onValueChange={(v) => {
-                                  setCorrected((m) => ({ ...m, [f.label]: v }));
-                                  setEditField(null);
-                                }}
-                              >
-                                <SelectTrigger size="sm" className="w-44" aria-label={`${f.label} value`}>
-                                  <SelectValue placeholder={`Choose ${f.label.toLowerCase()}…`} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                                </SelectContent>
-                              </Select>
-                            ) : (
-                              <Input
-                                size="sm"
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                aria-label={`Corrected value for ${f.label}`}
-                                className="w-48"
-                                autoFocus
-                              />
-                            )}
-                            {!options && <Button type="submit" variant="secondary" size="sm">Save</Button>}
-                            <Button type="button" variant="tertiary" size="sm" onClick={() => setEditField(null)}>Cancel</Button>
-                          </form>
-                        ) : (
-                          <>
-                            {confirmable && !confirmed && (
-                              <Button variant="secondary" size="sm" onClick={() => setFieldOk((m) => ({ ...m, [f.label]: true }))}>
-                                Confirm
-                              </Button>
-                            )}
-                            {held && !fixed ? (
-                              /* A held row starts empty. Prefilling it with `f.value` would seed
-                                 the box with the hold's own reason as though it were a draft. */
-                              <Button variant="secondary" size="sm" onClick={() => { setEditField(f.label); setEditValue(""); }}>
-                                Enter value
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="tertiary"
-                                size="sm"
-                                aria-label={`Fix ${f.label}`}
-                                onClick={() => { setEditField(f.label); setEditValue(fixed ?? f.value); }}
-                              >
-                                Fix
-                              </Button>
-                            )}
-                          </>
-                        )}
-                      </div>
+                      {!outcome && (
+                        <div className="mt-[var(--space-2)] flex flex-wrap items-center gap-[var(--space-2)] empty:hidden">
+                          {editing ? (
+                            <form
+                              className="flex flex-wrap items-center gap-[var(--space-2)]"
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                if (editValue.trim()) setCorrected((m) => ({ ...m, [f.label]: editValue.trim() }));
+                                setEditField(null);
+                              }}
+                            >
+                              {/* Some fields are ENTITIES, not text: a programme is one of the
+                                  agency's partner programmes or it is not a programme. */}
+                              {options ? (
+                                <Select
+                                  value={editValue}
+                                  onValueChange={(v) => {
+                                    setCorrected((m) => ({ ...m, [f.label]: v }));
+                                    setEditField(null);
+                                  }}
+                                >
+                                  <SelectTrigger size="sm" className="w-44" aria-label={`${f.label} value`}>
+                                    <SelectValue placeholder={`Choose ${f.label.toLowerCase()}…`} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <Input
+                                  size="sm"
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  aria-label={`Corrected value for ${f.label}`}
+                                  className="w-48"
+                                  autoFocus
+                                />
+                              )}
+                              {!options && <Button type="submit" variant="secondary" size="sm">Save</Button>}
+                              <Button type="button" variant="tertiary" size="sm" onClick={() => setEditField(null)}>Cancel</Button>
+                            </form>
+                          ) : (
+                            <>
+                              {confirmable && !confirmed && (
+                                <Button variant="secondary" size="sm" onClick={() => setFieldOk((m) => ({ ...m, [f.label]: true }))}>
+                                  Confirm
+                                </Button>
+                              )}
+                              {held && !fixed ? (
+                                /* A held row starts empty: prefilling it would seed the box
+                                   with the hold's own description as though it were a draft. */
+                                <Button variant="secondary" size="sm" onClick={() => { setEditField(f.label); setEditValue(""); }}>
+                                  Enter value
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="tertiary"
+                                  size="sm"
+                                  aria-label={`Fix ${f.label}`}
+                                  onClick={() => { setEditField(f.label); setEditValue(fixed ?? f.value); }}
+                                >
+                                  Fix
+                                </Button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
                     </FieldLine>
                   );
                 })}
@@ -411,115 +396,94 @@ export default function CandidateDetail() {
           )}
         </div>
 
-        {/* ── the tool that follows: what is settled, what is not, and the one action ── */}
+        {/* ── the tool that follows: what is settled, what is not, and the one act ── */}
         <aside className="doc-rail" data-rail-label="Review">
           <Section variant="tool" follows title="Review">
             <Rows>
               {isHeld ? (
-                <>
-                  <Row>
-                    <span className="row-primary">Extracted</span>
-                    <span className="row-trailing tnum">0</span>
-                  </Row>
-                  <Row>
-                    <span className="row-primary">Candidate</span>
-                    <span className="row-trailing"><Chip tone="crit">held</Chip></span>
-                  </Row>
-                  {corrected.Name && (
-                    <Row>
-                      <span className="row-primary">Name</span>
-                      <span className="row-trailing"><Chip tone="ok">keyed</Chip></span>
-                    </Row>
-                  )}
-                </>
+                <Row>
+                  <span className="row-primary">Fields read</span>
+                  <span className="row-trailing tnum">0</span>
+                </Row>
               ) : (
                 <>
-                  {isDup && candidate.match && (
-                    <Row>
-                      <span className="row-primary">Possible match</span>
-                      <span className="row-trailing"><Chip tone="warn">{candidate.match.target}</Chip></span>
-                    </Row>
-                  )}
-                  <Row>
-                    <span className="row-primary">Ready to confirm</span>
-                    <span className="row-trailing tnum">{readyFields.length}</span>
-                  </Row>
                   <Row>
                     <span className="row-primary">Confirmed</span>
-                    <span className="row-trailing">
-                      {confirmedCount > 0
-                        ? <Chip tone="ok" className="tnum">{confirmedCount} of {readyFields.length}</Chip>
-                        : <span className="tnum text-label-secondary">0 of {readyFields.length}</span>}
-                    </span>
+                    <span className="row-trailing tnum">{confirmedCount} of {readyFields.length}</span>
                   </Row>
-                  {heldOnly > 0 && (
+                  {heldLeft.length > 0 && (
                     <Row>
                       <span className="row-primary">Held</span>
-                      <span className="row-trailing"><Chip tone="crit" className="tnum">{heldOnly}</Chip></span>
+                      <span className="row-trailing tnum">{heldLeft.length}</span>
                     </Row>
                   )}
-                  {templateOnly > 0 && (
+                  {templateLeft.length > 0 && (
                     <Row>
                       <span className="row-primary">Template copy</span>
-                      <span className="row-trailing"><Chip tone="warn" className="tnum">{templateOnly}</Chip></span>
+                      <span className="row-trailing tnum">{templateLeft.length}</span>
                     </Row>
                   )}
                 </>
               )}
             </Rows>
 
-            <div className="mt-[var(--space-4)]">
-              {isHeld ? (
-                editField === "Name" ? (
-                  <form
-                    className="space-y-[var(--space-2)]"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      if (editValue.trim()) setCorrected((m) => ({ ...m, Name: editValue.trim() }));
-                      setEditField(null);
-                    }}
-                  >
-                    <Label htmlFor="keyed-name">Name, keyed by hand</Label>
-                    <Input
-                      id="keyed-name"
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      placeholder="What the row should have said"
-                      autoFocus
-                    />
-                    <div className="flex items-center gap-[var(--space-2)]">
-                      <Button type="submit" variant="secondary" size="sm">Save</Button>
-                      <Button type="button" variant="tertiary" size="sm" onClick={() => setEditField(null)}>Cancel</Button>
-                    </div>
-                  </form>
-                ) : (
-                  <Button className="w-full" onClick={() => { setEditField("Name"); setEditValue(corrected.Name ?? ""); }}>
-                    {corrected.Name ? "Key the name again" : "Key the name by hand"}
+            <div className="mt-[var(--space-4)] space-y-[var(--space-2)]">
+              {outcome ? (
+                <>
+                  <Done>{outcomeLine(outcome)}</Done>
+                  {confirmedAlready && staysHeld.length > 0 && (
+                    <p className="type-meta">{fieldList(staysHeld)} stay held and out of answers.</p>
+                  )}
+                  <Button asChild variant="link" size="sm">
+                    {next
+                      ? <Link href={`/admin/review/${next.id}`}>Next: {next.name}</Link>
+                      : <Link href="/admin/review">Back to Confirm records</Link>}
                   </Button>
-                )
-              ) : isDup ? (
-                <Button className="w-full" onClick={() => { setMergeOpen(true); setReason(""); }}>
-                  Review the match
-                </Button>
+                </>
+              ) : isHeld && editField === "Name" ? (
+                <form
+                  className="space-y-[var(--space-2)]"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (editValue.trim()) setCorrected((m) => ({ ...m, Name: editValue.trim() }));
+                    setEditField(null);
+                  }}
+                >
+                  <Label htmlFor="keyed-name">Name, keyed by hand</Label>
+                  <Input
+                    id="keyed-name"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    placeholder="What the row should have said"
+                    autoFocus
+                  />
+                  <div className="flex items-center justify-end gap-[var(--space-2)]">
+                    <Button type="button" variant="secondary" size="sm" onClick={() => setEditField(null)}>Cancel</Button>
+                    <Button type="submit" variant="secondary" size="sm">Save</Button>
+                  </div>
+                </form>
               ) : (
-                <Button className="w-full" disabled={confirmedAlready} onClick={confirmRecord}>
-                  Confirm record — stamped {people.owner}, today
-                </Button>
+                <>
+                  {primary}
+                  <p className="text-center type-meta">
+                    {isHeld
+                      ? "The source row stays as it arrived; what you key is marked as yours."
+                      : isDup
+                        ? "Field by field, with a reason."
+                        : staysHeld.length
+                          ? `${fieldList(staysHeld)} stay held and out of answers.`
+                          : "Every field goes live for the agency."}
+                  </p>
+                </>
               )}
-              <p className="mt-[var(--space-2)] text-center type-meta">
-                {isHeld
-                  ? "The row stays as it arrived; what you key is attributed to you."
-                  : isDup
-                    ? "Field by field, with a reason. Nothing merges automatically."
-                    : "Live at the agency layer; held fields stay in review."}
-              </p>
-              <div className="mt-[var(--space-3)] flex justify-center">{reject}</div>
             </div>
           </Section>
         </aside>
       </div>
 
-      {/* Open source — the row exactly as it arrived */}
+      {primary && !(isHeld && editField === "Name") && <ActionBar>{primary}</ActionBar>}
+
+      {/* The source row, exactly as it arrived */}
       <Sheet open={sourceOpen} onOpenChange={setSourceOpen}>
         <SheetContent side="right">
           <SheetHeader>
@@ -527,13 +491,10 @@ export default function CandidateDetail() {
             <SheetDescription>{candidate.from} · {candidate.uri}</SheetDescription>
           </SheetHeader>
           <SheetBody>
-            <div className="type-code text-label-secondary">{raw?.where}</div>
-            <pre className="overflow-x-auto rounded-lg bg-sunken p-[var(--space-4)] type-code">{raw?.text}</pre>
-            <p className="type-data-read text-label-secondary">{raw?.note}</p>
-            <p className="type-meta">
-              The source is read-only here. Ground truth stays in the sheet: a correction is keyed
-              against the candidate and attributed, and the row is left as it is.
-            </p>
+            <div className="type-meta tnum text-label-secondary">{raw?.where}</div>
+            <pre className="overflow-x-auto rounded-lg bg-sunken p-[var(--space-4)] type-meta tnum text-inherit">{raw?.text}</pre>
+            <p className="type-data text-label-secondary">{raw?.note}</p>
+            <p className="type-meta">The sheet itself is not changed. What you key is kept on the candidate, with your name.</p>
           </SheetBody>
           <SheetFooter className="sm:flex-row sm:justify-end">
             <Button variant="secondary" onClick={() => setSourceOpen(false)}>Close</Button>
@@ -541,14 +502,12 @@ export default function CandidateDetail() {
         </SheetContent>
       </Sheet>
 
-      {/* Reject sheet — the rejection carries its reason */}
+      {/* Reject: the rejection carries its reason */}
       <Sheet open={rejectOpen} onOpenChange={setRejectOpen}>
         <SheetContent side="right">
           <SheetHeader>
-            <SheetTitle>Reject candidate</SheetTitle>
-            <SheetDescription>
-              {candidate.name} — the rejection is logged, so the pipeline&rsquo;s misses stay reviewable.
-            </SheetDescription>
+            <SheetTitle>Reject {candidate.name}</SheetTitle>
+            <SheetDescription>It leaves the queue and does not become a record. Your reason is kept with it.</SheetDescription>
           </SheetHeader>
           <SheetBody>
             <div>
@@ -557,18 +516,19 @@ export default function CandidateDetail() {
                 id="reject-reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="e.g. Not a real property — a marketing row in the source sheet."
+                placeholder="e.g. Not a real property: a marketing row in the source sheet."
                 className="mt-[var(--space-2)]"
               />
             </div>
           </SheetBody>
           <SheetFooter className="sm:flex-row sm:justify-end">
+            <SheetClose asChild><Button variant="secondary">Cancel</Button></SheetClose>
             <Button
               variant="destructive"
               disabled={!reason.trim()}
               onClick={() => {
                 setRejectOpen(false);
-                setBanner(`Rejected — reason logged, attributed to ${people.owner}.`);
+                decide(`Rejected: ${reason.trim()}`, `${candidate.name} rejected`, reason.trim());
               }}
             >
               Reject candidate
@@ -577,13 +537,13 @@ export default function CandidateDetail() {
         </SheetContent>
       </Sheet>
 
-      {/* Merge sheet — field by field, and a reason */}
+      {/* Merge: field by field, and a reason */}
       <Sheet open={mergeOpen} onOpenChange={setMergeOpen}>
         <SheetContent side="right">
           <SheetHeader>
-            <SheetTitle>Merge into canonical</SheetTitle>
+            <SheetTitle>Merge into {candidate.match?.target}</SheetTitle>
             <SheetDescription>
-              Field by field against {candidate.match?.target}. Nothing merges automatically.
+              The incoming values are laid over the existing record; the record&rsquo;s own values stay readable underneath.
             </SheetDescription>
           </SheetHeader>
           <SheetBody>
@@ -596,36 +556,34 @@ export default function CandidateDetail() {
                     <span className="text-label-tertiary" aria-hidden>⟷</span>
                     <span className="min-w-0 flex-1 truncate text-right type-data-strong">{f.value}</span>
                   </div>
-                  <div className="mt-1 flex justify-between type-micro-caps text-label-tertiary">
-                    <span>canonical</span>
+                  <div className="mt-1 flex justify-between type-meta text-label-tertiary">
+                    <span>existing</span>
                     <span>incoming</span>
                   </div>
                 </li>
               ))}
             </Rows>
             <div className="border-t border-hairline pt-[var(--space-4)]">
-              <Label htmlFor="merge-reason">Merge reason <span className="text-label-secondary">(required)</span></Label>
+              <Label htmlFor="merge-reason">Reason <span className="text-label-secondary">(required)</span></Label>
               <Textarea
                 id="merge-reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="e.g. Same property — the portal sync drops the accent."
+                placeholder="e.g. Same property: the portal sync drops the accent."
                 className="mt-[var(--space-2)]"
               />
-              <p className="mt-[var(--space-2)] type-meta">
-                The choice is stored with its reason, attributed to {people.owner}.
-              </p>
             </div>
           </SheetBody>
           <SheetFooter className="sm:flex-row sm:justify-end">
+            <SheetClose asChild><Button variant="secondary">Cancel</Button></SheetClose>
             <Button
               disabled={!reason.trim()}
               onClick={() => {
                 setMergeOpen(false);
-                setBanner(`Merged as an overlay on ${candidate.match?.target} — reason stored, attributed to ${people.owner}.`);
+                decide(`Merged into ${candidate.match?.target}: ${reason.trim()}`, `Merged into ${candidate.match?.target}`, reason.trim());
               }}
             >
-              Merge as overlay on canonical
+              Merge into {candidate.match?.target}
             </Button>
           </SheetFooter>
         </SheetContent>

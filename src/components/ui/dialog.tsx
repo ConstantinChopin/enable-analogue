@@ -141,7 +141,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn("type-data-read text-label-secondary", className)}
+      className={cn("type-data text-label-secondary", className)}
       {...props}
     />
   )

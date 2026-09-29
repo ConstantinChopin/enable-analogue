@@ -15,7 +15,7 @@ fs.writeFileSync(path.join(dir, "hairline.html"), `<div layer-name="Hairline" st
   const p = await b.newPage({ viewport: { width: 1600, height: 1060 } });
   for (const f of files) {
     const j = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
-    const html = `<!doctype html><html><head><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300..800&family=Newsreader:opsz,wght@6..72,400..600&family=IBM+Plex+Mono:wght@400;500&display=swap"><style>*{box-sizing:border-box;margin:0}body{background:#fff}div{display:block}</style></head><body><div style="position:relative;width:1600px;height:1060px;background:#fff"><div style="${FIG}">${j.chunks.map((c) => c.html).join("")}<div style="${LINE}"></div></div></div></body></html>`;
+    const html = `<!doctype html><html><head><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300..800&family=Source+Serif+4:opsz,wght@8..60,400..600&family=Newsreader:opsz,wght@6..72,400..600&family=IBM+Plex+Mono:wght@400;500&display=swap"><style>*{box-sizing:border-box;margin:0}body{background:#fff}div{display:block}</style></head><body><div style="position:relative;width:1600px;height:1060px;background:#fff"><div style="${FIG}">${j.chunks.map((c) => c.html).join("")}<div style="${LINE}"></div></div></div></body></html>`;
     await p.setContent(html, { waitUntil: "networkidle" });
     await p.waitForTimeout(300);
     await p.screenshot({ path: path.join(dir, f.replace(".json", ".studio.png")) });

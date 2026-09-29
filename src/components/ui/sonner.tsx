@@ -1,34 +1,24 @@
 "use client"
 
-import {
-  CircleCheckIcon,
-  InfoIcon,
-  Loader2Icon,
-  OctagonXIcon,
-  TriangleAlertIcon,
-} from "lucide-react"
-import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
+/* The toast (VIS-097; src/lib/notify.ts): bottom centre, just above the dock, on raised
+   paper at the card's elevation, in the product's type (globals.css, "The toast"). The
+   next one stacks behind it. Light only: the product has one ground. */
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
-
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme="light"
+      position="bottom-center"
+      offset={{ bottom: 84 }}
+      mobileOffset={{ bottom: 76 }}
+      visibleToasts={3}
       className="toaster group"
-      icons={{
-        success: <CircleCheckIcon className="size-4" />,
-        info: <InfoIcon className="size-4" />,
-        warning: <TriangleAlertIcon className="size-4" />,
-        error: <OctagonXIcon className="size-4" />,
-        loading: <Loader2Icon className="size-4 animate-spin" />,
-      }}
       style={
         {
-          "--normal-bg": "var(--sys-bg-overlay)",
+          "--normal-bg": "var(--sys-bg-raised)",
           "--normal-text": "var(--sys-label-primary)",
-          "--normal-border": "var(--sys-stroke-hairline)",
+          "--normal-border": "transparent",
           "--border-radius": "var(--radius-3)",
         } as React.CSSProperties
       }

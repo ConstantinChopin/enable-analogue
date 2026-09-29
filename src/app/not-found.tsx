@@ -19,11 +19,11 @@ import { SearchX } from "lucide-react";
 export default function NotFound() {
   return (
     <Page width="wide">
-      <PageHeader title="No screen at this address" />
+      <PageHeader title="Page not found" />
       <EmptyState
         icon={SearchX}
-        title="Nothing in this workspace answers to it."
-        body="The address may be older than the build, or the surface may have moved behind the account menu — settings and connections are not workspace tiles."
+        title="There is no page at this address."
+        body="The link may be out of date. Settings and Connections are in the account menu."
         action={
           <div className="flex flex-wrap items-center justify-center gap-[var(--space-4)]">
             <Button asChild variant="secondary">

@@ -18,10 +18,16 @@
  * The tool that follows her down the page is the insight rail (Constantin, 2026-09-24;
  * components/insight-rail.tsx, logic in lib/insights.ts). An insight is what a chapter's
  * rows cannot say, computed by a deterministic join so every claim can be checked, and
- * ending in the reader's own act; the rail shows one at a time, ranked, so its action is
- * the page's one primary. The first is the day's first move. It moves with the page:
- * the chapter being read brings up its insight, and the arrows carry the page to the
- * next one. Closed, it gives its column back until the header brings it back.
+ * ending in the reader's own act; the rail shows one at a time, ranked in the inbox's
+ * order (FB-04, 2026-09-28), so its action is the page's one primary. The first is the
+ * day's first move. The arrows carry the page to each one's chapter; scrolling no longer
+ * changes the card (FB-11, 2026-09-28, reversing the 2026-09-24 "the chapter being read
+ * brings up its insight"). Closed, it collapses to a small "N insights" control in its
+ * place, which opens it again.
+ *
+ * Labels (NAV-06, 2026-09-28): the page names itself as the dock and the crumb do ("your
+ * Briefing"), and each chapter's closing link names the place it opens by that place's
+ * own name, so "Open triage" no longer leads to a page called Notifications.
  * It replaced the Today checklist, tried and cancelled the same day: a list of counts
  * restated the chapters, and ticking them measured nothing.
  *
@@ -32,10 +38,10 @@
  */
 import React from "react";
 import Link from "next/link";
-import { useDemo, canViewCommissions, queueItems, announcementsFor } from "@/lib/store";
+import { useDemo, canViewCommissions, queueItems, announcementsFor, tripsFor } from "@/lib/store";
 import { insightsFor } from "@/lib/insights";
 import { InsightRail } from "@/components/insight-rail";
-import { askAssistant } from "@/components/assistant";
+import { askWhy } from "@/components/assistant";
 import {
   widgetsFor, personName, commissions, departures, notices, promotions, briefing,
   candidates, connectionsFor, connectionHealth, orphanedPayments,
@@ -43,8 +49,9 @@ import {
   type Widget,
 } from "@/data/seed";
 import { AnnouncementSheet } from "@/components/publish-sheets";
+import { liveState, isLate } from "@/app/commissions/ledger";
 import { Page, PageHeader } from "@/components/layouts";
-import { Chip, Section, Rows, Row, RowStack, StatusDot } from "@/components/bits";
+import { Chip, Section, Rows, Row, RowStack } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ArrowRight } from "lucide-react";
@@ -57,7 +64,22 @@ const SEVERITY_RANK: Record<string, number> = { Critical: 0, Important: 1, Info:
 
 const eur = (n: number) => `EUR ${n.toLocaleString("en-GB")}`;
 
-/* ── a chapter's closing text action: the saved view it opens ─────────────── */
+/* ── a chapter's closing text action: the saved view it opens, named as the place is
+   named in the dock and the crumb (NAV-06). ─────────────────────────────────────── */
+const OPENS: Record<string, string> = {
+  commissions: "Open Commissions",
+  departures: "Departures in Itineraries",
+  notices: "Notices in Notifications",
+  announcements: "Announcements in Knowledge",
+  incentives: "Records with incentives",
+  verification: "Records needing verification",
+  confirm: "Open Confirm records",
+  publish: "Open the Publish queue",
+  unmatched: "Open Unmatched payments",
+  discrepancies: "Flagged in Commissions",
+  connections: "Open Connections",
+};
+
 function Opens({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <Button asChild variant="link" size="sm">
@@ -86,11 +108,15 @@ export default function Briefing() {
   const widgets = widgetsFor[s.role];
   const [writing, setWriting] = React.useState(false);
 
-  const openCommissions = commissions.filter((c) => c.state !== "paid");
+  /* Each commission as it stands this session, read the way the ledger reads it
+     (../commissions/ledger.ts `liveState`, 2026-09-28): a matched payment settles one, a
+     sent reminder chases one, and chased still counts as overdue, so the Briefing's
+     figures and the ledger's agree. They were read from the seed until then. */
+  const stateOf = (c: (typeof commissions)[number]) => liveState(s, c);
+  const openCommissions = commissions.filter((c) => stateOf(c) !== "paid");
   const outstanding = openCommissions.reduce((n, c) => n + c.amount, 0);
-  const overdue = commissions.filter((c) => c.state === "overdue");
-  const chased = commissions.filter((c) => c.state === "chased");
-  const longestChase = [...chased, ...overdue].sort((a, b) => (b.overdueDays ?? 0) - (a.overdueDays ?? 0))[0];
+  const overdue = openCommissions.filter((c) => isLate(stateOf(c)));
+  const longestChase = [...overdue].sort((a, b) => (b.overdueDays ?? 0) - (a.overdueDays ?? 0))[0];
 
   const activeNotices = notices
     .filter((n) => {
@@ -105,17 +131,13 @@ export default function Briefing() {
   const critical = activeNotices.filter((n) => n.severity === "Critical");
 
   /* The trips in the data are R. Devane's. The owner sees a departure only for a
-     traveller shared with her: the personal layer is the advisor's. */
-  const sharedWithOwner = (name: string) => {
-    if (travellerCards.some((t) => t.name === name && t.shared === people.owner)) return true;
-    return name === "S. Marchetti" && s.shareTier !== "private";
-  };
-  const visibleDepartures = departures.filter(
-    (t) => s.role === "user" || sharedWithOwner(t.traveller),
-  );
+     traveller shared with her, by the one rule every surface keeps (store `tripsFor`,
+     VIS-098; this page kept its own copy until 2026-09-28). */
+  const mayRead = new Set(tripsFor(s).map((t) => t.id));
+  const visibleDepartures = departures.filter((t) => mayRead.has(t.id));
   const soonest = visibleDepartures[0];
-  /* A traveller named in the day opens her profile; the trip itself opens in the
-     departures ledger until trips have a page of their own (the builder, U21). */
+  /* A traveller named in the day opens her profile; the trip opens its own page, which
+     every trip has since 2026-09-28. */
   const travellerHref = (name: string, id?: string) =>
     `/travellers/${id ?? travellerCards.find((t) => t.name === name)?.id ?? ""}`;
   /* Incentives are commission programmes: absent with the rest of the money. */
@@ -136,10 +158,10 @@ export default function Briefing() {
         return (
           <>
             {soonest
-              ? <><Ent href={travellerHref(soonest.traveller, soonest.travellerId)}>{soonest.traveller}</Ent> leaves for <Ent href="/itineraries?window=30">{soonest.title}</Ent> in {soonest.startsInDays} days{soonest.alert ? `, with a ${soonest.alert}` : ""}; <Ent href="/itineraries?window=30">{visibleDepartures.length - 1} more {visibleDepartures.length - 1 === 1 ? "departure" : "departures"}</Ent> follow within the month. </>
+              ? <><Ent href={travellerHref(soonest.traveller, soonest.travellerId)}>{soonest.traveller}</Ent> leaves for <Ent href={`/itineraries/${soonest.id}`}>{soonest.title}</Ent> in {soonest.startsInDays} days{soonest.alert ? `, with a ${soonest.alert}` : ""}; <Ent href="/itineraries?window=30">{visibleDepartures.length - 1} more {visibleDepartures.length - 1 === 1 ? "departure" : "departures"}</Ent> follow within the month. </>
               : <>No departures in the coming weeks. </>}
             {money && (
-              <><Ent href="/commissions?state=overdue">{overdue.length} commissions are overdue</Ent> and <Ent href="/commissions?state=open">{eur(outstanding)} is outstanding across {openCommissions.length}</Ent>{longestChase ? <>; <Ent href={`/commissions/${longestChase.id}`}>{longestChase.property}</Ent> has waited {longestChase.overdueDays} days</> : null}. </>
+              <><Ent href="/commissions?state=overdue">{overdue.length} {overdue.length === 1 ? "commission is" : "commissions are"} overdue</Ent> and <Ent href="/commissions?state=open">{eur(outstanding)} is outstanding across {openCommissions.length}</Ent>{longestChase ? <>; <Ent href={`/commissions/${longestChase.id}`}>{longestChase.property}</Ent> has waited {longestChase.overdueDays} days</> : null}. </>
             )}
             {critical.length > 0
               ? <>{critical.length === 1 ? "One property" : `${critical.length} properties`} must not be booked until further notice: {critical.map((n, i) => <React.Fragment key={n.id}>{i > 0 && ", "}<Ent href={`/records/${n.productId}`}>{n.productName}</Ent></React.Fragment>)}. </>
@@ -167,11 +189,11 @@ export default function Briefing() {
     switch (w.id) {
       case "departures":
         return (
-          <Section key={w.id} anchor={w.id} title="Departures" footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
+          <Section key={w.id} anchor={w.id} title="Departures" footer={<Opens href={w.expandsTo}>{OPENS[w.id] ?? w.expandLabel}</Opens>}>
             {visibleDepartures.length === 0 ? (
-              <p className="type-data-read text-label-secondary">
+              <p className="type-data text-label-secondary">
                 {s.role === "owner"
-                  ? "Trips are private to their advisors; none are shared with you."
+                  ? "No advisor has shared a departing traveller with you."
                   : "No departures in the coming weeks."}
               </p>
             ) : (
@@ -207,9 +229,9 @@ export default function Briefing() {
             key={w.id} anchor={w.id}
             title="Commissions"
             chips={overdue.length > 0 ? <Chip tone="neutral">{overdue.length} overdue</Chip> : undefined}
-            footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}
+            footer={<Opens href={w.expandsTo}>{OPENS[w.id] ?? w.expandLabel}</Opens>}
           >
-            <p className="-mt-[var(--space-2)] mb-[var(--space-2)] type-data-read text-label-secondary">
+            <p className="-mt-[var(--space-2)] mb-[var(--space-2)] type-data text-label-secondary">
               <span className="type-figure text-label">{eur(outstanding)}</span> outstanding across {openCommissions.length} commissions · {eur(briefing.headline.collectedThisWeek)} collected this week.
             </p>
             <Rows>
@@ -223,9 +245,11 @@ export default function Briefing() {
                     </Link>
                     <span className="row-trailing flex items-center gap-2">
                       <span className="tnum">{eur(c.amount)}</span>
-                      <Chip tone={c.state === "overdue" ? "crit" : c.state === "chased" ? "primary" : "neutral"}>
-                        {c.state === "overdue" ? `overdue ${c.overdueDays}d`
-                          : c.state === "chased" ? `chased · ${c.overdueDays}d`
+                      {/* One state, one colour, as in the ledger (VIS-097): ochre only for an
+                          overdue commission not yet chased; chased and due are words. */}
+                      <Chip tone={stateOf(c) === "overdue" ? "warn" : "neutral"}>
+                        {stateOf(c) === "overdue" ? `overdue ${c.overdueDays}d`
+                          : stateOf(c) === "chased" ? `chased · ${c.overdueDays}d`
                           : `due ${c.dueDate}`}
                       </Chip>
                     </span>
@@ -241,10 +265,10 @@ export default function Briefing() {
             key={w.id} anchor={w.id}
             title="Notices"
             chips={s.world === "v1" ? <Chip tone="crit">v1 build</Chip> : undefined}
-            footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}
+            footer={<Opens href={w.expandsTo}>{OPENS[w.id] ?? w.expandLabel}</Opens>}
           >
             {activeNotices.length === 0 && (
-              <p className="type-data-read text-label-secondary">No notice is active. A notice leaves this list only when a named person closes it.</p>
+              <p className="type-data text-label-secondary">No notice is active.</p>
             )}
             <Rows>
               {activeNotices.map((n) => (
@@ -277,7 +301,7 @@ export default function Briefing() {
 
       case "incentives":
         return (
-          <Section key={w.id} anchor={w.id} title="Expiring incentives" deep footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
+          <Section key={w.id} anchor={w.id} title="Expiring incentives" deep footer={<Opens href={w.expandsTo}>{OPENS[w.id] ?? w.expandLabel}</Opens>}>
             <Rows>
               {expiring.map((p) => (
                 <RowStack
@@ -302,7 +326,7 @@ export default function Briefing() {
 
       case "verification":
         return (
-          <Section key={w.id} anchor={w.id} title="Records verified this quarter" quiet deep footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
+          <Section key={w.id} anchor={w.id} title="Records verified this quarter" quiet deep footer={<Opens href={w.expandsTo}>{OPENS[w.id] ?? w.expandLabel}</Opens>}>
             <div className="flex items-baseline gap-[var(--space-3)]">
               <span className="type-figure">{briefing.recordsVerified.done}</span>
               <span className="type-meta tnum">of {briefing.recordsVerified.of} in Paris</span>
@@ -310,9 +334,8 @@ export default function Briefing() {
             <Progress tone="neutral" value={(briefing.recordsVerified.done / briefing.recordsVerified.of) * 100}
               className="mt-[var(--space-2)] max-w-md"
             />
-            <p className="mt-[var(--space-2)] max-w-[60ch] type-data-read text-label-secondary">
-              Carried forward, unchecked: <span className="tnum">{briefing.recordsVerified.carriedForward}</span>.
-              An unchecked field still answers — with its date and a freshness warning.
+            <p className="mt-[var(--space-2)] max-w-[60ch] type-data text-label-secondary">
+              <span className="tnum">{briefing.recordsVerified.carriedForward}</span> carried forward from last quarter without a check.
             </p>
           </Section>
         );
@@ -330,12 +353,12 @@ export default function Briefing() {
             footer={
               <span className="flex flex-wrap items-center gap-x-[var(--space-4)]">
                 <Button variant="tertiary" size="sm" onClick={() => setWriting(true)}>Write to the agency</Button>
-                <Opens href={w.expandsTo}>{w.expandLabel}</Opens>
+                <Opens href={w.expandsTo}>{OPENS[w.id] ?? w.expandLabel}</Opens>
               </span>
             }
           >
             {items.length === 0 ? (
-              <p className="type-data-read text-label-secondary">Nothing announced yet. What the agency writes to its desk arrives here.</p>
+              <p className="type-data text-label-secondary">Nothing announced yet.</p>
             ) : (
               <Rows>
                 {items.map((a) => (
@@ -380,12 +403,10 @@ export default function Briefing() {
             key={w.id} anchor={w.id}
             title="Publish queue"
             chips={waiting.length > 0 ? <Chip tone="neutral">{waiting.length} waiting</Chip> : undefined}
-            footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}
+            footer={<Opens href={w.expandsTo}>{OPENS[w.id] ?? w.expandLabel}</Opens>}
           >
             {waiting.length === 0 ? (
-              <p className="type-data-read text-label-secondary">
-                Nothing waits to be published. What an advisor shares with the whole agency arrives here.
-              </p>
+              <p className="type-data text-label-secondary">Nothing waits to be published.</p>
             ) : (
               <Rows>
                 {waiting.map((q) => (
@@ -400,7 +421,7 @@ export default function Briefing() {
 
       case "confirm":
         return (
-          <Section key={w.id} anchor={w.id} title="Records to confirm" chips={<Chip tone="neutral">{candidates.length} waiting</Chip>} footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
+          <Section key={w.id} anchor={w.id} title="Records to confirm" chips={<Chip tone="neutral">{candidates.length} waiting</Chip>} footer={<Opens href={w.expandsTo}>{OPENS[w.id] ?? w.expandLabel}</Opens>}>
             <Rows>
               {candidates.map((c) => (
                 <Row key={c.id}>
@@ -425,7 +446,7 @@ export default function Briefing() {
             key={w.id} anchor={w.id}
             title="Connections"
             chips={connectionHealth.needAttention > 0 ? <Chip tone="neutral">{connectionHealth.label}</Chip> : undefined}
-            footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}
+            footer={<Opens href={w.expandsTo}>{OPENS[w.id] ?? w.expandLabel}</Opens>}
           >
             {/* The agency's sources, the ones the health count is taken over. An advisor's
                 own mailbox is hers, and degrades only her answers. */}
@@ -448,8 +469,8 @@ export default function Briefing() {
 
       case "unmatched":
         return (
-          <Section key={w.id} anchor={w.id} title="Unmatched payments" chips={<Chip tone="neutral">{orphanedPayments.length} to match</Chip>} footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
-            <p className="-mt-[var(--space-2)] mb-[var(--space-2)] type-data-read text-label-secondary">
+          <Section key={w.id} anchor={w.id} title="Unmatched payments" chips={<Chip tone="neutral">{orphanedPayments.length} to match</Chip>} footer={<Opens href={w.expandsTo}>{OPENS[w.id] ?? w.expandLabel}</Opens>}>
+            <p className="-mt-[var(--space-2)] mb-[var(--space-2)] type-data text-label-secondary">
               <span className="type-figure text-label">{eur(orphanTotal)}</span> across {orphanedPayments.length} payments.
             </p>
             <Rows>
@@ -474,7 +495,7 @@ export default function Briefing() {
          her brief; no widget names it. */
       case "discrepancies":
         return (
-          <Section key={w.id} anchor={w.id} title="Under projection" deep footer={<Opens href={w.expandsTo}>{w.expandLabel}</Opens>}>
+          <Section key={w.id} anchor={w.id} title="Under projection" deep footer={<Opens href={w.expandsTo}>{OPENS[w.id] ?? w.expandLabel}</Opens>}>
             <Rows>
               {flagged.map((c) => (
                 <RowStack
@@ -504,55 +525,57 @@ export default function Briefing() {
   /* ── the rail: this reader's insights, ranked (src/lib/insights.ts) ───────── */
   const insights = React.useMemo(() => insightsFor(s), [s]);
   const railKey = `briefing-insights-${s.role}`;
-  const railOpen = !s.dismissed[railKey];
+  /* Closed, the card collapses to a small "N insights" control in its place (FB-11). */
+  const collapsed = !!s.dismissed[railKey];
   /* One card on the right at a time (Constantin, 2026-09-25): a conversation takes the
      slot, and closing it gives the rail back where it was, on the insight asked about.
-     The rail stays mounted while hidden, so it keeps its place. */
-  const railShown = railOpen && !s.assistantOpen;
+     The rail stays mounted while hidden, so it keeps its place. The conversation quotes
+     the insight it was asked about, so nothing is lost behind it (AI-03). */
+  const railShown = !s.assistantOpen;
 
   /* Absent, not masked: without the entitlement the money chapters are not drawn. */
   const gatedOut = (w: Widget) => (w.id === "commissions" || w.id === "incentives") && !money;
 
   return (
     <Page width="wide">
-      <PageHeader
-        title={<>Good morning, {personName[s.role]}</>}
-        actions={!railOpen && insights.length > 0 ? (
-          <Button variant="tertiary" size="sm" onClick={() => d({ type: "restore", id: railKey })}>
-            Show insights <span className="type-micro tnum">{insights.length}</span>
-          </Button>
-        ) : undefined}
-      >
-        <p className="mt-[var(--space-2)] type-meta">{TODAY} · synced {briefing.syncedAt}</p>
+      <PageHeader title={<>Good morning, {personName[s.role]}</>}>
+        <p className="mt-[var(--space-2)] type-meta">Your Briefing for {TODAY}</p>
       </PageHeader>
 
-      {/* Closed, the rail gives its column back to the chapters. */}
-      <div className="doc-layout" style={railShown ? undefined : { gridTemplateColumns: "minmax(0, 1fr)" }}>
+      {/* Collapsed, the rail keeps only its small control; hidden, it gives its column back. */}
+      <div
+        className="doc-layout"
+        style={!railShown ? { gridTemplateColumns: "minmax(0, 1fr)" } : collapsed ? { gridTemplateColumns: "minmax(0, 1fr) auto" } : undefined}
+      >
         <div className="min-w-0">
 
           {/* The day, written. Serif because it is addressed to a person; figures inline. */}
           <section className="chapter" data-slot="chapter" data-chapter="today" id="chapter-today">
             <p className="max-w-[62ch] type-prose-lead">{lead}</p>
+            {/* Freshness, neutral (FB-08, 2026-09-28): an ochre dot said "decide" about a
+                sync that was on time. Nothing on this page is older than the last sync, so
+                there is nothing to decide; were a figure stale, it would say so where it is. */}
             <p className="mt-[var(--space-3)] type-meta">
-              <StatusDot tone="warn">TripSuite figures up to 48 hours behind</StatusDot>
+              TripSuite figures as of {briefing.syncedAt} today. TripSuite can run up to 48 hours behind.
             </p>
           </section>
 
           {widgets.filter((w) => !gatedOut(w)).map(chapter)}
         </div>
 
-        {railOpen && (
+        {insights.length > 0 || !collapsed ? (
           <aside className={railShown ? "doc-rail" : "doc-rail hidden"} data-rail-label="Insights">
             <InsightRail
               insights={insights}
+              collapsed={collapsed}
               onClose={() => d({ type: "dismiss", id: railKey })}
+              onOpen={() => d({ type: "restore", id: railKey })}
               onSheet={() => setWriting(true)}
-              /* The rail hands an insight to the assistant, which takes the right-hand slot. */
-              onWhy={(id) => askAssistant(d, s, `why:${id}`, "/briefing", true)}
-              paused={!railShown}
+              /* The rail hands an insight to the assistant, which quotes it and speaks first. */
+              onWhy={(i) => askWhy(d, s, i, "/briefing")}
             />
           </aside>
-        )}
+        ) : null}
       </div>
 
       <AnnouncementSheet open={writing} onOpenChange={setWriting} />

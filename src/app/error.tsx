@@ -1,8 +1,8 @@
 "use client";
 /**
- * The error boundary. The product's rule about answers holds for its own failures:
- * say what happened, say what it did not touch, and give the person the next act.
- * No apology, no "oops", and no reload-and-hope.
+ * The error boundary. Say what happened and give the person the next act. No apology,
+ * no "oops", and no claim the boundary cannot check: it does not know what was or was
+ * not written before the screen failed, so it does not say (UX sweep FB-08, 2026-09-28).
  *
  * Recomposed (docs/rebuild/04): the page's name once in the header, then an
  * EmptyState at column width. The ONE primary is "Load it again" — the act that
@@ -27,12 +27,12 @@ export default function AppError({
       <PageHeader title="This screen did not load" />
       <EmptyState
         icon={CircleAlert}
-        title="The failure is in the interface, not in the workspace."
-        body="Nothing was written, no record changed, and no answer was published from a partial read."
+        title="Something went wrong while showing this screen."
+        body="Load it again. If it fails again, go back to the Briefing and open it from there."
         action={
           <>
             {error.digest && (
-              <p className="mb-[var(--space-4)] type-code text-label-secondary">reference {error.digest}</p>
+              <p className="mb-[var(--space-4)] type-meta tnum text-label-secondary">reference {error.digest}</p>
             )}
             <div className="flex flex-wrap items-center justify-center gap-[var(--space-2)]">
               <Button onClick={reset}>Load it again</Button>

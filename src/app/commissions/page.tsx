@@ -6,36 +6,45 @@
  * commissions widget expands here with its saved view already applied (`?state=`),
  * so the widget is a view onto this ledger, not a page of its own.
  *
- * Chapters, in order: the figure line under the title (outstanding · overdue ·
- * unrecovered) · the ledger — saved views as a Segmented (selected inverts), a search
- * field at the same control size, and the Table (micro-caps heads, 40px rows,
- * hairlines; the selected row carries a 2px ink left edge via data-state="selected").
+ * 2026-09-28, UX sweep NAV-01, NAV-03, COL-02, COL-06, COL-07, COL-12 (VIS-095, VIS-096):
+ *   title row   the name, one count, no create (a commission arrives from a booking).
+ *               The figure line under it says what is outstanding and how much of it is
+ *               overdue, once.
+ *   toolbar     the state switch (Open · Overdue · Paid · Discrepancies · All) and the
+ *               search, then the result and its true order. No counts on the switch: the
+ *               figure line and the result carry them, so "Overdue" and "4 overdue" can
+ *               no longer disagree (overdue includes chased: both are past due, unpaid).
+ *   ledger      one Table; a row selects on click, opens on Enter or double-click.
+ *   inspector   the commission in the page's words, "Open ↗" to it, and its one next
+ *               act pinned in the footer ("Draft a reminder"), never "Open the commission"
+ *               as the ink button.
+ * The view, the search and the selection live in the URL (`state`, `q`, `sel`), so Back
+ * from a commission restores the ledger as it was left.
  *
- * The one primary: "Open the commission", at the bottom of the inspector — the tool
- * that follows the selected row (contract: open a commission). Nothing else on the
- * surface is filled. The inspector summarises the timeline; the full commission —
- * reminder gate, discrepancy handling, chase log — lives on /commissions/[id].
+ * State is read through ./ledger.ts: a reminder sent this session makes a row chased,
+ * and a payment the owner matched makes it paid, here and on the commission (COL-12).
  *
- * Entitlement-gated: for a colleague the ledger is absent, with the policy stated —
- * never a masked table. No new components.
+ * Entitlement-gated: for a user the owner has not given money, the ledger is absent,
+ * with who can change that. Never a masked table.
  */
 import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useDemo, canViewCommissions, allTrips } from "@/lib/store";
 import { inCommissions } from "@/lib/trip-checks";
-import { commissions, personName, roleLabel, productById, type Commission } from "@/data/seed";
+import { commissions, people, personName, productById, type Commission } from "@/data/seed";
 import { termsFor } from "@/data/trip-lines";
-import { Page, PageHeader, SplitPage } from "@/components/layouts";
 import {
-  Chip, Section, Segmented, MoneyValue, SourceTag, SeverityBanner, DataList,
-} from "@/components/bits";
+  Page, PageHeader, SplitPage, ListToolbar, ListSearch, useQueryState,
+} from "@/components/layouts";
+import { Chip, Section, Segmented, SourceTag, DataList, Done, Warning } from "@/components/bits";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { ArrowRight, Search } from "lucide-react";
+import {
+  eur, liveState, isLate, ledgerOrder, reminderSent, settlementFor, travellerHref, sentLine, type LiveState,
+} from "./ledger";
 
 type FilterKey = "open" | "overdue" | "paid" | "discrepancy" | "all";
 
@@ -46,32 +55,22 @@ const FILTERS: { value: FilterKey; label: string }[] = [
   { value: "discrepancy", label: "Discrepancies" },
   { value: "all", label: "All" },
 ];
+const isFilter = (v: string): v is FilterKey => FILTERS.some((f) => f.value === v);
 
-/** The saved view's predicate, shared by the rows and the counts on the chips. */
-const inView = (c: Commission, f: FilterKey) => {
-  if (f === "open") return c.state !== "paid";
-  if (f === "overdue") return c.state === "overdue" || c.state === "chased";
-  if (f === "paid") return c.state === "paid";
-  if (f === "discrepancy") return Boolean(c.discrepancy);
-  return true;
+/** The order the result says it is in, per view. */
+const ORDER: Record<FilterKey, string> = {
+  open: "overdue first, then by due date",
+  overdue: "longest overdue first",
+  paid: "most recently paid first",
+  discrepancy: "overdue first, then by due date, then paid",
+  all: "overdue first, then by due date, then paid",
 };
 
-/** Overdue first, then chased, then due, then paid; within a band, oldest first. */
-const BAND: Record<Commission["state"], number> = { overdue: 0, chased: 1, due: 2, paid: 3 };
-
-const eur = (n: number) => `EUR ${n.toLocaleString("en-GB")}`;
-
-function stateChip(c: Commission) {
-  if (c.state === "overdue") return <Chip tone="crit">overdue</Chip>;
-  if (c.state === "chased") return <Chip tone="primary">chased</Chip>;
-  if (c.state === "paid") return <Chip tone="ok">paid</Chip>;
-  return <Chip tone="neutral">due</Chip>;
-}
-
-function ageing(c: Commission) {
-  if (c.state === "paid") return `settled ${c.paidDate}`;
-  if (c.overdueDays) return `${c.overdueDays}d`;
-  return "—";
+/** Colour means severity (VIS-097): ochre only for "decide" (overdue and not chased:
+    chase it or not); chased, due and paid are states, in words. */
+function StateChip({ st }: { st: LiveState }) {
+  if (st === "overdue") return <Chip tone="warn">overdue</Chip>;
+  return <Chip tone="neutral">{st}</Chip>;
 }
 
 export default function CommissionsPage() {
@@ -84,51 +83,64 @@ export default function CommissionsPage() {
 
 function Ledger() {
   const { s } = useDemo();
+  const router = useRouter();
   const money = canViewCommissions(s);
-  const param = useSearchParams()?.get("state") ?? null;
 
-  const initial: FilterKey =
-    param === "all" || param === "overdue" || param === "paid" || param === "discrepancy" ? param : "open";
+  const [stateParam, setStateParam] = useQueryState("state", "open");
+  const filter: FilterKey = isFilter(stateParam) ? stateParam : "open";
+  const [qParam, setQParam] = useQueryState("q");
+  /* The field holds its own text so typing never waits on the router; the URL follows. */
+  const [q, setQ] = useState(qParam);
+  const [sel, setSel] = useQueryState("sel");
 
-  const [filter, setFilter] = useState<FilterKey>(initial);
-  const [q, setQ] = useState("");
-  const [selected, setSelected] = useState<string | null>(null);
+  const inView = (c: Commission, f: FilterKey) => {
+    const st = liveState(s, c);
+    if (f === "open") return st !== "paid";
+    if (f === "overdue") return isLate(st);
+    if (f === "paid") return st === "paid";
+    if (f === "discrepancy") return Boolean(c.discrepancy);
+    return true;
+  };
 
   const rows = useMemo(() => {
     const text = q.trim().toLowerCase();
     return commissions
       .filter((c) => inView(c, filter))
-      .filter((c) => {
-        if (!text) return true;
-        return [c.property, c.bookingRef, c.traveller ?? ""].join(" ").toLowerCase().includes(text);
-      })
-      .sort((a, b) => BAND[a.state] - BAND[b.state] || (b.overdueDays ?? 0) - (a.overdueDays ?? 0));
-  }, [filter, q]);
+      .filter((c) => !text || [c.property, c.bookingRef, c.traveller ?? ""].join(" ").toLowerCase().includes(text))
+      .sort(ledgerOrder(s));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, q, s]);
 
-  const views = useMemo(
-    () => FILTERS.map((f) => ({ ...f, count: commissions.filter((c) => inView(c, f.value)).length })),
-    [],
-  );
-
-  const open = commissions.filter((c) => c.state !== "paid");
+  const open = commissions.filter((c) => liveState(s, c) !== "paid");
   const outstanding = open.reduce((n, c) => n + c.amount, 0);
-  const overdue = commissions.filter((c) => c.state === "overdue");
-  const unrecovered = overdue.reduce((n, c) => n + c.amount, 0);
+  const late = commissions.filter((c) => isLate(liveState(s, c)));
+  const lateSum = late.reduce((n, c) => n + c.amount, 0);
 
-  const active = rows.find((c) => c.id === selected) ?? null;
+  const active = rows.find((c) => c.id === sel) ?? null;
+
+  /* The inspector's footer: the commission's one next act. A late commission is chased:
+     "Draft a reminder" opens the draft on the commission page, where it is read and
+     sent. Once sent, the footer says so in place. Nothing to do, no footer. */
+  const nextAct = (c: Commission) => {
+    const st = liveState(s, c);
+    const sent = reminderSent(s, c);
+    if (sent) return <Done>{sentLine(sent)}</Done>;
+    if (!isLate(st)) return undefined;
+    return (
+      <Button className="w-full" onClick={() => router.push(`/commissions/${c.id}?draft=1`)}>
+        {st === "chased" ? "Draft a follow-up" : "Draft a reminder"}
+      </Button>
+    );
+  };
 
   if (!money) {
     return (
       <Page width="wide">
         <PageHeader title="Commissions" />
         <Section>
-          <p className="max-w-[60ch] type-data-read">
-            Commission records stay with the owning advisor. Signed in as {personName[s.role]} (
-            {roleLabel[s.role]}), this ledger is absent by policy.
-          </p>
-          <p className="mt-[var(--space-2)] max-w-[60ch] type-meta">
-            Nothing is masked or blurred here: the rows are not fetched, so there is no figure to
-            read past. Sharing a traveller does not share their money.
+          <p className="max-w-[60ch] type-data">
+            Commission figures are not open to you in this agency. {people.owner} can open them in
+            Settings.
           </p>
         </Section>
       </Page>
@@ -136,110 +148,95 @@ function Ledger() {
   }
 
   const header = (
-    <>
-      <PageHeader
-        title="Commissions"
-        actions={
-          <Segmented
-            value={filter}
-            onChange={(v) => { setFilter(v); setSelected(null); }}
-            options={views}
-            label="Commission state"
-            className="flex-wrap"
-          />
-        }
-      >
-        {/* The one figure the briefing widget does not carry: what is unrecovered. */}
-        <p className="mt-[var(--space-2)] type-meta tnum">
-          <span className="type-figure text-label">{eur(outstanding)}</span> outstanding across{" "}
-          {open.length} · {overdue.length} overdue · {eur(unrecovered)} unrecovered
-        </p>
-      </PageHeader>
-
-    </>
+    <PageHeader title="Commissions" count={`${commissions.length} commissions`}>
+      <p className="mt-[var(--space-2)] type-meta tnum">
+        <span className="type-figure text-label">{eur(outstanding)}</span> outstanding
+        {late.length > 0 && <> · {eur(lateSum)} of it overdue, on {late.length} {late.length === 1 ? "commission" : "commissions"}</>}
+      </p>
+    </PageHeader>
   );
 
   return (
     <SplitPage
       header={header}
       panelOpen={Boolean(active)}
-      onClosePanel={() => setSelected(null)}
-      panelTitle={active ? active.bookingRef : "Commission"}
+      onClosePanel={() => setSel(null)}
+      panelTitle={active ? active.property : "Commission"}
+      openHref={active ? `/commissions/${active.id}` : undefined}
       panel={active ? <DetailPanel c={active} /> : null}
+      footer={active ? nextAct(active) : undefined}
     >
-      <Section>
-        {/* Search narrows the list, so it sits with it; the state is the view and sits on
-            the title row (the title-row rule, layouts.tsx). */}
-        <div className="flex flex-wrap items-center gap-[var(--space-2)]">
-          <div className="relative min-w-0 flex-1 sm:max-w-[280px]">
-            <Search
-              className="pointer-events-none absolute left-[10px] top-1/2 size-[var(--icon-md)] -translate-y-1/2 text-label-tertiary"
-              aria-hidden
-            />
-            <Input
-              size="sm"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Property, booking reference, traveller…"
-              aria-label="Filter commissions"
-              className="pl-8"
-            />
-          </div>
-        </div>
+      <ListToolbar
+        state={
+          <Segmented
+            value={filter}
+            onChange={(v) => setStateParam(v)}
+            options={FILTERS}
+            label="Commission state"
+          />
+        }
+        search={
+          <ListSearch
+            value={q}
+            onChange={(v) => { setQ(v); setQParam(v.trim() ? v : null); }}
+            placeholder="Property, booking or traveller"
+          />
+        }
+        result={<>{rows.length} shown · {ORDER[filter]}</>}
+      />
 
-        <div className="mt-[var(--space-4)]">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead>Property</TableHead>
-                <TableHead className="hidden sm:table-cell">Booking</TableHead>
-                <TableHead className="hidden lg:table-cell">Traveller</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>State</TableHead>
-                <TableHead className="hidden md:table-cell">Due</TableHead>
-                <TableHead className="hidden md:table-cell">Ageing</TableHead>
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead>Property</TableHead>
+            <TableHead className="hidden sm:table-cell">Booking</TableHead>
+            <TableHead className="hidden lg:table-cell">Traveller</TableHead>
+            <TableHead className="text-right">Amount</TableHead>
+            <TableHead>State</TableHead>
+            <TableHead className="hidden md:table-cell">Due</TableHead>
+            <TableHead className="hidden md:table-cell">Ageing</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((c) => {
+            const on = c.id === sel;
+            const st = liveState(s, c);
+            const settled = settlementFor(s, c);
+            return (
+              <TableRow
+                key={c.id}
+                onClick={() => setSel(on ? null : c.id)}
+                onOpen={() => router.push(`/commissions/${c.id}`)}
+                aria-selected={on}
+                data-state={on ? "selected" : undefined}
+              >
+                <TableCell className="max-w-[260px] truncate type-data-strong">
+                  {c.property}
+                  {c.discrepancy && (
+                    <Chip tone={s.decisions[`discrepancy:${c.id}`] ? "neutral" : "warn"} className="ml-[var(--space-2)]">under projection</Chip>
+                  )}
+                  {c.creditNotRefund && <Chip tone="neutral" className="ml-[var(--space-2)]">credit</Chip>}
+                </TableCell>
+                <TableCell className="hidden type-meta tnum text-inherit sm:table-cell">{c.bookingRef}</TableCell>
+                <TableCell className="hidden text-label-secondary lg:table-cell">{c.traveller ?? "—"}</TableCell>
+                <TableCell className="text-right type-data-strong tnum">{eur(c.amount)}</TableCell>
+                <TableCell><StateChip st={st} /></TableCell>
+                <TableCell className="hidden text-label-secondary tnum md:table-cell">{c.dueDate}</TableCell>
+                <TableCell className="hidden text-label-secondary tnum md:table-cell">
+                  {st === "paid" ? (settled ? "paid today" : `paid ${c.paidDate}`) : c.overdueDays ? `${c.overdueDays}d` : "—"}
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((c) => {
-                const on = c.id === selected;
-                return (
-                  <TableRow
-                    key={c.id}
-                    onClick={() => setSelected(on ? null : c.id)}
-                    aria-selected={on}
-                    data-state={on ? "selected" : undefined}
-                    className="cursor-pointer"
-                  >
-                    <TableCell className="max-w-[220px] truncate type-data-strong">
-                      {c.property}
-                      {c.discrepancy && <Chip tone="warn" className="ml-[var(--space-2)]">under projection</Chip>}
-                      {c.creditNotRefund && <Chip tone="crit" className="ml-[var(--space-2)]">credit</Chip>}
-                    </TableCell>
-                    <TableCell className="hidden type-code sm:table-cell">{c.bookingRef}</TableCell>
-                    <TableCell className="hidden text-label-secondary lg:table-cell">{c.traveller ?? "—"}</TableCell>
-                    <TableCell className="text-right type-data-strong tnum">{eur(c.amount)}</TableCell>
-                    <TableCell>{stateChip(c)}</TableCell>
-                    <TableCell className="hidden text-label-secondary tnum md:table-cell">{c.dueDate}</TableCell>
-                    <TableCell className="hidden text-label-secondary tnum md:table-cell">{ageing(c)}</TableCell>
-                  </TableRow>
-                );
-              })}
-              {rows.length === 0 && (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={7} className="py-[var(--space-8)] text-center text-label-secondary">
-                    No commissions match this view.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        <p className="mt-[var(--space-3)] type-meta tnum">
-          {rows.length} of {commissions.length} records · overdue first, oldest first
-        </p>
-      </Section>
+            );
+          })}
+          {rows.length === 0 && (
+            <TableRow className="hover:bg-transparent">
+              <TableCell colSpan={7} className="py-[var(--space-8)] text-center text-label-secondary">
+                No commissions in this view.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
 
       {/* The builder (the lab): a line confirmed under a programme projects its commission
           here, worked from the programme's terms. Nobody types it twice. The seeded
@@ -259,7 +256,7 @@ function ProjectedFromTrips() {
     });
   if (!rows.length) return null;
   return (
-    <Section title="Projected from trips" chips={<span className="type-meta tnum">{rows.length} this session</span>}>
+    <Section title="Projected from trips" chips={<span className="type-meta tnum">{rows.length} this session</span>} className="mt-[var(--gap-3)]">
       <ul className="divide-y divide-hairline">
         {rows.map(({ l, trip, name, rate, amount }) => (
           <li key={l.id} className="flex flex-wrap items-center justify-between gap-[var(--space-3)] py-[var(--space-3)]">
@@ -278,81 +275,81 @@ function ProjectedFromTrips() {
   );
 }
 
-/* ── the inspector — the tool that follows the selected row ─────────────────────
-   A summary of the record's timeline, and the one primary at its bottom. The full
-   commission — reminder gate, discrepancy handling, chase log — is its own route. */
+const linkCls = "underline decoration-hairline underline-offset-4 hover:decoration-ink";
+
+/* ── the inspector: what the row cannot show, in the commission page's words ─────
+   Every object is named as a link: the property's record, the traveller (where this
+   reader may open them). The figures match the commission page: projected is what the
+   terms said, paid is what arrived. */
 function DetailPanel({ c }: { c: Commission }) {
+  const { s } = useDemo();
+  const st = liveState(s, c);
+  const settled = settlementFor(s, c);
+  const traveller = travellerHref(s, c.traveller);
+  const expected = c.discrepancy?.expected ?? c.amount;
+  const decided = s.decisions[`discrepancy:${c.id}`];
+
   return (
     <div className="flex flex-col gap-[var(--space-6)]">
-      <div>
-        <div className="flex flex-wrap items-center gap-[var(--space-2)]">
-          <h3 className="type-section">{c.property}</h3>
-          {stateChip(c)}
-        </div>
-        <p className="mt-1 type-meta">
-          <span className="type-code">{c.bookingRef}</span>
-          {c.traveller && ` · ${c.traveller}`}
-        </p>
+      <div className="flex flex-wrap items-center gap-[var(--space-2)]">
+        <StateChip st={st} />
+        <span className="type-meta tnum">{c.bookingRef}</span>
       </div>
 
       <DataList
         rows={[
           {
-            label: "Projected",
-            value: (
-              <span className="type-data-strong">
-                <MoneyValue amount={c.amount} currency={c.currency} /> · {c.projected.rate}
-              </span>
-            ),
+            label: "Property",
+            value: c.productId
+              ? <Link href={`/records/${c.productId}`} className={linkCls}>{c.property}</Link>
+              : c.property,
           },
           {
+            label: "Traveller",
+            value: c.traveller
+              ? traveller ? <Link href={traveller} className={linkCls}>{c.traveller}</Link> : c.traveller
+              : undefined,
+          },
+          { label: "Projected", value: <span className="tnum">{eur(expected)} · {c.projected.rate}</span> },
+          {
             label: "Due",
-            value: (
-              <span className="tnum">
-                {c.dueDate}
-                {c.overdueDays ? ` · ${c.overdueDays}d late` : ""}
-              </span>
-            ),
+            value: <span className="tnum">{c.dueDate}{isLate(st) && c.overdueDays ? ` · ${c.overdueDays} days late` : ""}</span>,
           },
           {
             label: "Paid",
-            value: c.state === "paid"
-              ? <span className="tnum">{c.paidDate}</span>
-              : <span className="text-label-secondary">not yet received</span>,
+            value: settled
+              ? <span className="tnum">{eur(settled.payment.amount)} · matched today</span>
+              : st === "paid"
+                ? <span className="tnum">{eur(c.discrepancy?.actual ?? c.amount)} · {c.paidDate}</span>
+                : <span className="text-label-secondary">not yet</span>,
           },
         ]}
       />
 
       <div>
-        <div className="type-micro-caps text-label-tertiary">Rate provenance</div>
+        <div className="type-meta text-label-tertiary">Rate from</div>
         <div className="mt-[var(--space-2)] flex flex-wrap items-center gap-[var(--space-2)]">
           <SourceTag kind="portal" label={c.projected.source} />
-          {c.projected.incentive && <Chip tone="primary">{c.projected.incentive}</Chip>}
+          {c.projected.incentive && <Chip tone="neutral">{c.projected.incentive}</Chip>}
         </div>
       </div>
 
       {c.discrepancy && (
-        <SeverityBanner severity="Important">
-          <b>Actual under projection.</b>{" "}
-          <span className="tnum">
-            {eur(c.discrepancy.expected)} expected against {eur(c.discrepancy.actual)} received.
-          </span>{" "}
-          Possible causes: {c.discrepancy.causes.join(" · ")}. Flagged, never silently absorbed.
-        </SeverityBanner>
+        <Warning
+          title={`${eur(c.discrepancy.expected - c.discrepancy.actual)} under projection`}
+          kept={decided ? `${decided.what} · ${personName[decided.by]}, ${decided.at}` : undefined}
+        >
+          {eur(c.discrepancy.expected)} expected, {eur(c.discrepancy.actual)} received. Accept it or
+          dispute it on the commission.
+        </Warning>
       )}
 
       {c.creditNotRefund && (
-        <SeverityBanner severity="Critical">
-          <b>Resolved as credit, not refund.</b> Commission protection does not apply. The loss is a
-          known decision, not a silent write-off.
-        </SeverityBanner>
+        <p className="type-data text-label-secondary">
+          Resolved as a hotel credit, not a refund, so commission protection does not apply.
+        </p>
       )}
-
-      <Button asChild className="w-full">
-        <Link href={`/commissions/${c.id}`}>
-          Open the commission <ArrowRight aria-hidden />
-        </Link>
-      </Button>
     </div>
   );
 }
+

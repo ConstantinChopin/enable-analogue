@@ -4,51 +4,144 @@
  * name (the one serif on the screen) left, actions right — and clears the dock
  * by way of <Page>, which owns the bottom padding.
  */
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { useDemo } from "@/lib/store";
-import { Segmented, IconChrome } from "@/components/bits";
+import { IconChrome } from "@/components/bits";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { X, LayoutGrid, Rows3 } from "lucide-react";
+import { X, LayoutGrid, Rows3, Search, ArrowUpRight } from "lucide-react";
 
 /* ── Dock clearance ──────────────────────────────────────────────────────────── */
 export const DOCK_FOOTPRINT = 84;
 export const DOCK_CLEARANCE = "pb-[112px]";
 
-/* ── PageHeader ───────────────────────────────────────────────────────────────
-   The title row: the page's name, and its text actions right-aligned (Airbnb's
-   title row carries Share · Save as text). The primary never lives here; it sits
-   at the bottom of the tool that owns it.                                       */
-/* ── PageHeader — the title-row rule (Constantin, 2026-09-25) ─────────────────
-   The title row holds the title, WHAT YOU ARE LOOKING AT, and the page's acts:
-   a state or view switch (Open · Actioned · Deferred, Open · Overdue · Paid, Grid ·
-   Table) and the actions go in `actions`, on the title's line, at the right. The line
-   below holds only what NARROWS the list: tags, sources, facets, search.            */
+/* ── PageHeader — the title row acts, the toolbar views (VIS-095, 2026-09-28) ──
+   The title row holds the page's name, ONE count (`count`) and at most one create
+   action (`create`, secondary, "New X"), at the right. A detail page may put its own
+   secondary acts on an item there (`actions`: Edit, Add note). Nothing that changes
+   WHAT YOU SEE sits in this row: state switches, filters, search and the Grid/Table
+   view live in the <ListToolbar> directly above the data. Supersedes the title-row
+   rule of 2026-09-25, which put lenses beside acts, so a selected view outweighed
+   the page's only action. The primary never lives here; it sits at the bottom of the
+   tool that owns it.                                                               */
 export function PageHeader({
-  back, crumb, title, actions, children, className,
+  title, count, create, actions, children, className,
 }: {
-  back?: boolean | string;
-  crumb?: React.ReactNode;
   title: React.ReactNode;
+  /** The one count for the page ("8 trips"). Said once: nowhere else on the page. */
+  count?: React.ReactNode;
+  /** The page's create action ("New traveller"): a secondary button, right-aligned. */
+  create?: React.ReactNode;
+  /** A detail page's own secondary acts on its item. Never a view or state switch. */
   actions?: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
 }) {
-  void back; void crumb;
+  const right = create || actions;
   return (
     <header className={cn("mb-[var(--gap-2)]", className)}>
-      <div className="flex flex-wrap items-start justify-between gap-x-[var(--space-4)] gap-y-[var(--space-2)]">
-        <h1 className="type-title-page flex min-w-0 flex-wrap items-center gap-[var(--space-3)]">{title}</h1>
-        {actions && <div className="flex flex-wrap items-center gap-[var(--space-2)]">{actions}</div>}
+      <div className="flex flex-wrap items-center justify-between gap-x-[var(--space-4)] gap-y-[var(--space-2)]">
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-[var(--space-3)] gap-y-[var(--space-1)]">
+          <h1 className="type-title-page min-w-0">{title}</h1>
+          {count !== undefined && count !== null && <span className="type-meta tnum">{count}</span>}
+        </div>
+        {right && <div className="flex flex-wrap items-center gap-[var(--space-2)]">{actions}{create}</div>}
       </div>
       {children}
     </header>
   );
+}
+
+/* ── ListToolbar — everything that changes what the list shows (VIS-095) ───────
+   One order on every collection, directly above the data: the state switch first
+   (Open · Actioned · Deferred), then filters and facets, then search; the result
+   count and the Grid/Table view at the far right. Every control in it is 28 high,
+   so the row shares one height (tier 2). A collection with none of these has no
+   toolbar at all.                                                                 */
+export function ListToolbar({
+  state, filters, search, result, view, className,
+}: {
+  state?: React.ReactNode;
+  filters?: React.ReactNode;
+  search?: React.ReactNode;
+  /** "9 of 14 · overdue first": what the list is showing, and its true order. */
+  result?: React.ReactNode;
+  view?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      data-slot="list-toolbar"
+      className={cn("mb-[var(--space-4)] flex flex-wrap items-center gap-x-[var(--space-3)] gap-y-[var(--space-2)]", className)}
+    >
+      {state}
+      {filters && <div className="flex flex-wrap items-center gap-[var(--space-2)]">{filters}</div>}
+      {search}
+      {(result || view) && (
+        <div className="ml-auto flex items-center gap-[var(--space-3)]">
+          {result && <span className="type-meta tnum text-label-tertiary">{result}</span>}
+          {view}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── ListSearch — the one search field a collection has, 28 high ──────────────── */
+export function ListSearch({
+  value, onChange, placeholder, className,
+}: { value: string; onChange: (v: string) => void; placeholder: string; className?: string }) {
+  return (
+    <label className={cn("field-pill relative flex h-[var(--control-h-sm)] w-64 max-w-full items-center gap-2 rounded-md border border-control-edge bg-control-rest px-[var(--space-3)] text-label-secondary hover:border-control-edge-hover", className)}>
+      <Search className="size-[var(--icon-md)] shrink-0" aria-hidden />
+      <input
+        type="search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        className="min-w-0 flex-1 bg-transparent type-data text-label outline-none placeholder:text-label-placeholder"
+      />
+    </label>
+  );
+}
+
+/* ── useQueryState · useQueryParams — a list's selection, filters and view live in
+   the URL (VIS-096, COL-07/NAV-07). Written with the native history.replaceState,
+   which Next keeps in step with useSearchParams: choosing a row or a filter adds no
+   history entry and makes no round trip, yet Back from a detail page restores the list
+   as you left it, and a selection can be linked. Each write starts from the live URL,
+   so several keys set in one handler all land. A page that reads it sits in <Suspense>. */
+function writeQuery(patch: Record<string, string | null>, fallbacks: Record<string, string> = {}) {
+  const url = new URL(window.location.href);
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === null || v === "" || v === (fallbacks[k] ?? "")) url.searchParams.delete(k);
+    else url.searchParams.set(k, v);
+  }
+  /* null, as the Next docs do: passing the router's own state object marks the call as
+     the router's, and Next then does not bring useSearchParams up to date. */
+  window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+export function useQueryState(key: string, fallback = ""): [string, (v: string | null) => void] {
+  const params = useSearchParams();
+  const value = params.get(key) ?? fallback;
+  const set = useCallback((v: string | null) => writeQuery({ [key]: v }, { [key]: fallback }), [key, fallback]);
+  return [value, set];
+}
+
+/** Several keys at once: `set({ cat: "Hotel", id: null })`. */
+export function useQueryParams(): [URLSearchParams, (patch: Record<string, string | null>) => void] {
+  const params = useSearchParams();
+  const set = useCallback((patch: Record<string, string | null>) => writeQuery(patch), []);
+  return [params as unknown as URLSearchParams, set];
 }
 
 /* ── Page ─────────────────────────────────────────────────────────────────────
@@ -74,17 +167,27 @@ export function Page({
   );
 }
 
-/* ── SplitPage ───────────────────────────────────────────────────────────────
-   A catalogue or ledger with an inspector: a full-height column at the frame's
-   right edge, on raised paper behind a hairline. On the phone, a bottom sheet. */
+/* ── SplitPage — one list-and-detail pattern for every collection (VIS-096) ──
+   A catalogue, ledger or queue with an inspector: a card at the frame's right edge,
+   on raised paper; on the phone, a bottom sheet. Clicking a row selects it and opens
+   the inspector, on every collection and queue. The inspector PREVIEWS the item:
+     header   the item's name, "Open ↗" to its full page (`openHref`), and close.
+              Opening is a link, never the ink button (VIS-095: ink means do).
+     body     what the row cannot show, in the words the full page uses.
+     footer   the item's ONE next act (`footer`), pinned to the card's bottom.
+   Enter or a double-click on a row opens the full page, as "Open ↗" does.         */
 export function SplitPage({
-  header, panel, panelOpen, onClosePanel, panelTitle = "Detail", children,
+  header, panel, panelOpen, onClosePanel, panelTitle = "Detail", openHref, footer, children,
 }: {
   header?: React.ReactNode;
   panel: React.ReactNode;
   panelOpen: boolean;
   onClosePanel: () => void;
   panelTitle?: string;
+  /** The item's full page. Rendered as "Open ↗" in the inspector's header. */
+  openHref?: string;
+  /** The item's one next act, pinned to the bottom of the inspector. */
+  footer?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const isDesktop = useIsDesktop();
@@ -97,13 +200,30 @@ export function SplitPage({
   }, [panelOpen, onClosePanel]);
 
   const { s, d } = useDemo();
-  /* The right-hand slot holds one card at a time: choosing an item folds the assistant
-     away, so the item shows. */
+  /* The right-hand slot holds one card at a time. Choosing an item folds the assistant
+     away, so the item shows; opening the assistant closes the item, so a row is never
+     left selected under a card that no longer shows it. */
   useEffect(() => {
     if (panelOpen && s.assistantOpen) d({ type: "assistant", open: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panelOpen]);
+  useEffect(() => {
+    if (s.assistantOpen && panelOpen) onClosePanel();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.assistantOpen]);
   const open = isDesktop && panelOpen && !s.assistantOpen;
+
+  const openLink = openHref ? (
+    <Link
+      href={openHref}
+      className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 type-meta text-label-secondary hover:bg-interactive hover:text-label"
+    >
+      Open <ArrowUpRight className="size-3.5" aria-hidden />
+    </Link>
+  ) : null;
+  const pinned = footer ? (
+    <div className="shrink-0 border-t border-hairline px-[var(--space-6)] py-[var(--space-4)]">{footer}</div>
+  ) : null;
 
   return (
     <div className="flex h-full min-h-0 w-full">
@@ -129,13 +249,17 @@ export function SplitPage({
           data-inspector
           className="inspector-in absolute top-[var(--space-1)] right-[var(--space-1)] bottom-[var(--space-1)] z-10 flex w-[400px] flex-col overflow-hidden rounded-lg bg-raised shadow-elev-3"
         >
-            <div className="flex shrink-0 items-start justify-between gap-[var(--space-3)] px-[var(--space-6)] pt-[var(--space-6)] pb-[var(--space-2)]">
+            <div className="flex shrink-0 items-center justify-between gap-[var(--space-3)] px-[var(--space-6)] pt-[var(--space-6)] pb-[var(--space-2)]">
               <span className="min-w-0 truncate type-section">{panelTitle}</span>
-              <IconChrome label="Close panel" onClick={onClosePanel} className="-mt-0.5 -mr-1">
-                <X aria-hidden />
-              </IconChrome>
+              <div className="-mr-1 flex shrink-0 items-center gap-1">
+                {openLink}
+                <IconChrome label="Close panel" onClick={onClosePanel}>
+                  <X aria-hidden />
+                </IconChrome>
+              </div>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-[var(--space-6)] pt-[var(--space-2)] pb-[var(--space-6)]">{panel}</div>
+            {pinned}
         </aside>
       )}
 
@@ -145,9 +269,13 @@ export function SplitPage({
             <SheetTitle asChild><span className="sr-only">{panelTitle}</span></SheetTitle>
             <div className="flex items-center justify-between gap-2 border-b border-hairline px-[var(--space-6)] py-[var(--space-3)]">
               <span className="truncate type-section">{panelTitle}</span>
-              <IconChrome label="Close panel" onClick={onClosePanel}><X aria-hidden /></IconChrome>
+              <div className="flex shrink-0 items-center gap-1">
+                {openLink}
+                <IconChrome label="Close panel" onClick={onClosePanel}><X aria-hidden /></IconChrome>
+              </div>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-[var(--space-6)] pb-[var(--space-8)]">{panel}</div>
+            {pinned}
           </SheetContent>
         </Sheet>
       )}
@@ -167,7 +295,29 @@ function useIsDesktop() {
   return is;
 }
 
-/* ── ViewToggle ─────────────────────────────────────────────────────────────── */
+/* ── ActionBar — a detail page's primary, in reach under 1024 (NAV-08) ─────────
+   Below lg the rail that holds a page's one primary becomes an appendix at the end of
+   the page. The ActionBar repeats that primary in a bar pinned to the bottom of the
+   scroll, so it is visible on arrival at every width. Hidden at lg and above, where the
+   rail follows you. Put it last inside <Page>. */
+export function ActionBar({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div
+      data-slot="action-bar"
+      className={cn(
+        "sticky bottom-0 z-10 -mx-[var(--panel-pad)] mt-[var(--space-6)] flex items-center justify-end gap-[var(--space-2)] border-t border-hairline bg-raised px-[var(--panel-pad)] py-[var(--space-3)] lg:hidden",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+/* ── ViewToggle — Grid or Table, at the toolbar's far right (VIS-095) ───────────
+   A lens, not an act, so it never wears the area's fill: icon-only segments in a
+   sunken track, the chosen one raised onto paper (the row's lift, VIS-093). The
+   selected segment differs by surface and shadow, not colour (tier 2).           */
 const VIEW_OPTIONS = [
   { value: "grid" as const, label: "Grid", icon: LayoutGrid },
   { value: "table" as const, label: "Table", icon: Rows3 },
@@ -177,13 +327,29 @@ export function ViewToggle({
   value, onChange, className,
 }: { value: "grid" | "table"; onChange: (v: "grid" | "table") => void; className?: string }) {
   return (
-    <Segmented
-      value={value}
-      onChange={onChange}
-      options={VIEW_OPTIONS}
-      label="View"
-      className={className}
-    />
+    <div role="radiogroup" aria-label="View" className={cn("inline-flex items-center gap-0.5 rounded-md bg-sunken p-0.5", className)}>
+      {VIEW_OPTIONS.map((o) => {
+        const on = o.value === value;
+        const Icon = o.icon;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            aria-label={o.label}
+            title={o.label}
+            onClick={() => onChange(o.value)}
+            className={cn(
+              "grid h-6 w-7 cursor-pointer place-items-center rounded-sm transition-[background-color,box-shadow,color] duration-200",
+              on ? "bg-raised text-label shadow-elev-lift" : "text-label-tertiary hover:text-label",
+            )}
+          >
+            <Icon className="size-[var(--icon-md)]" aria-hidden />
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -214,14 +380,20 @@ function motifFor(category: string | undefined, h: number): Motif {
   return (["arch", "windows", "horizon", "palm"] as Motif[])[h % 4];
 }
 
+/** The generated plate's proportions (its viewBox, 320 × 200). */
+const PLATE_ASPECT = 1.6;
+
 export function PropertyImage({
-  id, name, category, className, src,
+  id, name, category, className, src, onAspect,
 }: {
   id: string;
   name?: string;
   category?: string;
   className?: string;
   src?: string;
+  /** Called with the picture's width ÷ height once it is known, so a gallery can give
+      each view its own shape instead of cropping it to a common one. */
+  onAspect?: (aspect: number) => void;
 }) {
   const [photoFailed, setPhotoFailed] = useState(false);
   const photo = src ?? `/records/${id}.jpg`;
@@ -233,7 +405,11 @@ export function PropertyImage({
         src={photo}
         alt={name ? `${name} — property photograph` : ""}
         loading="lazy"
-        onError={() => setPhotoFailed(true)}
+        onLoad={(e) => {
+          const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
+          if (w && h) onAspect?.(w / h);
+        }}
+        onError={() => { setPhotoFailed(true); onAspect?.(PLATE_ASPECT); }}
         className={cn("size-full object-cover", className)}
       />
     );
@@ -356,51 +532,49 @@ export function PropertyImage({
   );
 }
 
-/* ── PropertyGallery ────────────────────────────────────────────────────────────
-   The record's images as a mosaic: one establishing view held large, two closer
-   views stacked beside it. Radius-5 (the gallery step), 2px gaps, imagery scales
-   1.04 on hover. The reveal is the disclosure pattern: a grey button at the
-   content's left edge under the preview (VIS-071).                              */
+/* ── PropertyGallery — every view side by side, none cropped (2026-09-28) ───────
+   Constantin: keep the gallery low, but show the views whole. The views sit in one
+   row at one height, each at its own proportions: a tile's share of the row's width
+   is its width ÷ height (flex-grow), and its aspect-ratio keeps every height equal, so
+   the row fills the column and nothing is cut. The row always reaches the column's
+   right edge, as the header's actions do (Constantin, 2026-09-28: a row that stopped
+   short at 300px tall looked unfinished). Its height follows the width, about 300 to
+   360 on a desktop; past ROW_MAX_H, on a very wide screen, the row stays that height
+   and every view gives up the same thin band top and bottom rather than one view
+   being cut. On a phone, three views cannot share 343px, so the row keeps a fixed
+   height and scrolls sideways. Radius-5, 2px gaps, imagery scales 1.04 on hover.
+   Replaces the mosaic (one view large, two stacked beside it), which cropped every
+   view to the box it was given. A view opens whole in the lightbox.               */
+const ROW_MAX_H = 360;
+
 export function PropertyGallery({
   id, name, category, className,
 }: { id: string; name?: string; category?: string; className?: string }) {
   const [open, setOpen] = useState(false);
   const [at, setAt] = useState(0);
   const views = [`/records/${id}.jpg`, `/records/${id}-2.jpg`, `/records/${id}-3.jpg`];
+  /* The seeded views are 1.6 then 4:3; each is replaced by its measured shape on load. */
+  const [aspects, setAspects] = useState<number[]>([PLATE_ASPECT, 4 / 3, 4 / 3]);
+  const measured = (i: number) => (a: number) =>
+    setAspects((prev) => (Math.abs(prev[i] - a) < 0.005 ? prev : prev.map((x, j) => (j === i ? a : x))));
   const openAt = (i: number) => { setAt(i); setOpen(true); };
   const step = (n: number) => setAt((v) => (v + n + views.length) % views.length);
 
-  const tile = (i: number, extra?: string) => (
-    <button
-      type="button"
-      onClick={() => openAt(i)}
-      aria-label={`${name ?? "Property"} — view ${i + 1} of ${views.length}`}
-      className={cn("img-hover group relative cursor-pointer overflow-hidden bg-sunken", extra)}
-    >
-      <PropertyImage id={id} name={name} category={category} src={views[i]} />
-    </button>
-  );
-
   return (
     <>
-      <div
-        className={cn(
-          "grid gap-[2px] overflow-hidden rounded-2xl",
-          "aspect-[16/10] grid-cols-1 sm:aspect-[2/1] sm:grid-cols-[1.7fr_1fr]",
-          className,
-        )}
-      >
-        {tile(0, "size-full")}
-        <div className="hidden grid-rows-2 gap-[2px] sm:grid">
-          {tile(1)}
-          {tile(2)}
-        </div>
-      </div>
-
-      <div className="mt-[var(--space-3)]">
-        <Button variant="secondary" size="sm" onClick={() => openAt(0)}>
-          Show all {views.length} photos
-        </Button>
+      <div className={cn("flex gap-[2px] overflow-x-auto rounded-2xl sm:overflow-hidden", className)}>
+        {views.map((src, i) => (
+          <button
+            key={src}
+            type="button"
+            onClick={() => openAt(i)}
+            aria-label={`${name ?? "Property"} — view ${i + 1} of ${views.length}`}
+            style={{ aspectRatio: String(aspects[i]), flexGrow: aspects[i], maxHeight: ROW_MAX_H }}
+            className="img-hover group relative h-52 min-w-0 shrink-0 cursor-pointer overflow-hidden bg-sunken sm:h-auto sm:shrink sm:basis-0"
+          >
+            <PropertyImage id={id} name={name} category={category} src={src} onAspect={measured(i)} />
+          </button>
+        ))}
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -411,7 +585,11 @@ export function PropertyGallery({
               Generated view {at + 1} of {views.length}. The properties in this directory are fictional; the imagery is generated and depicts no real business.
             </DialogDescription>
           </DialogHeader>
-          <div className="aspect-[16/10] w-full overflow-hidden rounded-2xl bg-sunken">
+          {/* The view whole, at its own shape, never taller than the screen allows. */}
+          <div
+            className="mx-auto max-h-[70dvh] max-w-full overflow-hidden rounded-2xl bg-sunken"
+            style={{ aspectRatio: String(aspects[at]), width: `min(100%, calc(70dvh * ${aspects[at].toFixed(3)}))` }}
+          >
             <PropertyImage id={id} name={name} category={category} src={views[at]} />
           </div>
           <div className="flex items-center gap-[var(--space-2)]">
