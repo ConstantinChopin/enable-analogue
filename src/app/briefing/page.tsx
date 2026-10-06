@@ -90,11 +90,11 @@ function Opens({ href, children }: { href: string; children: React.ReactNode }) 
 
 /* ── an entity named in the day: every one opens the object it names ────────
    The lead is written as sentences, but each noun in it is a row in the model, so
-   it is a way in, not a summary to read and then go looking for. A quiet hairline
-   underline in the serif; the ink one under the pointer. */
+   it is a way in, not a summary to read and then go looking for. A quiet underline
+   in the serif, at a third of the ink; the full ink under the pointer. */
 function Ent({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="underline decoration-hairline underline-offset-[5px] hover:decoration-ink">
+    <Link href={href} className="underline decoration-link-rest underline-offset-[5px] hover:decoration-ink">
       {children}
     </Link>
   );
@@ -240,7 +240,7 @@ export default function Briefing() {
                 .slice(0, 4)
                 .map((c) => (
                   <Row key={c.id}>
-                    <Link href={`/commissions/${c.id}`} className="row-primary type-data-strong underline decoration-hairline underline-offset-4 hover:decoration-ink">
+                    <Link href={`/commissions/${c.id}`} className="row-primary type-data-strong underline decoration-link-rest underline-offset-4 hover:decoration-ink">
                       {c.property}
                     </Link>
                     <span className="row-trailing flex items-center gap-2">
@@ -276,7 +276,7 @@ export default function Briefing() {
                   key={n.id}
                   head={
                     <>
-                      <Link href={`/records/${n.productId}`} className="row-primary type-data-strong underline decoration-hairline underline-offset-4 hover:decoration-ink">
+                      <Link href={`/records/${n.productId}`} className="row-primary type-data-strong underline decoration-link-rest underline-offset-4 hover:decoration-ink">
                         {n.productName}
                       </Link>
                       <span className="flex shrink-0 items-center gap-2">
@@ -366,7 +366,7 @@ export default function Briefing() {
                     key={a.id}
                     head={
                       <>
-                        <Link href={`/knowledge?source=Announcements&doc=${a.id}`} className="row-primary type-data-strong underline decoration-hairline underline-offset-4 hover:decoration-ink">
+                        <Link href={`/knowledge?source=Announcements&doc=${a.id}`} className="row-primary type-data-strong underline decoration-link-rest underline-offset-4 hover:decoration-ink">
                           {a.title}
                         </Link>
                         <span className="type-meta tnum">{a.when}</span>
@@ -381,7 +381,7 @@ export default function Briefing() {
                         {a.links.map((id, i) => (
                           <React.Fragment key={id}>
                             {i > 0 && ", "}
-                            <Link href={`/records/${id}`} className="underline decoration-hairline underline-offset-4 hover:decoration-ink">
+                            <Link href={`/records/${id}`} className="underline decoration-link-rest underline-offset-4 hover:decoration-ink">
                               {productById(id)?.name ?? id}
                             </Link>
                           </React.Fragment>
@@ -502,7 +502,7 @@ export default function Briefing() {
                   key={c.id}
                   head={
                     <>
-                      <Link href={`/commissions/${c.id}`} className="row-primary type-data-strong underline decoration-hairline underline-offset-4 hover:decoration-ink">{c.property}</Link>
+                      <Link href={`/commissions/${c.id}`} className="row-primary type-data-strong underline decoration-link-rest underline-offset-4 hover:decoration-ink">{c.property}</Link>
                       <Chip tone="warn">actual under projection</Chip>
                     </>
                   }

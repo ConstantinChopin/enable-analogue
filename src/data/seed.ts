@@ -378,10 +378,23 @@ export const announcements: Announcement[] = [
 
 /* ── promotions ───────────────────────────────────────────── */
 
-export const promotions = [
-  { id: "ortensia3", program: "Meridian", productId: "villa-ortensia", productName: "Villa Ortensia", rate: "+3%", type: "bonus" as const, stacksWithBase: true, bookingWindowEnd: "05 Sep", travelWindowEnd: "20 Dec", daysLeft: 9, affectedClients: ["S. Marchetti", "T. & P. Osei", "L. Grandin"] },
-  { id: "atelier-credit", program: "Atelier", productId: "maison-leandre", productName: "Atelier Collection", rate: "Upgrade credit", type: "rate_override" as const, stacksWithBase: false, bookingWindowEnd: "12 Sep", travelWindowEnd: "31 Mar 2027", daysLeft: 16, affectedClients: ["S. Marchetti"] },
-  { id: "tulira-fifth", program: "Meridian", productId: "playa-tulira", productName: "Playa Tulira", rate: "Fifth night free", type: "bonus" as const, stacksWithBase: true, bookingWindowEnd: "30 Sep", travelWindowEnd: "15 Dec", daysLeft: 33, affectedClients: ["R. & M. Osei"] },
+export interface Promotion {
+  id: string; program: string; productId: string; productName: string; rate: string;
+  type: "bonus" | "rate_override"; stacksWithBase: boolean;
+  bookingWindowEnd: string; travelWindowEnd: string; daysLeft: number; affectedClients: string[];
+  /** An offer read from a partner's email this morning (2026-10-02): booked on its own
+      rate code, it pays `rate` instead of the programme's and adds a perk, and it
+      replaces the older offers it names on the same property. Until a line is booked on
+      it, the line keeps the programme's own terms: choosing the rate is the advisor's. */
+  offer?: { name: string; code: string; adds: string; supersedes?: string[]; from: { source: string; at: string; doc: string } };
+}
+
+export const promotions: Promotion[] = [
+  { id: "ortensia3", program: "Meridian", productId: "villa-ortensia", productName: "Villa Ortensia", rate: "+3%", type: "bonus", stacksWithBase: true, bookingWindowEnd: "05 Sep", travelWindowEnd: "20 Dec", daysLeft: 9, affectedClients: ["S. Marchetti", "T. & P. Osei", "L. Grandin"] },
+  { id: "atelier-credit", program: "Atelier", productId: "maison-leandre", productName: "Atelier Collection", rate: "Upgrade credit", type: "rate_override", stacksWithBase: false, bookingWindowEnd: "12 Sep", travelWindowEnd: "31 Mar 2027", daysLeft: 16, affectedClients: ["S. Marchetti"] },
+  { id: "tulira-fifth", program: "Meridian", productId: "playa-tulira", productName: "Playa Tulira", rate: "Fifth night free", type: "bonus", stacksWithBase: true, bookingWindowEnd: "30 Sep", travelWindowEnd: "15 Dec", daysLeft: 33, affectedClients: ["R. & M. Osei"] },
+  { id: "atelier-winter", program: "Atelier", productId: "maison-leandre", productName: "Maison Léandre", rate: "14%", type: "rate_override", stacksWithBase: false, bookingWindowEnd: "30 Sep", travelWindowEnd: "31 Mar 2027", daysLeft: 33, affectedClients: ["L. Grandin"],
+    offer: { name: "Atelier's winter offer", code: "ATL-WIN26", adds: "Champagne in the room on arrival", supersedes: ["atelier-credit"], from: { source: "Atelier's email", at: "08:12 today", doc: "Atelier — Paris winter offer" } } },
 ];
 
 /* ── commissions ──────────────────────────────────────────── */
@@ -741,6 +754,8 @@ export interface VaultDoc {
 }
 
 export const vaultDocs: VaultDoc[] = [
+  /* this morning's offer, in her mailbox: where the winter offer's terms were read from */
+  { name: "Atelier — Paris winter offer", source: "Email-in", updated: "Today", access: "private", state: "ok", by: "R. Devane" },
   { name: "Peru — just-back notes", source: "Upload", updated: "02 Jul", access: "team · Paris", state: "ok", by: "R. Devane" },
   { name: "Commission schedule.xlsx", source: "Drive sync", updated: "30 Jun", access: "admin only", state: "ok" },
   { name: "Rate note — Corvin & Wells", source: "Email-in", updated: "21 Jun", access: "private", state: "ok", by: "R. Devane" },
@@ -817,7 +832,11 @@ export interface Connector {
   grants: string[];
   /** The unit the person picks from — folders, labels, spaces. */
   scopeLabel: string;
-  scopeOptions: { id: string; label: string; detail: string; recommended?: boolean }[];
+  /** `arrives` is the first documents an option brings in once connected, as the vault
+      lists them while they are indexed (store.tsx, `arrivalsAt`). */
+  scopeOptions: { id: string; label: string; detail: string; recommended?: boolean; arrives: string[] }[];
+  /** The source its documents carry in the knowledge vault. */
+  docSource: "Drive sync" | "Email-in" | "Claromentis";
   /** Shown on the review step as the thing the connection cannot do. */
   cannot: string;
 }
@@ -834,11 +853,16 @@ export const connectors: Connector[] = [
     ],
     scopeLabel: "Folders to index",
     scopeOptions: [
-      { id: "partner-terms", label: "Partner terms", detail: "142 documents · shared drive", recommended: true },
-      { id: "rate-notes", label: "Rate notes 2026", detail: "238 documents · shared drive", recommended: true },
-      { id: "contracts", label: "Contracts — signed", detail: "61 documents · restricted" },
-      { id: "everything", label: "Everything in My Drive", detail: "personal files included — not recommended" },
+      { id: "partner-terms", label: "Partner terms", detail: "142 documents · shared drive", recommended: true,
+        arrives: ["Atelier Collection — Paris addendum 2027.pdf", "Meridian programme terms 2027.pdf"] },
+      { id: "rate-notes", label: "Rate notes 2026", detail: "238 documents · shared drive", recommended: true,
+        arrives: ["Amalfi coast rate sheet 2027.pdf", "Kyoto ryokan rates — winter.xlsx"] },
+      { id: "contracts", label: "Contracts — signed", detail: "61 documents · restricted",
+        arrives: ["Villa Ortensia — signed contract.pdf"] },
+      { id: "everything", label: "Everything in My Drive", detail: "personal files included — not recommended",
+        arrives: ["Untitled spreadsheet (14).xlsx"] },
     ],
+    docSource: "Drive sync",
     cannot: "Edit, move or delete anything in Drive. The connection is read-only.",
   },
   {
@@ -852,11 +876,16 @@ export const connectors: Connector[] = [
     ],
     scopeLabel: "Labels to index",
     scopeOptions: [
-      { id: "rates", label: "Rates", detail: "rate notes from rep firms", recommended: true },
-      { id: "rep-firms", label: "Rep firms", detail: "account correspondence", recommended: true },
-      { id: "bookings", label: "Bookings", detail: "confirmations and amendments" },
-      { id: "inbox", label: "The whole inbox", detail: "personal correspondence included — not recommended" },
+      { id: "rates", label: "Rates", detail: "rate notes from rep firms", recommended: true,
+        arrives: ["Rate note — Hôtel Verlaine reopening", "Rate note — Casa Marena summer 2027"] },
+      { id: "rep-firms", label: "Rep firms", detail: "account correspondence", recommended: true,
+        arrives: ["Corvin & Wells — account update"] },
+      { id: "bookings", label: "Bookings", detail: "confirmations and amendments",
+        arrives: ["Booking confirmation — Ryokan Suikawa"] },
+      { id: "inbox", label: "The whole inbox", detail: "personal correspondence included — not recommended",
+        arrives: ["Inbox — personal correspondence"] },
     ],
+    docSource: "Email-in",
     cannot: "Send, reply to, or delete mail. The connection reads and never writes.",
   },
   {
@@ -867,9 +896,12 @@ export const connectors: Connector[] = [
     grants: ["Read published pages in the spaces you select"],
     scopeLabel: "Spaces to index",
     scopeOptions: [
-      { id: "programmes", label: "Programmes", detail: "consortium and programme terms", recommended: true },
-      { id: "policies", label: "Desk policies", detail: "booking and service policy" },
+      { id: "programmes", label: "Programmes", detail: "consortium and programme terms", recommended: true,
+        arrives: ["Programme terms — Virtuoso 2027"] },
+      { id: "policies", label: "Desk policies", detail: "booking and service policy",
+        arrives: ["Desk policy — booking deposits"] },
     ],
+    docSource: "Claromentis",
     cannot: "Read draft or restricted pages, or publish anything.",
   },
 ];

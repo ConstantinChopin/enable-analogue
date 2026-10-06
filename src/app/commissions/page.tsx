@@ -261,7 +261,7 @@ function ProjectedFromTrips() {
         {rows.map(({ l, trip, name, rate, amount }) => (
           <li key={l.id} className="flex flex-wrap items-center justify-between gap-[var(--space-3)] py-[var(--space-3)]">
             <span className="min-w-0">
-              <Link href={`/itineraries/${l.tripId}?line=${l.id}`} className="type-data-strong underline decoration-hairline underline-offset-4 hover:decoration-ink">{name}</Link>
+              <Link href={`/itineraries/${l.tripId}?line=${l.id}`} className="type-data-strong underline decoration-link-rest underline-offset-4 hover:decoration-ink">{name}</Link>
               <span className="block type-meta">{trip?.traveller} · {l.program} {Math.round(rate * 100)}% · ref {l.confirmation?.ref} · confirmed {l.confirmation?.at}</span>
             </span>
             <span className="flex items-center gap-[var(--space-2)]">
@@ -275,7 +275,7 @@ function ProjectedFromTrips() {
   );
 }
 
-const linkCls = "underline decoration-hairline underline-offset-4 hover:decoration-ink";
+const linkCls = "underline decoration-link-rest underline-offset-4 hover:decoration-ink";
 
 /* ── the inspector: what the row cannot show, in the commission page's words ─────
    Every object is named as a link: the property's record, the traveller (where this

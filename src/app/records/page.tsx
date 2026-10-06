@@ -832,7 +832,7 @@ function PlainSummary({ p, money }: { p: Product; money: boolean }) {
     {
       label: "Rep firm",
       value: rep
-        ? <Link href={`/records/${rep.id}`} className="underline decoration-hairline underline-offset-4 hover:decoration-ink">{rep.name}</Link>
+        ? <Link href={`/records/${rep.id}`} className="underline decoration-link-rest underline-offset-4 hover:decoration-ink">{rep.name}</Link>
         : p.repFirm,
     },
     /* Commission belongs to a programme: each one, with its rate (2026-09-28). */

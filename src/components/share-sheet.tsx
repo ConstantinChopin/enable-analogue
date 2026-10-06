@@ -12,9 +12,14 @@
  * it at once when the owner shares it, and after her release when a user does. A
  * traveller is shared with a person, not an audience, so its sheet passes its own
  * options (the owner, and how much of the profile she sees) through `options`.
+ *
+ * Begun from an inspector card, sharing happens in the card (VIS-104): the card's
+ * content gives way to the same question, with Back in its header, and returns to the
+ * item on commit, Cancel or Back. Anywhere else it is a sheet.
  */
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useDemo, type ShareScope } from "@/lib/store";
+import { useInspector } from "@/components/layouts";
 import { people } from "@/data/seed";
 import { notify } from "@/lib/notify";
 import { Button } from "@/components/ui/button";
@@ -81,6 +86,23 @@ export function ShareSheet<T extends string = ShareScope>({
   /** Anything the choice needs beside the audience (how much of a profile). */
   extra?: ReactNode;
 }) {
+  const inspector = useInspector();
+
+  /* In a card: on open, the card shows the question in place of the item. The trigger
+     usually sits in the card's own foot, which the question replaces, so it hands the
+     card everything the question needs at that moment. */
+  useEffect(() => {
+    if (!inspector || !open) return;
+    const close = () => { inspector.show(null); onOpenChange(false); };
+    inspector.show({
+      title: `Share ${what}`,
+      content: <ShareBody variant="card" what={what} current={current} onShare={onShare} options={options} describe={describe} extra={extra} close={close} />,
+      onDismiss: () => onOpenChange(false),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, inspector]);
+  if (inspector) return null;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right">
@@ -92,10 +114,12 @@ export function ShareSheet<T extends string = ShareScope>({
 }
 
 function ShareBody<T extends string>({
-  what, current, onShare, options, describe, extra, close,
+  what, current, onShare, options, describe, extra, close, variant = "sheet",
 }: {
   what: string; current: T; onShare: (next: T) => void; options?: AudienceOption<T>[];
   describe?: (next: T) => string; extra?: ReactNode; close: () => void;
+  /** In a sheet it carries its own title; in a card the card's header names it. */
+  variant?: "sheet" | "card";
 }) {
   const { s } = useDemo();
   const owner = s.role === "owner";
@@ -115,6 +139,22 @@ function ShareBody<T extends string>({
     notify(said(choice), { undo: () => onShare(previous) });
   };
   const narrowing = choice === "private" && current !== "private";
+
+  /* in a card: the card's own measures, so the question sits where the item's rows sat
+     and its foot where the item's foot was */
+  if (variant === "card") return (
+    <>
+      <div className="min-h-0 flex-1 space-y-[var(--space-6)] overflow-y-auto px-[var(--space-6)] pt-[var(--space-2)] pb-[var(--space-6)]">
+        <p className="type-data text-label-secondary">Choose who can see it. You can change this at any time.</p>
+        <AudiencePicker id="share" value={choice} onChange={setChoice} options={opts} />
+        {extra}
+      </div>
+      <div className="flex shrink-0 items-center justify-end gap-[var(--space-2)] border-t border-hairline px-[var(--space-6)] py-[var(--space-4)]">
+        <Button variant="secondary" size="sm" onClick={close}>Cancel</Button>
+        <Button size="sm" disabled={choice === current} onClick={commit}>{narrowing ? "Make private" : "Share"}</Button>
+      </div>
+    </>
+  );
 
   return (
     <>

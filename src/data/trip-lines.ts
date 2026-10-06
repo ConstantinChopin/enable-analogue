@@ -15,7 +15,7 @@
  *
  * Everything here is fictional: suppliers, references, replies and prices.
  */
-import { productById, trips, personName, programmes, programmeLinks, type Persona, type Trip } from "@/data/seed";
+import { productById, trips, personName, programmes, programmeLinks, promotions, type Persona, type Trip } from "@/data/seed";
 
 export type LineKind = "stay" | "transfer" | "dining" | "experience" | "note";
 export type LineStatus = "idea" | "requested" | "held" | "confirmed" | "declined" | "cancelled";
@@ -68,6 +68,9 @@ export interface TripLine {
   confirmation?: { ref: string; by: Persona | "traveller"; at: string; source?: string };
   /** What the traveller pays for this line, EUR. The commission is worked from it. */
   sell?: number;
+  /** The partner offer it is booked on, if the advisor chose one (a promotion with an
+      `offer`, seed.ts): its rate replaces the programme's and its perk is added. */
+  offer?: string;
   requests: LineRequest[];
   /** Put here by the assistant's draft, not yet kept: why it was chosen, and from what.
       A suggestion is asked about only once the advisor keeps it. */
@@ -159,11 +162,20 @@ export function statusWord(l: TripLine, today: string): string {
    from it. */
 export interface ProgrammeTerms { rate: number; amenities: string[]; conditions: string }
 
-export function termsFor(productId: string, program: string): ProgrammeTerms | null {
+export function termsFor(productId: string, program: string, offerId?: string): ProgrammeTerms | null {
   const link = programmeLinks.find((l) => l.productId === productId && l.programme === program);
   if (!link) return null;
   const rate = Number(link.rate.replace("%", "")) / 100;
   const prog = programmes[link.programme];
+  /* booked on a partner's offer: its rate, the programme's perks and the offer's own */
+  const o = offerId ? promotions.find((p) => p.id === offerId && p.offer && p.productId === productId && p.program === program) : undefined;
+  if (o?.offer) {
+    return {
+      rate: Number(o.rate.replace("%", "")) / 100,
+      amenities: [...link.clientAmenities.map((a) => a.benefit), o.offer.adds],
+      conditions: `Booked on ${o.offer.name} (${o.offer.code}), read from ${o.offer.from.source} at ${o.offer.from.at}. Commission paid ${prog.paid}.`,
+    };
+  }
   return {
     rate: Number.isFinite(rate) ? rate : 0,
     amenities: link.clientAmenities.map((a) => a.benefit),

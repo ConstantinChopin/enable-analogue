@@ -98,7 +98,7 @@ const NAME_OF_INITIALS: Record<string, string> = {
 };
 const nameOfInitials = (i: string) => NAME_OF_INITIALS[i] ?? i;
 const NOTICE_AUDIENCE: Record<Notice["scope"], string> = { personal: "its author", team: "the Paris desk", agency: "the whole agency" };
-const linkClass = "underline decoration-hairline underline-offset-4 hover:decoration-ink";
+const linkClass = "underline decoration-link-rest underline-offset-4 hover:decoration-ink";
 
 /* ── the sheet body: 24 inside, rows stacked ──────────────────────────────── */
 function SheetBody({ children, className }: { children: ReactNode; className?: string }) {

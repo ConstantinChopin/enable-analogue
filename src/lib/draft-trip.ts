@@ -407,13 +407,18 @@ export function planDraft(b: DraftBrief, s: DemoState): DraftPlan | null {
     const avoid = prefs.map((p) => p.text.toLowerCase());
     const dinner = place.dinners.find((x) => !x.avoid?.some((a) => avoid.some((p) => p.includes(a)))) ?? place.dinners[0];
     const tenth = b.who.name === "L. Grandin" && /Clos Arsène/.test(dinner.what) ? "; they celebrated their tenth here" : "";
+    /* "Dinner no earlier than 20:00" moves the table to that hour, and the reason says
+       so: the last step claims nothing is against their taste, so the time must not be. */
+    const earliest = avoid.map((p) => p.match(/dinner no earlier than (\d{1,2}:\d{2})/)?.[1]).find(Boolean);
+    const time = earliest && earliest.padStart(5, "0") > dinner.time ? earliest.padStart(5, "0") : dinner.time;
+    const moved = time !== dinner.time ? `; booked at ${time}, as they prefer` : "";
     steps.push({
       label: `The ${occasion.replace(/^(an?|their) /, "")} dinner`,
-      detail: `${dinner.what.replace(/^Dinner, /, "")}, ${dayLabel(occasionDay)}: ${dinner.reason.toLowerCase()}${tenth}`,
+      detail: `${dinner.what.replace(/^Dinner, /, "")}, ${dayLabel(occasionDay)}: ${dinner.reason.toLowerCase()}${tenth}${moved}`,
       lines: [line("dinner", {
-        kind: "dining", on: occasionDay, time: dinner.time, what: `${capFirst(occasion.replace(/^(an?|their) /, ""))} dinner, ${dinner.what.replace(/^Dinner, /, "")}`,
+        kind: "dining", on: occasionDay, time, what: `${capFirst(occasion.replace(/^(an?|their) /, ""))} dinner, ${dinner.what.replace(/^Dinner, /, "")}`,
         detail: tenth ? "the table by the window" : undefined, supplier: dinner.supplier,
-        suggested: { reason: `${dinner.reason}${tenth}`, source: tenth ? `${b.who.name}'s profile, call notes 14 Jul` : place.source },
+        suggested: { reason: `${dinner.reason}${tenth}${moved}`, source: tenth ? `${b.who.name}'s profile, call notes 14 Jul` : place.source },
       })],
     });
   }

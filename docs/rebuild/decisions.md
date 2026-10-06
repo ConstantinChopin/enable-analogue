@@ -277,3 +277,21 @@ Evidence classes: **[A]** Airbnb pattern (anatomy file) · **[E]** editorial ref
 **Problem it serves:** Constantin, 2026-09-28: "you might have different partner programs so they need to be selectable / openable trays to see how the data is grouped per programs". Production has about twenty programmes; a property in four could not be read in columns.
 **Why this one:** _(draft for Constantin to rewrite)_ the closed rows are the comparison, so an advisor can choose which programme to book under from the list and open only the one she needs.
 **Enforced by:** `ProgrammesChapter`, `ProgrammeTray`, `useProgrammeTrays` (src/app/records/[id]/page.tsx).
+
+## VIS-104 · 2026-10-03 · proposed · amends VIS-101 for the inspector
+**Decision:** an act begun in an inspector card happens in that card. Sharing from a card no longer slides a sheet over it: the card's content gives way to the same question ("Who can see this?", the same options and consequence lines, Cancel then the act at the right), its header names the act with Back beside the close, and it returns to the item on commit, Cancel, Back, Escape or a new selection. Outside a card, sharing is still the sheet.
+**Problem it serves:** Constantin, 2026-10-03, on Knowledge: "why when we click share on these layouts there is a shadow behind the persistent card and not just replacing existing content in persistent card". A second right-hand surface over the first, dimming the page, read as leaving the item.
+**Evidence:** [C] Constantin's review of /knowledge, 2026-10-03.
+**Alternatives considered:** keep the sheet over the card (VIS-101 as it stood); a popover anchored to the Share button.
+**Why this one:** _(draft for Constantin to rewrite)_ the card already holds the item, so the choice about who sees it belongs in the card, and the new access shows in the same place the moment the choice is made.
+**What we'd change if wrong:** if an act needs more room than the card's 400 points, it opens as a sheet again.
+**Enforced by:** `InspectorContext` and `useInspector` in `SplitPage` (src/components/layouts.tsx); `ShareSheet` shows itself in the card when it is inside one (src/components/share-sheet.tsx). Travellers keeps its sheets in the card's foot so they are inside it.
+
+## VIS-105 · 2026-10-06 · proposed · amends VIS-095 for Knowledge
+**Decision:** Knowledge's title row carries "New connection" beside Upload, and it opens the connection flow over the vault instead of sending the reader to Connections. The text link at the foot of the page, which said "Connect a source" and led away to Connections, now says "New connection" and opens the same sheet. Upload stays a schematic; "New connection" is the title row's one working create.
+**Problem it serves:** Constantin, 2026-10-06, on the live /knowledge: "why dont we have the add connection flow in this build?" The flow was built, but the only way in from Knowledge was a small link at the bottom of the page, under a different name from the one Connections uses (NAV-04).
+**Evidence:** [C] Constantin's review of the live /knowledge, 2026-10-06.
+**Alternatives considered:** keep the foot link and rename it only; make "New connection" the one create and drop the Upload schematic from the title row.
+**Why this one:** _(draft for Constantin to rewrite)_ connecting a source is how documents arrive in the vault, so it belongs where the vault is read; and since a new connection's documents arrive in this list as they are indexed, the reader sees the result of the act on the page where she began it.
+**What we'd change if wrong:** if two creates in the title row read as competing, drop the Upload schematic from the row and keep it in "Adding a document".
+**Enforced by:** `KnowledgeVault`'s header and its "Adding a document" section, both opening `AddConnection` (src/app/knowledge/page.tsx).

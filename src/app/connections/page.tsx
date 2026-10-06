@@ -26,7 +26,7 @@
 import { Fragment, Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { connectionsFor, personName, type Persona } from "@/data/seed";
-import { useDemo } from "@/lib/store";
+import { useDemo, syncedAt, useArrivalClock } from "@/lib/store";
 import { Page, PageHeader } from "@/components/layouts";
 import { Chip, Section, Blocker, Done } from "@/components/bits";
 import { notify } from "@/lib/notify";
@@ -39,7 +39,15 @@ import {
 } from "@/components/ui/sheet";
 import { AddConnection } from "./add-connection";
 
-type Connection = ReturnType<typeof connectionsFor>[number];
+/** A row on the list: a seeded source, or one connected this session. */
+type Connection = {
+  name: string;
+  state: "ok" | "syncing" | "credentials";
+  lastSuccess: string;
+  posture: string;
+  scope: "agency" | "personal";
+  by: Persona;
+};
 
 /** The admin who holds the agency's credentials. */
 const CREDENTIAL_HOLDER = "A. Blanc";
@@ -71,7 +79,24 @@ function Connections() {
   const [addOpen, setAddOpen] = useState(wantsAdd);
   const [reconnect, setReconnect] = useState<Connection | null>(null);
 
-  const mine = connectionsFor(s.role);
+  /* A source connected this session leads the list, syncing until its first documents
+     are in. The same rule as `connectionsFor`: a person sees the sources she connected. */
+  const now = useArrivalClock(s);
+  const added: Connection[] = s.createdConnections
+    .filter((c) => c.by === s.role)
+    .reverse()
+    .map((c) => {
+      const synced = now >= syncedAt(c);
+      return {
+        name: c.name,
+        state: synced ? "ok" : "syncing",
+        lastSuccess: synced ? "just now" : "first sync",
+        posture: c.by === "owner" ? "read-only · closed to the administrators" : `read-only · private to ${personName[c.by]}`,
+        scope: c.by === "owner" ? "agency" : "personal",
+        by: c.by,
+      };
+    });
+  const mine = [...added, ...connectionsFor(s.role)];
 
   const requestReauth = (c: Connection) => {
     const key = `reauth:${c.name}`;

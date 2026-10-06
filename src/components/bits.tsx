@@ -9,7 +9,7 @@ import type { Area } from "@/lib/areas";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { notify } from "@/lib/notify";
-import { FileText, HardDrive, Mail, Route, Database, Globe, PenLine, Megaphone, OctagonAlert, TriangleAlert, Check } from "lucide-react";
+import { FileText, HardDrive, Mail, Route, Database, Globe, Earth, PenLine, Megaphone, OctagonAlert, TriangleAlert, Check } from "lucide-react";
 
 /* ── Absent ──────────────────────────────────────────────────────────────────
    One vocabulary for empty. Restricted material never reaches the page; every
@@ -241,7 +241,7 @@ export function FreshnessDate({ children, stale }: { children: React.ReactNode; 
 }
 
 /* ── SourceTag ── */
-const sourceIcons = { intranet: FileText, gdrive: HardDrive, email: Mail, axus: Route, tripsuite: Database, portal: Globe, manual: PenLine, announcement: Megaphone } as const;
+const sourceIcons = { intranet: FileText, gdrive: HardDrive, email: Mail, axus: Route, tripsuite: Database, portal: Globe, manual: PenLine, announcement: Megaphone, web: Earth } as const;
 export function SourceTag({ kind, label }: { kind: keyof typeof sourceIcons; label: string }) {
   const Icon = sourceIcons[kind];
   return (
@@ -441,7 +441,7 @@ export function ProvenancePopover({ source, children }: { source: { what: string
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="pressable -mx-1 cursor-pointer rounded-sm px-1 text-left underline decoration-hairline underline-offset-4 hover:bg-interactive hover:decoration-ink">{children}</button>
+        <button className="pressable -mx-1 cursor-pointer rounded-sm px-1 text-left underline decoration-link-rest underline-offset-4 hover:bg-interactive hover:decoration-ink">{children}</button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-80 space-y-2 type-data">
         <div className="type-meta text-label-tertiary">Field provenance</div>

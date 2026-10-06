@@ -79,7 +79,7 @@ With thanks,
 ${personName[role]} · Enable, ${role === "owner" ? "agency owner" : "Paris desk"}`;
 }
 
-const linkCls = "underline decoration-hairline underline-offset-4 hover:decoration-ink";
+const linkCls = "underline decoration-link-rest underline-offset-4 hover:decoration-ink";
 
 /* ── a timeline row: stage · value · provenance on the record's shared track ── */
 function TimelineRow({

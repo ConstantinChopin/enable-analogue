@@ -512,12 +512,38 @@ function commissionAnswer(c: (typeof commissions)[number], s: DemoState): Answer
   };
 }
 
-/** Nothing matched: a refusal, with the check it failed and a way forward (AI-05). */
+/** Nothing matched: a refusal, with the check it failed and a way forward (AI-05). The
+    agency's own sources come first; the open web is offered, never gone to by default
+    (Constantin, 2026-10-02). */
 const cannotFind = (): Answer => ({
-  text: ["I can’t find that in the agency’s sources, so I won’t guess.", "Name a property, a traveller or a commission, or ask me to catch you up."],
+  text: ["I can’t find that in the agency’s sources, so I won’t guess.", "Name a property, a traveller or a commission, or I can look on the open web."],
   contract: { status: "refused", checks: [{ clause: "Sources", ok: false, note: "Nothing in the agency’s sources matches these words." }] },
-  actions: [{ label: "Catch me up", reply: "Catch me up" }, { label: "Search the records", href: "/records" }],
+  actions: [{ label: "Look on the open web", reply: "Look on the open web" }, { label: "Search the records", href: "/records" }],
 });
+
+/** The open web, asked for after the agency's sources could not answer: the question is
+    the one they refused. Said as the web's, with the page it came from, and never added
+    to the agency's records. */
+function webAnswer(thread?: AssistantThread): Answer {
+  const refused = [...(thread?.turns ?? [])].reverse()
+    .find((x) => x.answer?.contract?.status === "refused" && x.answer.contract.checks?.some((c) => c.clause === "Sources" && !c.ok));
+  const asked = norm(refused?.said ?? refused?.q ?? "");
+  if (/rodin/.test(asked)) {
+    return {
+      text: [
+        "The Musée Rodin’s own website says it is open Tuesday to Sunday, and closed on Mondays.",
+        "This comes from the open web, not from the agency’s records, so check it before you tell your client.",
+      ],
+      cites: [[1], []],
+      sources: [{ n: 1, label: "Musée Rodin website", detail: `musee-rodin.fr · Plan your visit · read today at ${clock()}`, kind: "web" }],
+      contract: { status: "web", corroborated: 1 },
+    };
+  }
+  return {
+    text: [refused ? "Nothing on the open web answers that clearly either, so I won’t guess." : "Ask me something first: I look on the open web only when the agency’s sources cannot answer."],
+    contract: { status: "refused", checks: [{ clause: "Sources", ok: false, note: "Neither the agency’s sources nor the open web settle it." }] },
+  };
+}
 
 function answerFor(q: string, ctx: PageContext | null, s: DemoState, thread?: AssistantThread): Answer {
   const t = norm(q.trim());
@@ -606,6 +632,12 @@ function answerFor(q: string, ctx: PageContext | null, s: DemoState, thread?: As
 
   /* what the agency said about Kyoto */
   if (/kyoto/.test(t)) return kyotoAnswer();
+
+  /* the open web, asked for after a refusal */
+  if (/^(look|search|check)( it up)? on the (open )?web|^(look|search|check) the (open )?web/.test(t)) return webAnswer(thread);
+
+  /* the spa at Maison Léandre: the agency's notice answers, before the record's summary */
+  if (/\bspa\b/.test(t) && t.includes("leandre")) return spaAnswer(s, basisNow("spa-notice", s) === "active");
 
   /* a record, named or the one the page is about */
   const named = products.find((p) => recordVisible(s, p.id) && t.includes(norm(p.name)));
@@ -820,6 +852,7 @@ export function threadState(t: AssistantThread, s?: DemoState): { tone: "warn" |
     case "refused": return { tone: "muted", word: "refused" };
     case "stale": return { tone: "muted", word: "may be out of date" };
     case "notice": return { tone: "muted", word: "carries a notice" };
+    case "web": return { tone: "muted", word: "from the open web" };
     default: return { tone: "muted", word: "answered" };
   }
 }
@@ -1320,6 +1353,7 @@ function ContractLine({ c, count, full }: { c: AnswerContract; count: number; fu
   const chip =
     c.status === "disagree" ? <Chip tone="warn">sources disagree</Chip>
     : c.status === "stale" ? <Chip tone="warn">may be out of date</Chip>
+    : c.status === "web" ? <Chip tone="warn">from the open web</Chip>
     : c.status === "notice" ? <Chip tone="neutral">carries an open notice</Chip>
     /* In the reader's words: what was checked, not the name of the rule (FB-08). */
     : full ? <Chip tone="neutral">sources checked</Chip>

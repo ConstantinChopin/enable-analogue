@@ -243,7 +243,7 @@ function TripPanel({ t }: { t: Trip }) {
       <div>
         <p className="type-meta">
           {t.travellerId ? (
-            <Link href={`/travellers/${t.travellerId}`} className="underline decoration-hairline underline-offset-4 hover:decoration-ink">{t.traveller}</Link>
+            <Link href={`/travellers/${t.travellerId}`} className="underline decoration-link-rest underline-offset-4 hover:decoration-ink">{t.traveller}</Link>
           ) : t.traveller}
           {" · "}{t.destinations.join(" · ")}
         </p>
@@ -300,7 +300,7 @@ function TripPanel({ t }: { t: Trip }) {
             <Row key={p.id}>
               <Link
                 href={`/records/${p.id}`}
-                className="row-primary flex items-center gap-[var(--space-3)] underline decoration-hairline underline-offset-4 hover:decoration-ink"
+                className="row-primary flex items-center gap-[var(--space-3)] underline decoration-link-rest underline-offset-4 hover:decoration-ink"
               >
                 <span className="size-8 shrink-0 overflow-hidden rounded-md bg-sunken">
                   <PropertyImage id={p.id} name={p.name} category={p.category} />

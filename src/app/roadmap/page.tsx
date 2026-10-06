@@ -62,7 +62,7 @@ const S: Record<string, Surface> = {
   },
   assistant: {
     status: "partial", as: "user", to: "/records/maison-leandre", ask: "What is true about Maison Léandre?", title: "The assistant",
-    note: "Answers from the agency's own sources, each cited; permission-aware; every conversation kept, with its own title. It also acts: it drafts, chases and asks suppliers, step by step on screen, and stops for your confirm. Not yet: web sources on request, and usage limits.",
+    note: "Answers from the agency's own sources, each cited; permission-aware; every conversation kept, with its own title. It also acts: it drafts, chases and asks suppliers, step by step on screen, and stops for your confirm. When the agency's sources cannot answer, it offers to look on the open web, and marks what it found there as the web's. Not yet: usage limits.",
   },
   conversations: {
     status: "built", as: "user", to: "/ask?c=leandre-rate", title: "An answer you can check",

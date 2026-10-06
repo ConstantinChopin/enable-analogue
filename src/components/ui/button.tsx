@@ -41,7 +41,7 @@ const buttonVariants = cva(
         ghost:
           "rounded-md text-label-secondary hover:bg-interactive hover:text-label disabled:text-label-disabled",
         link:
-          "h-auto rounded-sm px-0 text-label underline underline-offset-4 decoration-hairline hover:decoration-ink disabled:text-label-disabled",
+          "h-auto rounded-sm px-0 text-label underline underline-offset-4 decoration-link-rest hover:decoration-ink disabled:text-label-disabled",
         destructive:
           "rounded-md bg-crit text-on-ink hover:brightness-95 disabled:bg-disabled disabled:text-label-disabled",
       },

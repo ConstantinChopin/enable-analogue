@@ -221,14 +221,39 @@ function Travellers() {
     });
   }
 
+  /* One sharing sheet (VIS-101), kept in the card's foot beside the button that opens it,
+     so it opens in the card (VIS-104). A seeded traveller is shared with a person; one
+     added by hand with an audience, which is what the store keeps for it. */
+  const shareSheet = !active ? null
+    : active.created ? (active.created.by === s.role ? (
+        <ShareSheet<ShareScope>
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          what={active.name}
+          current={active.created.share}
+          onShare={(v) => d({ type: "shareCreated", kind: "traveller", id: active.id, scope: v })}
+        />
+      ) : null)
+    : active.card && travellerShareOf(s, active.card).live ? (
+        <ShareSheet<TravellerTier>
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          what={active.name}
+          current={s.shareTier}
+          options={travellerShareOptions}
+          describe={(v) => describeTravellerShare(active.name, v)}
+          onShare={(v) => d({ type: "share", tier: v })}
+        />
+      ) : null;
+
   /* The inspector's one act: who can see this profile (VIS-101). Live where the store
      keeps the share (S. Marchetti, a traveller added by hand); drawn for the others. */
   const footer = !active || viaShare ? undefined
     : active.created ? (active.created.by === s.role
-      ? <Button variant="secondary" className="w-full" onClick={() => setShareOpen(true)}><Share2 aria-hidden /> {active.created.share === "private" ? "Share" : "Change sharing"}</Button>
+      ? <><Button variant="secondary" className="w-full" onClick={() => setShareOpen(true)}><Share2 aria-hidden /> {active.created.share === "private" ? "Share" : "Change sharing"}</Button>{shareSheet}</>
       : undefined)
     : active.card && travellerShareOf(s, active.card).live
-      ? <Button variant="secondary" className="w-full" onClick={() => setShareOpen(true)}><Share2 aria-hidden /> {s.shareTier === "private" ? "Share" : "Change sharing"}</Button>
+      ? <><Button variant="secondary" className="w-full" onClick={() => setShareOpen(true)}><Share2 aria-hidden /> {s.shareTier === "private" ? "Share" : "Change sharing"}</Button>{shareSheet}</>
       : <SchematicAction className="w-full justify-center"><Share2 className="size-[var(--icon-md)]" aria-hidden /> {active.card?.shared ? "Change sharing" : "Share"}</SchematicAction>;
 
   const header = (
@@ -343,28 +368,6 @@ function Travellers() {
         onCreate={create}
       />
 
-      {/* One sharing sheet (VIS-101). A seeded traveller is shared with a person; one added
-          by hand with an audience, which is what the store keeps for it. */}
-      {active?.card && travellerShareOf(s, active.card).live && (
-        <ShareSheet<TravellerTier>
-          open={shareOpen}
-          onOpenChange={setShareOpen}
-          what={active.name}
-          current={s.shareTier}
-          options={travellerShareOptions}
-          describe={(v) => describeTravellerShare(active.name, v)}
-          onShare={(v) => d({ type: "share", tier: v })}
-        />
-      )}
-      {active?.created && active.created.by === s.role && (
-        <ShareSheet<ShareScope>
-          open={shareOpen}
-          onOpenChange={setShareOpen}
-          what={active.name}
-          current={active.created.share}
-          onShare={(v) => d({ type: "shareCreated", kind: "traveller", id: active.id, scope: v })}
-        />
-      )}
     </SplitPage>
   );
 }
@@ -502,7 +505,7 @@ function TravellerPanel({ item: c }: { item: Item }) {
               const r = readinessOf(s, t);
               return (
                 <li key={t.id} className="flex flex-col items-start gap-[var(--space-1)] py-[var(--space-2)]">
-                  <Link href={`/itineraries/${t.id}`} className="type-data underline decoration-hairline underline-offset-4 hover:decoration-ink">
+                  <Link href={`/itineraries/${t.id}`} className="type-data underline decoration-link-rest underline-offset-4 hover:decoration-ink">
                     {t.title}
                   </Link>
                   <span className="row-trailing flex items-center gap-[var(--space-2)]">

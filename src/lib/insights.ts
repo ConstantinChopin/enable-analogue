@@ -57,7 +57,8 @@ import {
   orphanedPayments, connections, productById,
   type Trip, type TripLeg,
 } from "@/data/seed";
-import { linesOf } from "@/data/trip-lines";
+import { linesOf, termsFor } from "@/data/trip-lines";
+import { liveState, isLate } from "@/app/commissions/ledger";
 import { tripChecks } from "@/lib/trip-checks";
 
 export type Tier = 1 | 2 | 3 | 4 | 5;
@@ -212,17 +213,41 @@ function knowledgeMeetsClient(s: DemoState): Insight[] {
   return out;
 }
 
-/** Deadline × client: an incentive's booking window × a trip of hers still in planning. */
+/** Deadline × client: an incentive's booking window × a trip of hers still in planning.
+    An offer read from a partner's email this morning (2026-10-02) says what it is worth on
+    the trip: the line's commission at the programme's rate and at the offer's, and what
+    it adds for the traveller. Choosing it is the advisor's act, on the line; until then
+    the older offer it replaces is not raised beside it. */
 function deadlineMeetsClient(s: DemoState): Insight[] {
   if (!canViewCommissions(s)) return [];
   const out: Insight[] = [];
+  const replaced = new Set(promotions.flatMap((p) => p.offer?.supersedes ?? []));
   for (const p of promotions) {
+    if (replaced.has(p.id)) continue;
     const t = allTrips(s).find((x) => (x.status === "Planning" || x.status === "Inbound")
       && (linesOf(s.tripLines, x.id).length
         ? linesOf(s.tripLines, x.id).some((l) => l.productId === p.productId && l.status !== "confirmed" && l.status !== "declined")
         : x.products.includes(p.productId)));
     if (!t) continue;
     const name = productById(p.productId)?.name ?? p.productName;
+    if (p.offer) {
+      const l = linesOf(s.tripLines, t.id).find((x) => x.productId === p.productId && x.program === p.program && x.status !== "confirmed" && x.status !== "declined");
+      if (!l || l.offer === p.id) continue;
+      const base = termsFor(p.productId, p.program)?.rate ?? 0;
+      const now = l.sell ? Math.round(l.sell * base) : 0;
+      const then = l.sell ? Math.round(l.sell * Number(p.rate.replace("%", "")) / 100) : 0;
+      const adds = p.offer.adds.charAt(0).toLowerCase() + p.offer.adds.slice(1);
+      out.push({
+        id: `offer-${p.id}-${t.id}`, chapter: "incentives", title: "Expiring incentives", tier: 2,
+        severity: "Important", within: 0, subject: `trip:${t.id}:offer`,
+        facts: { offer: p.offer.name, rate: p.rate, adds: p.offer.adds, property: name, bookBy: p.bookingWindowEnd, trip: t.title, traveller: t.traveller, now, then },
+        headline: `Use ${p.offer.name} for ${t.traveller}'s stay`,
+        text: `${p.offer.from.source} this morning pays ${p.rate} and adds ${adds} at ${name}, for stays booked by ${p.bookingWindowEnd}. ${t.traveller}'s stay there is held, not yet confirmed: ${eur(then)} instead of ${eur(now)}.`,
+        evidence: `${p.offer.from.source} · ${p.offer.from.at} · ${p.offer.from.doc}`,
+        action: { label: "Open the stay", href: tripHref(s, t, l.id) },
+      });
+      continue;
+    }
     out.push({
       id: `incentive-${p.id}`, chapter: "incentives", title: "Expiring incentives", tier: 2,
       severity: "Important", covers: { href: `/records/${p.productId}`, tag: "Commissions" },
@@ -240,7 +265,8 @@ function deadlineMeetsClient(s: DemoState): Insight[] {
 /** Late money that shares one programme. The advisor chases; the owner negotiates. */
 function lateByProgramme(s: DemoState): Insight[] {
   if (!canViewCommissions(s)) return [];
-  const late = commissions.filter((c) => c.state === "overdue" || c.state === "chased");
+  /* as the ledger stands this session: a reminder sent here makes a commission chased */
+  const late = commissions.filter((c) => isLate(liveState(s, c)));
   const by = new Map<string, typeof late>();
   for (const c of late) if (c.program) by.set(c.program, [...(by.get(c.program) ?? []), c]);
   const [programme, group] = [...by.entries()].sort((a, b) => b[1].length - a[1].length)[0] ?? [];
@@ -260,8 +286,10 @@ function lateByProgramme(s: DemoState): Insight[] {
   if (s.role === "owner") {
     return [{ ...base, headline: `Raise the late payments with ${programme}`, text: `${lead} One call covers them all.`, action: { label: "Open the late payments", href: "/commissions?state=overdue" } }];
   }
-  /* The first overdue commission: the longest-waiting one not yet chased. */
-  const first = group.filter((c) => c.state === "overdue").sort((a, b) => (b.overdueDays ?? 0) - (a.overdueDays ?? 0))[0] ?? group[0];
+  /* The first overdue commission: the longest-waiting one not yet chased. Once every one
+     has been chased, there is nothing left for the advisor to do here. */
+  const first = group.filter((c) => liveState(s, c) === "overdue").sort((a, b) => (b.overdueDays ?? 0) - (a.overdueDays ?? 0))[0];
+  if (!first) return [];
   return [{ ...base, headline: `Chase ${first.property} first`, text: `${lead} ${first.property} is ${first.overdueDays} days overdue and not chased yet.`, action: { label: `Chase ${first.property}`, href: `/commissions/${first.id}` } }];
 }
 

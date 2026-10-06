@@ -48,7 +48,7 @@ import {
   stamp, TODAY, type TripLine, type LineKind, type LineRequest,
 } from "@/data/trip-lines";
 import {
-  tripChecks, tallyOf, projectedOf, blockOf, cautionOf, tasteClash, tasteKey, keptWords, incentiveOf, incentiveWords,
+  tripChecks, tallyOf, projectedOf, blockOf, cautionOf, tasteClash, tasteKey, keptWords, incentiveOf, incentiveWords, offerOf,
   inCommissions, visibleTrips, takeOff, tripShareOf, tripShareKey, type Check,
 } from "@/lib/trip-checks";
 import { notify } from "@/lib/notify";
@@ -57,7 +57,7 @@ import { InsightRail } from "@/components/insight-rail";
 import { ShareSheet, audienceOptions, audienceLabel } from "@/components/share-sheet";
 import { PageHeader, SplitPage, PropertyImage } from "@/components/layouts";
 import {
-  Chip, Section, SeverityBanner, Segmented, ConfirmBanner, EmptyState, Blocker, Warning, SchematicAction, Rows, Row,
+  Chip, Section, SeverityBanner, Segmented, ConfirmBanner, EmptyState, Blocker, Warning, SchematicAction, Rows, Row, Done,
 } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -258,7 +258,7 @@ function TripView() {
           <div className="mt-[var(--space-2)] flex flex-wrap items-center gap-x-[var(--space-3)] gap-y-[var(--space-1)]">
             <p className="type-meta tnum">
               {trip.travellerId ? (
-                <Link href={`/travellers/${trip.travellerId}`} className="underline decoration-hairline underline-offset-4 hover:decoration-ink">{trip.traveller}</Link>
+                <Link href={`/travellers/${trip.travellerId}`} className="underline decoration-link-rest underline-offset-4 hover:decoration-ink">{trip.traveller}</Link>
               ) : trip.traveller}
               {" · "}{trip.dates} · {trip.nights} nights · {trip.destinations.join(", ")}
               {trip.startsInDays !== null && <> · leaves in {trip.startsInDays} days</>}
@@ -401,7 +401,7 @@ function Arrived({ trip, building, started }: { trip: Trip; building: boolean; s
             <Rows className="mt-[var(--space-4)]">
               {records.map((p) => (
                 <Row key={p.id}>
-                  <Link href={`/records/${p.id}`} className="row-primary flex items-center gap-[var(--space-3)] underline decoration-hairline underline-offset-4 hover:decoration-ink">
+                  <Link href={`/records/${p.id}`} className="row-primary flex items-center gap-[var(--space-3)] underline decoration-link-rest underline-offset-4 hover:decoration-ink">
                     <span className="size-8 shrink-0 overflow-hidden rounded-md bg-sunken">
                       <PropertyImage id={p.id} name={p.name} category={p.category} />
                     </span>
@@ -451,11 +451,11 @@ function Standing({ trip, lines: all, s, money }: { trip: Trip; lines: TripLine[
 
   const projected = lines
     .filter((l) => l.status === "confirmed" && l.productId && l.program)
-    .map((l) => projectedOf(l, termsFor(l.productId!, l.program!)?.rate ?? null) ?? 0)
+    .map((l) => projectedOf(l, termsFor(l.productId!, l.program!, l.offer)?.rate ?? null) ?? 0)
     .reduce((a, b) => a + b, 0);
   const coming = lines
     .filter((l) => (l.status === "held" || l.status === "requested") && l.productId && l.program)
-    .map((l) => projectedOf(l, termsFor(l.productId!, l.program!)?.rate ?? null) ?? 0)
+    .map((l) => projectedOf(l, termsFor(l.productId!, l.program!, l.offer)?.rate ?? null) ?? 0)
     .reduce((a, b) => a + b, 0);
 
   return (
@@ -686,8 +686,20 @@ function LineCard({ l, trip, mode, compose, setCompose, onRemoved, onFindAnother
   const clash = tasteClash(trip.traveller, l.productId);
   const kept = keptWords(s, trip, l.productId);
   const inc = incentiveOf(l);
-  const terms = l.productId && l.program ? termsFor(l.productId, l.program) : null;
+  const offer = offerOf(l);
+  const used = !!offer && l.offer === offer.id;
+  const terms = l.productId && l.program ? termsFor(l.productId, l.program, l.offer) : null;
   const projected = terms ? projectedOf(l, terms.rate) : null;
+  /* what the line earns on the programme's own rate, and on the offer's */
+  const onBase = l.productId && l.program ? projectedOf(l, termsFor(l.productId, l.program)?.rate ?? null) : null;
+  const onOffer = offer && l.productId && l.program ? projectedOf(l, termsFor(l.productId, l.program, offer.id)?.rate ?? null) : null;
+  const chose = offer ? s.decisions[`offer:${l.id}`] : undefined;
+  /* Choosing the offer's rate: the advisor's act, recorded with who and when. */
+  const useOffer = () => {
+    if (!offer) return;
+    d({ type: "lineSet", id: l.id, patch: { offer: offer.id } });
+    d({ type: "decide", id: `offer:${l.id}`, what: `Booked on ${offer.offer!.name}` });
+  };
   const who = supplierOf(l);
   const reply = waitingReply(l);
   const [byHand, setByHand] = useState(false);
@@ -751,6 +763,22 @@ function LineCard({ l, trip, mode, compose, setCompose, onRemoved, onFindAnother
           {incentiveWords(inc)} on bookings made by {inc.bookingWindowEnd}.
         </SeverityBanner>
       )}
+      {/* A partner's offer read from this morning's email (2026-10-02): what it pays and
+          adds against the programme's own rate, where it was read, and the advisor's act.
+          Once chosen it says who chose it; the terms below are the offer's. */}
+      {offer?.offer && money && l.status !== "confirmed" && (used ? (
+        <Done>{chose ? `${chose.what} · ${personName[chose.by]}, ${/\d{1,2}:\d{2}$/.exec(chose.at)?.[0] ?? "today"}` : `Booked on ${offer.offer.name}`}</Done>
+      ) : (
+        <SeverityBanner severity="Info">
+          <span className="type-data-strong">{offer.offer.name}</span>, from {offer.offer.from.source} at {offer.offer.from.at}: {offer.rate} instead of {Math.round((termsFor(l.productId!, l.program!)?.rate ?? 0) * 100)}%
+          {onBase != null && onOffer != null ? ` (${eur(onOffer)} instead of ${eur(onBase)})` : ""}, and {offer.offer.adds.charAt(0).toLowerCase() + offer.offer.adds.slice(1)}. For stays booked by {offer.bookingWindowEnd}.
+          {canAct && (
+            <div className="mt-[var(--space-3)]">
+              <Button size="sm" onClick={useOffer}>Use the offer rate</Button>
+            </div>
+          )}
+        </SeverityBanner>
+      ))}
 
       {/* the record it books */}
       {p && (

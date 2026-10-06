@@ -47,7 +47,7 @@ function difference(p: Payment, cand: Candidate) {
   return diff > 0 ? `${eur(diff)} more than this payment` : `${eur(-diff)} less than this payment`;
 }
 
-const linkCls = "underline decoration-hairline underline-offset-4 hover:decoration-ink";
+const linkCls = "underline decoration-link-rest underline-offset-4 hover:decoration-ink";
 
 export default function ResolutionQueue() {
   return (

@@ -168,6 +168,10 @@
 
   /* ── sys: strokes ────────────────────────────────────────────────── */
   --sys-stroke-hairline: rgb(var(--ref-ink-warm) / 0.09);  /* content rules */
+  /* a link's underline at rest (2026-10-02): at the hairline's 9% it vanished on a real
+     screen and in every capture, so nothing read as a way in until the pointer found it.
+     Strong enough to say "press me", still quieter than the ink it turns under the pointer. */
+  --sys-stroke-link:     rgb(var(--ref-ink-warm) / 0.32);
   --sys-stroke-strong:   rgb(var(--ref-ink-warm) / 0.50);  /* input segments, secondary emphasis — kept for 3:1 */
   --sys-stroke-hover:    rgb(var(--ref-ink-warm) / 0.80);  /* a control under the pointer */
   --sys-stroke-frame:    rgb(var(--ref-ink-warm) / 0.07);
@@ -320,6 +324,7 @@
   --color-on-selected:       var(--sys-label-on-selected);
   /* strokes */
   --color-hairline:     var(--sys-stroke-hairline);
+  --color-link-rest:    var(--sys-stroke-link);
   --color-strong:       var(--sys-stroke-strong);
   --color-stroke-hover: var(--sys-stroke-hover);
   --color-frame:        var(--sys-stroke-frame);

@@ -62,7 +62,7 @@ const OPTION =
 export function AddConnection({
   open, onOpenChange,
 }: { open: boolean; onOpenChange: (v: boolean) => void }) {
-  const { s } = useDemo();
+  const { s, d } = useDemo();
   const owner = s.role === "owner";
   /* Who the index arrives closed to: whoever connected it. */
   const closedTo = owner ? "the administrators" : "you";
@@ -90,6 +90,15 @@ export function AddConnection({
     : true;
 
   const chosen = pick?.scopeOptions.filter((o) => scopes.includes(o.id)) ?? [];
+
+  /* Connecting is the commit: the source joins the list as syncing, and its first
+     documents start arriving in the vault, closed to whoever connected it. */
+  const connect = () => {
+    if (pick && account) {
+      d({ type: "connect", connection: { connectorId: pick.id, name: `${pick.name} — ${account}`, scopes, by: s.role, at: Date.now() } });
+    }
+    setDone(true);
+  };
 
   const summary = pick && account
     ? [
@@ -230,7 +239,7 @@ export function AddConnection({
               </Button>
               <Button
                 disabled={!canAdvance}
-                onClick={() => (step === STEPS.length - 1 ? setDone(true) : setStep((v) => v + 1))}
+                onClick={() => (step === STEPS.length - 1 ? connect() : setStep((v) => v + 1))}
               >
                 {step === STEPS.length - 1 ? `Connect ${pick?.name ?? "source"}` : "Continue"}
               </Button>

@@ -5,12 +5,17 @@
  *
  * The title row acts, the toolbar views (VIS-095, NAV-01, 2026-09-28). The title is
  * "Knowledge", the name the dock and the crumb use (NAV-06), with the vault's one count
- * and its one create, Upload, drawn as a SchematicAction because this build does not
- * wire it (COL-09). The source switch, the search and the result ("4 of 812 from Drive ·
- * newest first") sit in the toolbar directly above the ledger. The rows are sorted
- * newest first, so the order the toolbar states is the order they run in (COL-06).
- * Connecting a source is a link in "Adding a document", where the page explains how
- * documents arrive, not an act in the title row.
+ * and its creates: Upload, drawn as a SchematicAction because this build does not wire
+ * it (COL-09), and "New connection" (VIS-105). The source switch, the search and the
+ * result ("4 of 812 from Drive · newest first") sit in the toolbar directly above the
+ * ledger. The rows are sorted newest first, so the order the toolbar states is the
+ * order they run in (COL-06).
+ *
+ * 2026-10-06, VIS-105: "New connection" opens the connection flow here, over the
+ * vault, rather than sending the reader to Connections. What it indexes arrives in this
+ * list as it is indexed, so the reader watches the result of the act where she began
+ * it. It was a text link at the foot of the page, "Connect a source", which led away
+ * to Connections; it was missed. The foot keeps the same act, under the same name.
  *
  * One list-and-detail pattern (VIS-096). A click on a row selects it and opens the
  * inspector; the row is keyboard-reachable through the table primitive (COL-07), and
@@ -48,7 +53,7 @@
 import React, { Suspense, useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useDemo, announcementsFor, type AnnouncementView, type DemoState, type ShareScope } from "@/lib/store";
+import { useDemo, announcementsFor, arrivalsAt, useArrivalClock, type AnnouncementView, type DemoState, type ShareScope } from "@/lib/store";
 import {
   vaultDocs, vaultStats, connections, people, personName, productById,
   type Persona, type VaultDoc,
@@ -59,6 +64,7 @@ import {
 } from "@/components/bits";
 import { ShareSheet, audienceOptions, type AudienceOption } from "@/components/share-sheet";
 import { askAbout } from "@/components/assistant";
+import { AddConnection } from "@/app/connections/add-connection";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
@@ -219,6 +225,7 @@ function KnowledgeVault() {
   const docParam = params.get("doc");
   const [query, setQuery] = useState(() => params.get("q") ?? "");
   const q = norm(query);
+  const [connectOpen, setConnectOpen] = useState(false);
 
   /* The vault is permission-filtered like every other surface: a document a person
      cannot open does not appear in the list at all — absent, not masked, and not
@@ -228,8 +235,11 @@ function KnowledgeVault() {
      or not. Counting rows after the filter is deliberate: the totals a reader is given
      must be totals of what they can actually reach. */
   const announced = useMemo(() => announcementsFor(s), [s]);
+  /* What a connection made this session has brought in so far: each document indexing,
+     then closed to whoever connected it, and filtered by the same rule as the rest. */
+  const now = useArrivalClock(s);
   const visible = useMemo<Doc[]>(() => {
-    const docs = vaultDocs.filter((doc) => {
+    const docs = [...arrivalsAt(s, now), ...vaultDocs].filter((doc) => {
       const access = accessNow(s, doc).access;
       if (access === "admin only") return owner;
       if (access === "private" || access === "processing") {
@@ -239,7 +249,7 @@ function KnowledgeVault() {
       return true;
     });
     return [...announced.map(asDoc), ...docs.map((doc) => ({ ...doc, key: doc.name }))];
-  }, [owner, s, announced]);
+  }, [owner, s, announced, now]);
 
   const inSource = useMemo(() => {
     const src = tabSource[tab];
@@ -280,7 +290,12 @@ function KnowledgeVault() {
     <PageHeader
       title="Knowledge"
       count={count(total, DOCUMENTS)}
-      create={<SchematicAction>Upload</SchematicAction>}
+      create={
+        <>
+          <SchematicAction>Upload</SchematicAction>
+          <Button variant="secondary" size="sm" onClick={() => setConnectOpen(true)}>New connection</Button>
+        </>
+      }
     />
   );
 
@@ -391,11 +406,13 @@ function KnowledgeVault() {
             Mail a document to {inbound?.name.replace("Inbound mail — ", "")} and it arrives here, private to you.
             Connecting your own mailbox or Drive indexes what is in it, also private to you.
           </p>
-          <Button asChild variant="link" size="sm" className="mt-[var(--space-3)]">
-            <Link href="/connections?add=1">Connect a source</Link>
+          <Button variant="link" size="sm" className="mt-[var(--space-3)]" onClick={() => setConnectOpen(true)}>
+            New connection
           </Button>
         </Section>
       </div>
+
+      <AddConnection open={connectOpen} onOpenChange={setConnectOpen} />
     </SplitPage>
   );
 }
@@ -425,7 +442,7 @@ function AnnouncementPanel({ a }: { a: AnnouncementView }) {
               const p = productById(id);
               return (
                 <Row key={id}>
-                  <Link href={`/records/${id}`} className="row-primary type-data-strong underline decoration-hairline underline-offset-4 hover:decoration-ink">
+                  <Link href={`/records/${id}`} className="row-primary type-data-strong underline decoration-link-rest underline-offset-4 hover:decoration-ink">
                     {p?.name ?? id}
                   </Link>
                   <span className="row-trailing type-meta">{p ? `${p.city} · ${p.status === "Active" ? p.evidence.label : p.status.toLowerCase()}` : ""}</span>
@@ -463,7 +480,7 @@ function ProvenancePanel({ sel }: { sel: Doc }) {
   const shared = s.docShares[sel.name];
 
   const holder = holderOf(sel);
-  const how = sel.source === "Email-in" ? "forwarded" : "uploaded";
+  const how = sel.source === "Email-in" ? "forwarded" : sel.source === "Drive sync" ? "from a connected Drive" : "uploaded";
   const belongsTo =
     holder === "agency" ? "The agency, from its sources"
     : holder === s.role ? `You, ${how}`

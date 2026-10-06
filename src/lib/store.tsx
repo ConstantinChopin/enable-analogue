@@ -16,9 +16,9 @@
 import React, { createContext, useContext, useReducer } from "react";
 import {
   personName, personInitials, publishQueue, leandreFields, travellerCards, notificationsFor, people, announcements,
-  notices as seededNotices, orphanedPayments,
+  notices as seededNotices, orphanedPayments, connectors,
 } from "@/data/seed";
-import type { Persona, World, Notification, QueueItem, ProductCategory, Announcement, Notice } from "@/data/seed";
+import type { Persona, World, Notification, QueueItem, ProductCategory, Announcement, Notice, VaultDoc } from "@/data/seed";
 import { trips, type Trip } from "@/data/seed";
 
 /** Every trip on this desk: the seeded ones, and those started by hand this session. */
@@ -53,6 +53,19 @@ export interface FieldEdit {
    releases it from the publish queue. The owner's own agency-wide shares go out
    directly, since she is the one who would release them.                          */
 export type ShareScope = "private" | "team" | "agency";
+
+/* A source connected by hand this session (src/app/connections/add-connection.tsx).
+   Connecting indexes it and shares nothing: its documents arrive in the vault over the
+   first seconds, each closed to whoever connected it (`arrivalsAt`). `at` is when it
+   was connected, in milliseconds, so the arrival can be replayed from it. */
+export interface CreatedConnection {
+  connectorId: string;
+  /** Named as the seeded ones are: "Google Drive — r.devane@enable.example". */
+  name: string;
+  scopes: string[];
+  by: Persona;
+  at: number;
+}
 
 export interface CreatedRecord {
   id: string;
@@ -166,6 +179,8 @@ export interface DemoState {
   accessRequests: { travellerId: string; by: Persona }[];
   /** Document name → where its owner shared it this session. */
   docShares: Record<string, { scope: ShareScope; by: Persona }>;
+  /** Sources connected by hand this session. */
+  createdConnections: CreatedConnection[];
   /** Choices a person made and the product said it recorded (FB-07): kept a warning,
       said a notice is still true, discarded a suggestion. Who and when, so the record
       can be shown where the warning was. Keyed by what was decided, e.g.
@@ -213,6 +228,7 @@ const initial: DemoState = {
   retired: {},
   accessRequests: [],
   docShares: {},
+  createdConnections: [],
   decisions: {},
   payments: {},
 };
@@ -271,6 +287,7 @@ export type Action =
   | { type: "retireNotice"; id: string; reason: string }
   | { type: "requestAccess"; travellerId: string }
   | { type: "shareDocument"; name: string; scope: ShareScope }
+  | { type: "connect"; connection: CreatedConnection }
   /* a choice, recorded with who and when; and its reversal */
   | { type: "decide"; id: string; what: string }
   | { type: "undecide"; id: string }
@@ -311,14 +328,15 @@ export interface AnswerSource {
   n: number;
   label: string;
   detail: string;
-  kind?: "portal" | "intranet" | "email" | "gdrive" | "manual" | "announcement" | "tripsuite" | "axus";
+  kind?: "portal" | "intranet" | "email" | "gdrive" | "manual" | "announcement" | "tripsuite" | "axus" | "web";
   /** The document it was quoted from (seed `sourceDocuments`), opened from the citation. */
   doc?: string;
   quote?: string;
 }
 /** The answer contract as it was checked when the answer was given. */
 export interface AnswerContract {
-  status: "met" | "refused" | "disagree" | "stale" | "notice";
+  /** `web`: answered from the open web, on request, after the agency's sources could not. */
+  status: "met" | "refused" | "disagree" | "stale" | "notice" | "web";
   /** The oldest source's date, and how many sources confirm one another. */
   oldest?: string;
   corroborated?: number;
@@ -516,6 +534,7 @@ function reducer(s: DemoState, a: Action): DemoState {
     };
     case "shareDocument":
       return { ...s, docShares: { ...s.docShares, [a.name]: { scope: a.scope, by: s.role } } };
+    case "connect": return { ...s, createdConnections: [...s.createdConnections, a.connection] };
     case "requestAccess":
       if (s.accessRequests.some((r) => r.travellerId === a.travellerId && r.by === s.role)) return s;
       return { ...s, accessRequests: [...s.accessRequests, { travellerId: a.travellerId, by: s.role }] };
@@ -584,6 +603,59 @@ export function useDemo() {
 /** Commission figures are absent — never masked — for a user the owner has not entitled. */
 export function canViewCommissions(s: Pick<DemoState, "role" | "commissionAccess">) {
   return s.role === "owner" || s.commissionAccess;
+}
+
+/* ── what a new connection brings in ───────────────────────────────────────────
+   The first documents a source indexes, as the vault lists them while they arrive: one
+   every ARRIVE_EVERY, the first after FIRST_AFTER, each shown as indexing for INDEX_FOR
+   and then closed to whoever connected it — private to an advisor, admin only for the
+   agency's. A sample of what the folders hold, not all of it; the connection reads as
+   syncing until the last one is in. Replayed from `at`, so it holds across a reload. */
+const FIRST_AFTER = 1500;
+const ARRIVE_EVERY = 1200;
+const INDEX_FOR = 2500;
+
+function arrivingNames(c: CreatedConnection): string[] {
+  const connector = connectors.find((k) => k.id === c.connectorId);
+  return connector?.scopeOptions.filter((o) => c.scopes.includes(o.id)).flatMap((o) => o.arrives) ?? [];
+}
+
+/** When the last of a connection's documents is indexed: the end of its first sync. */
+export function syncedAt(c: CreatedConnection): number {
+  const n = arrivingNames(c).length;
+  return c.at + FIRST_AFTER + Math.max(0, n - 1) * ARRIVE_EVERY + INDEX_FOR;
+}
+
+/** The documents a person's new connections have brought in by `now`. */
+export function arrivalsAt(s: Pick<DemoState, "createdConnections">, now: number): VaultDoc[] {
+  return s.createdConnections.flatMap((c) => {
+    const source = connectors.find((k) => k.id === c.connectorId)?.docSource ?? "Upload";
+    const closed = c.by === "owner" ? "admin only" : "private";
+    return arrivingNames(c).flatMap((name, i): VaultDoc[] => {
+      const appears = c.at + FIRST_AFTER + i * ARRIVE_EVERY;
+      if (now < appears) return [];
+      const indexing = now < appears + INDEX_FOR;
+      return [{
+        name, source, updated: "Today",
+        access: indexing ? "processing" : closed,
+        state: indexing ? "processing" : "ok",
+        /* An advisor's source brings in her documents; the owner's brings in the agency's. */
+        ...(c.by === "owner" ? {} : { by: personName[c.by] }),
+      }];
+    });
+  });
+}
+
+/** The clock, ticking only while a new connection is still bringing documents in. */
+export function useArrivalClock(s: Pick<DemoState, "createdConnections">): number {
+  const [now, setNow] = React.useState(() => Date.now());
+  const pending = s.createdConnections.some((c) => now < syncedAt(c));
+  React.useEffect(() => {
+    if (!pending) return;
+    const t = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(t);
+  }, [pending]);
+  return now;
 }
 
 /* ── who may write what ─────────────────────────────────────────────────────────

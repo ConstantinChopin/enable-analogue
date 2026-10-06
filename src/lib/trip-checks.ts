@@ -110,10 +110,20 @@ export function inCommissions(l: TripLine) {
     && (l.requests.some((r) => r.reply?.accepted && r.sentOn >= TODAY) || l.confirmation?.source === "by hand");
 }
 
-/** The incentive this line could still catch: its programme's promotion, window open. */
+/** A partner's emailed offer this line could be booked on: same property and programme,
+    window open. Choosing it is the advisor's act (`TripLine.offer`). */
+export function offerOf(l: TripLine) {
+  if (!l.productId) return null;
+  return promotions.find((p) => p.offer && p.productId === l.productId && p.program === l.program && p.daysLeft > 0) ?? null;
+}
+
+/** The incentive this line could still catch: its programme's promotion, window open.
+    An emailed offer is told apart (`offerOf`), and an older offer it replaces is not
+    offered beside it. */
 export function incentiveOf(l: TripLine) {
   if (!l.productId) return null;
-  return promotions.find((p) => p.productId === l.productId && p.program === l.program && p.daysLeft > 0) ?? null;
+  const replaced = offerOf(l)?.offer?.supersedes ?? [];
+  return promotions.find((p) => !p.offer && !replaced.includes(p.id) && p.productId === l.productId && p.program === l.program && p.daysLeft > 0) ?? null;
 }
 
 const reason = (text: string) => { const r = text.split(" — ")[0].replace(/\.$/, ""); return r.charAt(0).toLowerCase() + r.slice(1); };

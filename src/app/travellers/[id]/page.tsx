@@ -142,7 +142,7 @@ function OnTheirTrips({ id, name }: { id: string; name: string }) {
           title={`${a.name} is closed to bookings`}
           action={owner ? undefined : <Button variant="secondary" size="sm" onClick={() => takeOff(s, d, a.trip, a.line)}>Take it off the trip</Button>}
         >
-          It is on <Link href={`/itineraries/${a.trip.id}?line=${a.line.id}`} className="underline decoration-hairline underline-offset-4 hover:decoration-ink">{a.trip.title}</Link>. {a.block!.text} <span className="type-meta">{a.block!.by}, {a.block!.openedAt}</span>
+          It is on <Link href={`/itineraries/${a.trip.id}?line=${a.line.id}`} className="underline decoration-link-rest underline-offset-4 hover:decoration-ink">{a.trip.title}</Link>. {a.block!.text} <span className="type-meta">{a.block!.by}, {a.block!.openedAt}</span>
         </Blocker>
       ) : (
         <Warning
@@ -158,7 +158,7 @@ function OnTheirTrips({ id, name }: { id: string; name: string }) {
             </>
           )}
         >
-          {a.sentence} On <Link href={`/itineraries/${a.trip.id}?line=${a.line.id}`} className="underline decoration-hairline underline-offset-4 hover:decoration-ink">{a.trip.title}</Link>.
+          {a.sentence} On <Link href={`/itineraries/${a.trip.id}?line=${a.line.id}`} className="underline decoration-link-rest underline-offset-4 hover:decoration-ink">{a.trip.title}</Link>.
         </Warning>
       ))}
     </div>
@@ -176,7 +176,7 @@ function TripRows({ id, name, past = [] }: { id: string; name: string; past?: { 
         const r = readinessOf(s, t);
         return (
           <Row key={t.id}>
-            <Link href={`/itineraries/${t.id}`} className="row-primary type-data-strong underline decoration-hairline underline-offset-4 hover:decoration-ink">{t.title}</Link>
+            <Link href={`/itineraries/${t.id}`} className="row-primary type-data-strong underline decoration-link-rest underline-offset-4 hover:decoration-ink">{t.title}</Link>
             <span className="row-meta tnum type-meta">{t.dates}</span>
             <span className="row-trailing">{r ? <Chip tone={r.tone}>{r.text}</Chip> : <Chip tone="neutral">{t.status}</Chip>}</span>
           </Row>

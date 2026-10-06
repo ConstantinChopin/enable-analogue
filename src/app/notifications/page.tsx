@@ -294,7 +294,7 @@ function ItemPanel({ n }: { n: Notification }) {
             value: n.subject ? (
               <Link
                 href={n.subject.href}
-                className="underline decoration-hairline underline-offset-4 hover:decoration-ink"
+                className="underline decoration-link-rest underline-offset-4 hover:decoration-ink"
               >
                 {n.subject.label}
               </Link>

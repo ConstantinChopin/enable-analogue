@@ -381,7 +381,7 @@ function TraceList({ stages, pending }: { stages: { stage: string; detail: strin
 
 const KIND_WORD: Record<NonNullable<AnswerSource["kind"]>, string> = {
   portal: "portal", intranet: "intranet", email: "email", gdrive: "capture", manual: "note",
-  announcement: "announcement", tripsuite: "feed", axus: "feed",
+  announcement: "announcement", tripsuite: "feed", axus: "feed", web: "open web",
 };
 
 function SourcesRail({ a, turn, selected, onOpenDoc, boxed }: {

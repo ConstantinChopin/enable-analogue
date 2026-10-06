@@ -4,7 +4,7 @@
  * name (the one serif on the screen) left, actions right — and clears the dock
  * by way of <Page>, which owns the bottom padding.
  */
-import React, { useCallback, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { X, LayoutGrid, Rows3, Search, ArrowUpRight } from "lucide-react";
+import { X, LayoutGrid, Rows3, Search, ArrowUpRight, ArrowLeft } from "lucide-react";
 
 /* ── Dock clearance ──────────────────────────────────────────────────────────── */
 export const DOCK_FOOTPRINT = 84;
@@ -167,6 +167,23 @@ export function Page({
   );
 }
 
+/* ── The inspector's own view — an act begun in the card happens in it (VIS-104) ──
+   A control inside the inspector (sharing, today) puts its act in the card instead of
+   sliding a sheet over it: the card keeps its place and its corners, its header names
+   the act with Back beside the close, and the act lays out its own body and foot.
+   Back, Escape or choosing another item returns the card to the item, and tells the
+   act it was dismissed. Outside a card, useInspector() is null and acts open as sheets. */
+export interface InspectorView {
+  title: string;
+  /** The act: its body and its pinned foot, laid out by the act itself. */
+  content: React.ReactNode;
+  /** Called when the card goes back to the item without the act finishing. */
+  onDismiss?: () => void;
+}
+const InspectorContext = createContext<{ show: (view: InspectorView | null) => void } | null>(null);
+/** Inside an inspector card, the way to show an act in it; outside one, null. */
+export function useInspector() { return useContext(InspectorContext); }
+
 /* ── SplitPage — one list-and-detail pattern for every collection (VIS-096) ──
    A catalogue, ledger or queue with an inspector: a card at the frame's right edge,
    on raised paper; on the phone, a bottom sheet. Clicking a row selects it and opens
@@ -192,12 +209,30 @@ export function SplitPage({
 }) {
   const isDesktop = useIsDesktop();
 
+  /* An act shown in the card (VIS-104). `show` is the act's own way in and out; `back`
+     is the card's, and tells the act it was left unfinished. */
+  const [view, setView] = useState<InspectorView | null>(null);
+  const viewRef = useRef<InspectorView | null>(null);
+  const show = useCallback((v: InspectorView | null) => { viewRef.current = v; setView(v); }, []);
+  const back = useCallback(() => {
+    const v = viewRef.current;
+    if (!v) return;
+    show(null);
+    v.onDismiss?.();
+  }, [show]);
+  const inspector = useMemo(() => ({ show }), [show]);
+  /* another item, or the card closing, ends the act */
+  useEffect(() => { back(); }, [panelTitle, openHref, panelOpen, back]);
+
   useEffect(() => {
     if (!panelOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClosePanel(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (viewRef.current) back(); else onClosePanel();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [panelOpen, onClosePanel]);
+  }, [panelOpen, onClosePanel, back]);
 
   const { s, d } = useDemo();
   /* The right-hand slot holds one card at a time. Choosing an item folds the assistant
@@ -224,6 +259,10 @@ export function SplitPage({
   const pinned = footer ? (
     <div className="shrink-0 border-t border-hairline px-[var(--space-6)] py-[var(--space-4)]">{footer}</div>
   ) : null;
+  const title = view ? view.title : panelTitle;
+  const backButton = view ? (
+    <IconChrome label="Back" onClick={back} className="-ml-1"><ArrowLeft aria-hidden /></IconChrome>
+  ) : null;
 
   return (
     <div className="flex h-full min-h-0 w-full">
@@ -245,37 +284,59 @@ export function SplitPage({
           inside the panel and the two curves run parallel (Constantin, 2026-09-25). */}
       {open && (
         <aside
-          aria-label={panelTitle}
+          aria-label={title}
           data-inspector
           className="inspector-in absolute top-[var(--space-1)] right-[var(--space-1)] bottom-[var(--space-1)] z-10 flex w-[400px] flex-col overflow-hidden rounded-lg bg-raised shadow-elev-3"
         >
+          <InspectorContext.Provider value={inspector}>
             <div className="flex shrink-0 items-center justify-between gap-[var(--space-3)] px-[var(--space-6)] pt-[var(--space-6)] pb-[var(--space-2)]">
-              <span className="min-w-0 truncate type-section">{panelTitle}</span>
+              <div className="flex min-w-0 items-center gap-[var(--space-2)]">
+                {backButton}
+                <span className="min-w-0 truncate type-section">{title}</span>
+              </div>
               <div className="-mr-1 flex shrink-0 items-center gap-1">
-                {openLink}
+                {!view && openLink}
                 <IconChrome label="Close panel" onClick={onClosePanel}>
                   <X aria-hidden />
                 </IconChrome>
               </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-[var(--space-6)] pt-[var(--space-2)] pb-[var(--space-6)]">{panel}</div>
-            {pinned}
+            {view ? (
+              <div className="flex min-h-0 flex-1 flex-col">{view.content}</div>
+            ) : (
+              <>
+                <div className="min-h-0 flex-1 overflow-y-auto px-[var(--space-6)] pt-[var(--space-2)] pb-[var(--space-6)]">{panel}</div>
+                {pinned}
+              </>
+            )}
+          </InspectorContext.Provider>
         </aside>
       )}
 
       {!isDesktop && (
         <Sheet open={panelOpen} onOpenChange={(o) => { if (!o) onClosePanel(); }}>
           <SheetContent side="bottom" showCloseButton={false} className="max-h-[85dvh] gap-0 p-0">
-            <SheetTitle asChild><span className="sr-only">{panelTitle}</span></SheetTitle>
-            <div className="flex items-center justify-between gap-2 border-b border-hairline px-[var(--space-6)] py-[var(--space-3)]">
-              <span className="truncate type-section">{panelTitle}</span>
-              <div className="flex shrink-0 items-center gap-1">
-                {openLink}
-                <IconChrome label="Close panel" onClick={onClosePanel}><X aria-hidden /></IconChrome>
+            <InspectorContext.Provider value={inspector}>
+              <SheetTitle asChild><span className="sr-only">{title}</span></SheetTitle>
+              <div className="flex items-center justify-between gap-2 border-b border-hairline px-[var(--space-6)] py-[var(--space-3)]">
+                <div className="flex min-w-0 items-center gap-[var(--space-2)]">
+                  {backButton}
+                  <span className="truncate type-section">{title}</span>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  {!view && openLink}
+                  <IconChrome label="Close panel" onClick={onClosePanel}><X aria-hidden /></IconChrome>
+                </div>
               </div>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-[var(--space-6)] pb-[var(--space-8)]">{panel}</div>
-            {pinned}
+              {view ? (
+                <div className="flex min-h-0 flex-1 flex-col">{view.content}</div>
+              ) : (
+                <>
+                  <div className="min-h-0 flex-1 overflow-y-auto p-[var(--space-6)] pb-[var(--space-8)]">{panel}</div>
+                  {pinned}
+                </>
+              )}
+            </InspectorContext.Provider>
           </SheetContent>
         </Sheet>
       )}
